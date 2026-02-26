@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { useStore } from '../store';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from '../api';
+import { StationCarousel } from '../components';
 
 interface DashboardScreenProps {
   scrollRef?: (ref: any) => void;
@@ -124,6 +125,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
           </View>
         </View>
 
+        {/* Station Carousel */}
+        <StationCarousel />
+
         {/* AI Trend Analysis Block */}
         <View style={styles.insightSection}>
           <View style={styles.insightCard}>
@@ -235,7 +239,7 @@ const styles = StyleSheet.create({
   gaugeSection: {
     alignItems: 'center',
     paddingVertical: 20,
-    paddingBottom: 32,
+    paddingBottom: 8,
   },
   gaugeContainer: {
     position: 'relative',
