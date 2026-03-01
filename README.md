@@ -1,11 +1,11 @@
-## 🚀 快速開始
+## 快速開始
 
 ### 📋 環境需求
 
 - **Node.js 18+**
 - **Docker Desktop** (用於資料庫)
 - **npm** 或 **yarn**
-- **手機** (iOS 或 Android) 或 **模擬器**
+- **手機** 或 **模擬器**
 
 ### 📱 手機準備
 
@@ -100,5 +100,3 @@ docker-compose down
 # 停止並刪除資料（危險！）
 docker-compose down -v
 ```
-
----
