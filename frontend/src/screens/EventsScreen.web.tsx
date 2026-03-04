@@ -35,8 +35,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       description: "在工業區範圍內檢測到局部 SO2 尖峰。",
       severity: "中等風險",
       status: "固定站",
+      trend: "穩定中",
+      exposure: "~1.2k 人",
       duration: "45分鐘 持續",
       location: "觀音區",
+      healthIndex: "敏感警告",
       severityColor: "#FFB74D",
       icon: "business",
     },
@@ -123,6 +126,10 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text style={[styles.badgeText, { color: "#333" }]}>{event.status}</Text>
                   </View>
                 </View>
+                <View style={styles.bottomInfo}>
+                  <Text style={styles.categoryText}>影響類別</Text>
+                  <Text style={styles.categoryTitle}>{event.category}</Text>
+                </View>
               </View>
 
               <View style={styles.eventContent}>
@@ -156,6 +163,72 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                       <Text style={styles.detailValue}>{event.location}</Text>
                     </View>
                   </View>
+
+                  {event.trend && (
+                    <View style={styles.detailItem}>
+                      <View style={styles.detailIcon}>
+                        <Ionicons name="trending-up" size={20} color="#666" />
+                      </View>
+                      <View style={styles.detailContent}>
+                        <Text style={styles.detailLabel}>趋勢</Text>
+                        <Text style={styles.detailValue}>{event.trend}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {event.exposure && (
+                    <View style={styles.detailItem}>
+                      <View style={styles.detailIcon}>
+                        <Ionicons name="people" size={20} color="#666" />
+                      </View>
+                      <View style={styles.detailContent}>
+                        <Text style={styles.detailLabel}>暴露人口</Text>
+                        <Text style={styles.detailValue}>{event.exposure}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Bottom Action */}
+                <View style={styles.eventFooter}>
+                  <View style={styles.confidenceContainer}>
+                    <Text style={styles.confidenceLabel}>
+                      {event.confidence ? "AI 信心分數" : "健康指數"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.confidenceValue,
+                        { color: event.confidence ? "#6ABD73" : "#F59E0B" },
+                      ]}
+                    >
+                      {event.confidence || event.healthIndex}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      event.confidence
+                        ? styles.primaryActionButton
+                        : styles.secondaryActionButton,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        event.confidence
+                          ? styles.primaryActionText
+                          : styles.secondaryActionText,
+                      ]}
+                    >
+                      {event.confidence ? "AI 證據" : "完整分析"}
+                    </Text>
+                    <Ionicons
+                      name={event.confidence ? "analytics" : "trending-up"}
+                      size={18}
+                      color={event.confidence ? "white" : "#333"}
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -274,6 +347,73 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   detailValue: { fontSize: 16, color: "#333", fontWeight: "600" },
+  bottomInfo: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    zIndex: 10,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "rgba(255, 255, 255, 0.8)",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  categoryTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    lineHeight: 28,
+  },
+  eventFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 24,
+  },
+  confidenceContainer: {
+    flex: 1,
+  },
+  confidenceLabel: {
+    fontSize: 12,
+    color: "#999",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  confidenceValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+  },
+  primaryActionButton: {
+    backgroundColor: "#6ABD73",
+  },
+  secondaryActionButton: {
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.1)",
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  primaryActionText: {
+    color: "white",
+  },
+  secondaryActionText: {
+    color: "#333",
+  },
   bottomSpacing: { height: 100 },
 });
 
