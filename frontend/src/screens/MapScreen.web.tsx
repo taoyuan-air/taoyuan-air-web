@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { useStore } from '../store';
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export const MapScreen = () => {
-  const { selectedPollutant, setSelectedPollutant, gridCells } = useStore();
+  const { selectedPollutant, setSelectedPollutant, mode, setMode } = useStore();
 
   const getPollutantLabel = () => {
     switch (selectedPollutant) {
@@ -18,177 +20,188 @@ export const MapScreen = () => {
     }
   };
 
-  return (
-    <LinearGradient colors={['#F4F2E9', '#E8E6D3']} style={styles.container}>
-      <TopNavigation title="Map View" subtitle="WEB VERSION" />
-      
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="map" size={48} color="#6A8D73" />
-          </View>
-          <Text style={styles.title}>互動式地圖功能</Text>
-          <Text style={styles.message}>
-            完整的 3D 地圖、即時網格數據和空間分析功能目前僅支援手機版本。
-          </Text>
-          <View style={styles.divider} />
-          <Text style={styles.hint}>
-            💡 請使用 Expo Go 在手機上查看完整功能
-          </Text>
-        </View>
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=120.95,24.8,121.55,25.2&layer=mapnik`;
 
-        {/* Pollutant Selector */}
-        <View style={styles.selectorCard}>
-          <Text style={styles.selectorTitle}>選擇污染物</Text>
-          <View style={styles.pollutantGrid}>
+  return (
+    <View style={styles.container}>
+      <TopNavigation title="Map View" subtitle="REAL-TIME MONITORING" />
+      
+      {/* Top Controls */}
+      <View style={styles.topControls}>
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[styles.modeButton, mode === 'NOW' && styles.activeModeButton]}
+            onPress={() => setMode('NOW')}
+          >
+            <Text style={[styles.modeButtonText, mode === 'NOW' && styles.activeModeButtonText]}>
+              REAL-TIME
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeButton, mode === 'FORECAST' && styles.activeModeButton]}
+            onPress={() => setMode('FORECAST')}
+          >
+            <Text style={[styles.modeButtonText, mode === 'FORECAST' && styles.activeModeButtonText]}>
+              FORECAST
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Map */}
+      <View style={styles.mapContainer}>
+        <iframe
+          src={mapUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+          }}
+          title="Taoyuan Map"
+        />
+        
+        <View style={styles.webNotice}>
+          <Text style={styles.webNoticeText}>🌐 Web 預覽版本</Text>
+        </View>
+      </View>
+
+      {/* Legend */}
+      <View style={styles.legendPanel}>
+        <View style={styles.legendCard}>
+          <View style={styles.pollutantSwitcher}>
             {(['PM25', 'O3', 'NOX', 'VOCs'] as const).map((pollutant) => {
               const isActive = selectedPollutant === pollutant;
-              const labels = { PM25: 'PM2.5', O3: 'O₃', NOX: 'NOₓ', VOCs: 'VOCs' };
               return (
                 <TouchableOpacity
                   key={pollutant}
-                  style={[styles.pollutantButton, isActive && styles.activePollutant]}
+                  style={[styles.pollutantDot, isActive && styles.activePollutantDot]}
                   onPress={() => setSelectedPollutant(pollutant)}
                 >
-                  <Text style={[styles.pollutantText, isActive && styles.activePollutantText]}>
-                    {labels[pollutant]}
+                  <Text style={[styles.pollutantDotText, isActive && styles.activePollutantDotText]}>
+                    {pollutant === 'PM25' ? 'P' : pollutant === 'NOX' ? 'N' : pollutant === 'VOCs' ? 'V' : 'O'}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
-
-        {/* Grid Data Preview */}
-        <View style={styles.dataCard}>
-          <Text style={styles.dataTitle}>網格數據預覽 - {getPollutantLabel()}</Text>
-          <Text style={styles.dataSubtitle}>共 {gridCells.length} 個監測網格</Text>
           
-          <View style={styles.gridList}>
-            {gridCells.slice(0, 6).map((grid) => (
-              <View key={grid.gridId} style={styles.gridItem}>
-                <View style={styles.gridInfo}>
-                  <Text style={styles.gridId}>{grid.gridId}</Text>
-                  <Text style={styles.gridDistrict}>{grid.district || '桃園市'}</Text>
-                </View>
-                <View style={styles.gridValue}>
-                  <Text style={styles.valueNumber}>{Math.round(grid.values.value)}</Text>
-                  <Text style={styles.valueUnit}>μg/m³</Text>
-                </View>
-              </View>
-            ))}
+          <Text style={styles.legendTitle}>{getPollutantLabel()} (µg/m³)</Text>
+          
+          <LinearGradient
+            colors={['rgba(106, 141, 115, 0.2)', 'rgba(106, 141, 115, 0.8)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientBar}
+          />
+          <View style={styles.legendLabels}>
+            <Text style={styles.legendLabel}>0</Text>
+            <Text style={styles.legendLabel}>50</Text>
+            <Text style={styles.legendLabel}>100+</Text>
           </View>
-          
-          {gridCells.length > 6 && (
-            <Text style={styles.moreText}>還有 {gridCells.length - 6} 個網格...</Text>
-          )}
         </View>
+      </View>
 
-        {/* Features List */}
-        <View style={styles.featuresCard}>
-          <Text style={styles.featuresTitle}>手機版專屬功能</Text>
-          {[
-            { icon: 'map', text: '3D 互動式地圖視圖' },
-            { icon: 'grid', text: '即時污染網格覆蓋' },
-            { icon: 'location', text: 'GPS 定位與導航' },
-            { icon: 'analytics', text: '空間數據分析' },
-          ].map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <Ionicons name={feature.icon as any} size={20} color="#6A8D73" />
-              <Text style={styles.featureText}>{feature.text}</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </LinearGradient>
+      {/* Info Panel */}
+      <View style={styles.infoPanel}>
+        <Text style={styles.infoText}>📱 完整互動功能請使用手機版</Text>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, padding: 20 },
-  infoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+  container: { flex: 1, backgroundColor: '#F4F2E9' },
+  topControls: {
+    position: 'absolute',
+    top: 120,
+    left: 20,
+    right: 20,
+    zIndex: 10,
   },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(106, 141, 115, 0.1)',
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 25,
+    padding: 4,
+    alignSelf: 'flex-start',
+  },
+  modeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  activeModeButton: { backgroundColor: '#B5C99A' },
+  modeButtonText: { fontSize: 14, fontWeight: '600', color: '#666' },
+  activeModeButtonText: { color: 'white' },
+  mapContainer: {
+    flex: 1,
+    marginTop: 100,
+    position: 'relative',
+  },
+  webNotice: {
+    position: 'absolute',
+    top: 80,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  webNoticeText: { fontSize: 12, fontWeight: '600', color: '#6A8D73' },
+  legendPanel: {
+    position: 'absolute',
+    left: 20,
+    bottom: 120,
+    zIndex: 10,
+  },
+  legendCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 16,
+    minWidth: 140,
+  },
+  pollutantSwitcher: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  pollutantDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(106, 141, 115, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 12, textAlign: 'center' },
-  message: { fontSize: 16, color: '#666', textAlign: 'center', lineHeight: 24, marginBottom: 20 },
-  divider: { width: '100%', height: 1, backgroundColor: '#E0E0E0', marginVertical: 20 },
-  hint: { fontSize: 14, color: '#6A8D73', textAlign: 'center', fontWeight: '600' },
-  selectorCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+  activePollutantDot: { backgroundColor: '#6A8D73' },
+  pollutantDotText: { fontSize: 10, fontWeight: '600', color: '#6A8D73' },
+  activePollutantDotText: { color: 'white' },
+  legendTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6A8D73',
+    textAlign: 'left',
+    marginBottom: 12,
   },
-  selectorTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  pollutantGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  pollutantButton: {
-    flex: 1,
-    minWidth: '45%',
-    paddingVertical: 16,
+  gradientBar: { height: 8, borderRadius: 4, marginBottom: 4 },
+  legendLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  legendLabel: { fontSize: 10, color: '#666' },
+  infoPanel: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(181, 201, 154, 0.95)',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(106, 141, 115, 0.1)',
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
-  activePollutant: {
-    backgroundColor: '#6A8D73',
-    borderColor: '#6A8D73',
-  },
-  pollutantText: { fontSize: 16, fontWeight: '600', color: '#6A8D73' },
-  activePollutantText: { color: 'white' },
-  dataCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-  },
-  dataTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  dataSubtitle: { fontSize: 14, color: '#999', marginBottom: 16 },
-  gridList: { gap: 12 },
-  gridItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(106, 141, 115, 0.05)',
-    borderRadius: 12,
-  },
-  gridInfo: { flex: 1 },
-  gridId: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
-  gridDistrict: { fontSize: 14, color: '#666' },
-  gridValue: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  valueNumber: { fontSize: 24, fontWeight: 'bold', color: '#6A8D73' },
-  valueUnit: { fontSize: 12, color: '#999' },
-  moreText: { fontSize: 14, color: '#999', textAlign: 'center', marginTop: 12, fontStyle: 'italic' },
-  featuresCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 100,
-  },
-  featuresTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  featureItem: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  featureText: { fontSize: 16, color: '#666' },
+  infoText: { fontSize: 14, fontWeight: '600', color: 'white' },
 });

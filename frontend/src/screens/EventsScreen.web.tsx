@@ -70,10 +70,15 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
           {eventData.map((event) => (
             <View key={event.id} style={styles.eventCard}>
               <View style={eventImagePlaceholder}>
-                <View style={styles.mapPlaceholder}>
-                  <Ionicons name="location" size={40} color="#6A8D73" />
-                  <Text style={styles.locationText}>{event.location}</Text>
-                </View>
+                <iframe
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${event.id === 1 ? '121.2,25.0,121.4,25.1' : '121.15,24.95,121.35,25.05'}&layer=mapnik&marker=${event.id === 1 ? '25.035,121.3' : '25.0,121.25'}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  }}
+                  title={`Map of ${event.location}`}
+                />
                 <View style={styles.topBadges}>
                   <View style={[styles.severityBadge, { backgroundColor: event.severityColor }]}>
                     <Text style={styles.badgeText}>{event.severity}</Text>
