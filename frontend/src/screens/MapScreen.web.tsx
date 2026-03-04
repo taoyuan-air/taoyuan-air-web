@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   mapModeText: { fontSize: 12, color: '#6A8D73', fontWeight: '600' },
   mapContainer: {
     flex: 1,
-    marginTop: 100,
+    marginTop: 80,
   },
   legendPanel: {
     position: 'absolute',

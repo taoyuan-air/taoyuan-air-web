@@ -26,7 +26,7 @@ const generateGrid = (scenario: Scenario = 'normal'): GridCell[] => {
       const centerLat = lat + latStep / 2;
       const centerLng = lng + lngStep / 2;
       
-      let pm25Value = 45 + Math.random() * 20; // normal: 45-65
+      let pm25Value = 30 + Math.random() * 90; // 30-120 更大範圍
       
       if (scenario === 'industrial') {
         // 觀音、大園、龜山區域較高

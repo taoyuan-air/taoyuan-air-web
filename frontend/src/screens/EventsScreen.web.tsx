@@ -17,6 +17,15 @@ interface EventsScreenProps {
 
 export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const [selectedFilter, setSelectedFilter] = useState("活躍事件");
+  const [selectedDistrict, setSelectedDistrict] = useState("所有區域");
+  const [selectedSeverity, setSelectedSeverity] = useState("嚴重度");
+  const [showFilterDropdown, setShowFilterDropdown] = useState<string | null>(null);
+
+  const filterOptions = {
+    events: ["活躍事件", "歷史事件", "已解決事件"],
+    districts: ["所有區域", "蘆竹區", "觀音區", "中壢區", "桃園區", "大園區"],
+    severity: ["嚴重度", "高風險", "中等風險", "低風險"]
+  };
 
   const eventData = [
     {
@@ -60,11 +69,38 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       <TopNavigation title="事件庫" subtitle="INCIDENT TRACKING" />
 
       <ScrollView ref={scrollRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.filterContainer}>
-          <TouchableOpacity style={styles.activeFilter}>
-            <Text style={styles.activeFilterText}>{selectedFilter}</Text>
-          </TouchableOpacity>
-        </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScrollView}
+        contentContainerStyle={styles.filterContainer}
+      >
+        <TouchableOpacity 
+          style={[styles.filterButton, showFilterDropdown === 'events' && styles.activeFilter]}
+          onPress={() => setShowFilterDropdown(showFilterDropdown === 'events' ? null : 'events')}
+        >
+          <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
+            {selectedFilter}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#6A8D73"} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.filterButton, showFilterDropdown === 'districts' && styles.activeFilter]}
+          onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
+        >
+          <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
+          <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#6A8D73"} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.filterButton, showFilterDropdown === 'severity' && styles.activeFilter]}
+          onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
+        >
+          <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
+          <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#6A8D73"} />
+        </TouchableOpacity>
+      </ScrollView>
 
         <View style={styles.eventsContainer}>
           {eventData.map((event) => (
@@ -135,7 +171,27 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
-  filterContainer: { paddingHorizontal: 20, paddingBottom: 20 },
+  filterScrollView: {
+    paddingBottom: 20,
+  },
+  filterContainer: { paddingHorizontal: 20, gap: 12 },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    gap: 6,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6A8D73",
+  },
+  activeFilterText: { color: "white" },
   activeFilter: {
     backgroundColor: "#6ABD73",
     paddingHorizontal: 16,
