@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,6 +46,15 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
     },
   ];
 
+  const eventImagePlaceholder: ViewStyle = {
+    width: "100%",
+    aspectRatio: 4 / 3,
+    backgroundColor: "#E8E6D3",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  };
+
   return (
     <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
       <TopNavigation title="事件庫" subtitle="INCIDENT TRACKING" />
@@ -59,8 +69,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
         <View style={styles.eventsContainer}>
           {eventData.map((event) => (
             <View key={event.id} style={styles.eventCard}>
-              <View style={styles.eventImagePlaceholder}>
-                <Text style={styles.placeholderText}>地圖功能僅限手機版</Text>
+              <View style={eventImagePlaceholder}>
+                <View style={styles.mapPlaceholder}>
+                  <Ionicons name="location" size={40} color="#6A8D73" />
+                  <Text style={styles.locationText}>{event.location}</Text>
+                </View>
                 <View style={styles.topBadges}>
                   <View style={[styles.severityBadge, { backgroundColor: event.severityColor }]}>
                     <Text style={styles.badgeText}>{event.severity}</Text>
@@ -137,15 +150,16 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 5,
   },
-  eventImagePlaceholder: {
-    width: "100%",
-    aspectRatio: 4 / 3,
-    backgroundColor: "#E0E0E0",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+  mapPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
-  placeholderText: { fontSize: 16, color: "#999" },
+  locationText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6A8D73',
+  },
   topBadges: {
     position: "absolute",
     top: 16,
