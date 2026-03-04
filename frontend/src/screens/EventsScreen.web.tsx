@@ -27,7 +27,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
     severity: ["嚴重度", "高風險", "中等風險", "低風險"]
   };
 
-  const eventData = [
+  const allEventData = [
     {
       id: 1,
       category: "工業聚集區",
@@ -42,21 +42,96 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       healthIndex: "敏感警告",
       severityColor: "#FFB74D",
       icon: "business",
+      isActive: true,
+      isResolved: false,
     },
     {
       id: 2,
       category: "大氣流入",
       title: "重度 PM2.5 流入",
       description: "跨境污染物影響北部住宅區域。",
-      severity: "嚴重程度",
+      severity: "高風險",
       status: "AI 識別",
+      trend: "上升中",
+      exposure: "~3.5k 人",
       duration: "2小時15分鐘 活躍",
       location: "蘆竹區",
       confidence: "98.4%",
       severityColor: "#E57373",
       icon: "warning",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 3,
+      category: "交通排放",
+      title: "中壢交流道壅塞",
+      description: "尖峰時段車流導致 NOx 濃度升高。",
+      severity: "低風險",
+      status: "固定站",
+      trend: "下降中",
+      exposure: "~800 人",
+      duration: "1小時30分鐘 持續",
+      location: "中壢區",
+      healthIndex: "良好",
+      severityColor: "#81C784",
+      icon: "car",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 4,
+      category: "工業聚集區",
+      title: "大園工業區異常",
+      description: "檢測到 VOCs 濃度異常升高。",
+      severity: "中等風險",
+      status: "AI 識別",
+      trend: "已穩定",
+      exposure: "~2.1k 人",
+      duration: "已解決",
+      location: "大園區",
+      confidence: "92.1%",
+      severityColor: "#9E9E9E",
+      icon: "business",
+      isActive: false,
+      isResolved: true,
+    },
+    {
+      id: 5,
+      category: "區域性事件",
+      title: "桃園市區空品惡化",
+      description: "多個測站同時檢測到 PM2.5 升高。",
+      severity: "高風險",
+      status: "固定站",
+      trend: "持平",
+      exposure: "~5.8k 人",
+      duration: "3小時 持續",
+      location: "桃園區",
+      healthIndex: "不健康",
+      severityColor: "#EF5350",
+      icon: "alert-circle",
+      isActive: true,
+      isResolved: false,
     },
   ];
+
+  const getFilteredEvents = () => {
+    return allEventData.filter(event => {
+      if (selectedFilter === "活躍事件" && !event.isActive) return false;
+      if (selectedFilter === "已解決事件" && !event.isResolved) return false;
+      if (selectedFilter === "歷史事件" && event.isActive) return false;
+      
+      if (selectedDistrict !== "所有區域" && event.location !== selectedDistrict) return false;
+      
+      if (selectedSeverity === "高風險" && event.severity !== "高風險") return false;
+      if (selectedSeverity === "中等風險" && event.severity !== "中等風險") return false;
+      if (selectedSeverity === "低風險" && event.severity !== "低風險") return false;
+      
+      return true;
+    });
+  };
+
+  const filteredEvents = getFilteredEvents();
 
   const eventImagePlaceholder: ViewStyle = {
     width: "100%",
@@ -72,45 +147,96 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       <TopNavigation title="事件庫" subtitle="INCIDENT TRACKING" />
 
       <ScrollView ref={scrollRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScrollView}
-        contentContainerStyle={styles.filterContainer}
-      >
-        <TouchableOpacity 
-          style={[styles.filterButton, showFilterDropdown === 'events' && styles.activeFilter]}
-          onPress={() => setShowFilterDropdown(showFilterDropdown === 'events' ? null : 'events')}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+          contentContainerStyle={styles.filterContainer}
         >
-          <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
-            {selectedFilter}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#6A8D73"} />
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterButton, showFilterDropdown === 'events' && styles.activeFilter]}
+            onPress={() => setShowFilterDropdown(showFilterDropdown === 'events' ? null : 'events')}
+          >
+            <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
+              {selectedFilter}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#6A8D73"} />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.filterButton, showFilterDropdown === 'districts' && styles.activeFilter]}
-          onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
-        >
-          <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
-          <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#6A8D73"} />
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterButton, showFilterDropdown === 'districts' && styles.activeFilter]}
+            onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
+          >
+            <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#6A8D73"} />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.filterButton, showFilterDropdown === 'severity' && styles.activeFilter]}
-          onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
-        >
-          <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
-          <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#6A8D73"} />
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity 
+            style={[styles.filterButton, showFilterDropdown === 'severity' && styles.activeFilter]}
+            onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
+          >
+            <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
+            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#6A8D73"} />
+          </TouchableOpacity>
+        </ScrollView>
+
+        {showFilterDropdown === 'events' && (
+          <View style={styles.dropdownContainer}>
+            {filterOptions.events.map(option => (
+              <TouchableOpacity 
+                key={option}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setSelectedFilter(option);
+                  setShowFilterDropdown(null);
+                }}
+              >
+                <Text style={styles.dropdownText}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {showFilterDropdown === 'districts' && (
+          <View style={styles.dropdownContainer}>
+            {filterOptions.districts.map(option => (
+              <TouchableOpacity 
+                key={option}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setSelectedDistrict(option);
+                  setShowFilterDropdown(null);
+                }}
+              >
+                <Text style={styles.dropdownText}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {showFilterDropdown === 'severity' && (
+          <View style={styles.dropdownContainer}>
+            {filterOptions.severity.map(option => (
+              <TouchableOpacity 
+                key={option}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setSelectedSeverity(option);
+                  setShowFilterDropdown(null);
+                }}
+              >
+                <Text style={styles.dropdownText}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <View style={styles.eventsContainer}>
-          {eventData.map((event) => (
+          {filteredEvents.map((event) => (
             <View key={event.id} style={styles.eventCard}>
               <View style={eventImagePlaceholder}>
                 <iframe
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${event.id === 1 ? '121.2,25.0,121.4,25.1' : '121.15,24.95,121.35,25.05'}&layer=mapnik&marker=${event.id === 1 ? '25.035,121.3' : '25.0,121.25'}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=121.15,24.95,121.35,25.05&layer=mapnik&marker=25.0,121.25`}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -170,7 +296,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                         <Ionicons name="trending-up" size={20} color="#666" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>趋勢</Text>
+                        <Text style={styles.detailLabel}>趨勢</Text>
                         <Text style={styles.detailValue}>{event.trend}</Text>
                       </View>
                     </View>
@@ -189,7 +315,6 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                   )}
                 </View>
 
-                {/* Bottom Action */}
                 <View style={styles.eventFooter}>
                   <View style={styles.confidenceContainer}>
                     <Text style={styles.confidenceLabel}>
@@ -244,9 +369,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
-  filterScrollView: {
-    paddingBottom: 20,
-  },
+  filterScrollView: { paddingBottom: 20 },
   filterContainer: { paddingHorizontal: 20, gap: 12 },
   filterButton: {
     flexDirection: "row",
@@ -259,20 +382,27 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.8)",
     gap: 6,
   },
-  filterText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6A8D73",
-  },
+  filterText: { fontSize: 14, fontWeight: "600", color: "#6A8D73" },
+  activeFilter: { backgroundColor: "#6ABD73" },
   activeFilterText: { color: "white" },
-  activeFilter: {
-    backgroundColor: "#6ABD73",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignSelf: "flex-start",
+  dropdownContainer: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  activeFilterText: { fontSize: 14, fontWeight: "600", color: "white" },
+  dropdownItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+  },
+  dropdownText: { fontSize: 16, color: "#333", fontWeight: "500" },
   eventsContainer: { paddingHorizontal: 20, gap: 24 },
   eventCard: {
     backgroundColor: "rgba(255, 255, 255, 0.4)",
@@ -283,16 +413,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 24,
     elevation: 5,
-  },
-  mapPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  locationText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#6A8D73',
   },
   topBadges: {
     position: "absolute",
@@ -313,6 +433,32 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
     textTransform: "uppercase",
+  },
+  bottomInfo: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    zIndex: 10,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#333",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  categoryTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    lineHeight: 28,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   eventContent: { padding: 24 },
   eventHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 20 },
@@ -347,35 +493,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   detailValue: { fontSize: 16, color: "#333", fontWeight: "600" },
-  bottomInfo: {
-    position: "absolute",
-    bottom: 16,
-    left: 16,
-    zIndex: 10,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "rgba(255, 255, 255, 0.8)",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  categoryTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-    lineHeight: 28,
-  },
   eventFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 24,
   },
-  confidenceContainer: {
-    flex: 1,
-  },
+  confidenceContainer: { flex: 1 },
   confidenceLabel: {
     fontSize: 12,
     color: "#999",
@@ -384,10 +508,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-  confidenceValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  confidenceValue: { fontSize: 18, fontWeight: "bold" },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -396,24 +517,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     gap: 8,
   },
-  primaryActionButton: {
-    backgroundColor: "#6ABD73",
-  },
+  primaryActionButton: { backgroundColor: "#6ABD73" },
   secondaryActionButton: {
     backgroundColor: "rgba(0, 0, 0, 0.05)",
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.1)",
   },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  primaryActionText: {
-    color: "white",
-  },
-  secondaryActionText: {
-    color: "#333",
-  },
+  actionButtonText: { fontSize: 14, fontWeight: "600" },
+  primaryActionText: { color: "white" },
+  secondaryActionText: { color: "#333" },
   bottomSpacing: { height: 100 },
 });
 
