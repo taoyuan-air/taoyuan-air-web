@@ -1,5 +1,7 @@
--- EPA 測站資料庫架構
+-- EPA 測站資料庫完整架構
 -- 專門用於儲存環保署空氣品質測站的歷史和即時資料
+-- 建立日期: 2024
+-- 資料範圍: 2019-2026年
 
 -- 1. 建立 EPA 測站基本資料表
 CREATE TABLE IF NOT EXISTS epa_stations (
@@ -32,24 +34,117 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data (
     FOREIGN KEY (station_id) REFERENCES epa_stations(station_id)
 ) PARTITION BY RANGE (monitor_date);
 
--- 3. 建立分區表（按月份）
--- 2026年1月
-CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_01 PARTITION OF epa_hourly_data
-    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+-- 3. 建立完整分區表（2019-2026年，按月份）
 
--- 2026年2月
-CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_02 PARTITION OF epa_hourly_data
-    FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+-- 2019年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-01-01') TO ('2019-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-02-01') TO ('2019-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-03-01') TO ('2019-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-04-01') TO ('2019-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-05-01') TO ('2019-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-06-01') TO ('2019-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-07-01') TO ('2019-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-08-01') TO ('2019-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-09-01') TO ('2019-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-10-01') TO ('2019-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-11-01') TO ('2019-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-12-01') TO ('2020-01-01');
 
--- 2026年3月
-CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_03 PARTITION OF epa_hourly_data
-    FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+-- 2020年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-01-01') TO ('2020-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-02-01') TO ('2020-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-03-01') TO ('2020-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-04-01') TO ('2020-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-05-01') TO ('2020-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-06-01') TO ('2020-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-07-01') TO ('2020-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-08-01') TO ('2020-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-09-01') TO ('2020-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-10-01') TO ('2020-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-11-01') TO ('2020-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2020_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2020-12-01') TO ('2021-01-01');
+
+-- 2021年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-01-01') TO ('2021-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-02-01') TO ('2021-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-03-01') TO ('2021-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-04-01') TO ('2021-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-05-01') TO ('2021-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-06-01') TO ('2021-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-07-01') TO ('2021-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-08-01') TO ('2021-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-09-01') TO ('2021-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-10-01') TO ('2021-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-11-01') TO ('2021-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2021_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2021-12-01') TO ('2022-01-01');
+
+-- 2022年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-01-01') TO ('2022-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-02-01') TO ('2022-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-03-01') TO ('2022-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-04-01') TO ('2022-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-05-01') TO ('2022-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-06-01') TO ('2022-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-07-01') TO ('2022-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-08-01') TO ('2022-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-09-01') TO ('2022-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-10-01') TO ('2022-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-11-01') TO ('2022-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2022_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2022-12-01') TO ('2023-01-01');
+
+-- 2023年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-01-01') TO ('2023-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-02-01') TO ('2023-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-03-01') TO ('2023-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-04-01') TO ('2023-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-05-01') TO ('2023-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-06-01') TO ('2023-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-07-01') TO ('2023-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-08-01') TO ('2023-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-09-01') TO ('2023-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-10-01') TO ('2023-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-11-01') TO ('2023-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2023_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2023-12-01') TO ('2024-01-01');
+
+-- 2024年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-03-01') TO ('2024-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-04-01') TO ('2024-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-05-01') TO ('2024-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-06-01') TO ('2024-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-07-01') TO ('2024-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-08-01') TO ('2024-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-09-01') TO ('2024-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-10-01') TO ('2024-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-11-01') TO ('2024-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2024_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2024-12-01') TO ('2025-01-01');
+
+-- 2025年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-03-01') TO ('2025-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-04-01') TO ('2025-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-05-01') TO ('2025-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-06-01') TO ('2025-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-07-01') TO ('2025-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-08-01') TO ('2025-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-09-01') TO ('2025-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-10-01') TO ('2025-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-11-01') TO ('2025-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');
+
+-- 2026年分區
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
 
 -- 4. 建立索引
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_station ON epa_hourly_data(station_id);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_date ON epa_hourly_data(monitor_date);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_pollutant ON epa_hourly_data(pollutant_eng_name);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_station_date ON epa_hourly_data(station_id, monitor_date);
+CREATE INDEX IF NOT EXISTS idx_epa_hourly_quality ON epa_hourly_data(data_quality);
 
 -- 5. 建立彙總視圖（方便查詢）
 CREATE OR REPLACE VIEW epa_latest_data AS
@@ -70,7 +165,25 @@ WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
 GROUP BY s.station_id, s.station_name, s.county, h.monitor_date
 ORDER BY h.monitor_date DESC;
 
--- 6. 插入桃園市 5 個測站基本資料（中壢站資料尚未取得）
+-- 6. 建立月度統計視圖
+CREATE OR REPLACE VIEW epa_monthly_stats AS
+SELECT 
+    s.station_id,
+    s.station_name,
+    DATE_TRUNC('month', h.monitor_date) as month,
+    h.pollutant_eng_name,
+    COUNT(*) as record_count,
+    AVG(h.concentration_numeric) as avg_concentration,
+    MIN(h.concentration_numeric) as min_concentration,
+    MAX(h.concentration_numeric) as max_concentration,
+    STDDEV(h.concentration_numeric) as std_concentration
+FROM epa_stations s
+JOIN epa_hourly_data h ON s.station_id = h.station_id
+WHERE h.concentration_numeric IS NOT NULL
+GROUP BY s.station_id, s.station_name, DATE_TRUNC('month', h.monitor_date), h.pollutant_eng_name
+ORDER BY month DESC, s.station_id, h.pollutant_eng_name;
+
+-- 7. 插入桃園市 5 個測站基本資料
 INSERT INTO epa_stations (station_id, station_name, county, latitude, longitude, address) VALUES
 ('17', '桃園', '桃園市', 24.9936, 121.3010, '桃園區'),
 ('18', '大園', '桃園市', 25.0608, 121.2000, '大園區'),
@@ -84,11 +197,43 @@ ON CONFLICT (station_id) DO UPDATE SET
     longitude = EXCLUDED.longitude,
     updated_at = NOW();
 
--- 7. 更新 location 欄位（PostGIS 幾何）
+-- 8. 更新 location 欄位（PostGIS 幾何）
 UPDATE epa_stations 
 SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
 WHERE location IS NULL;
 
+-- 9. 建立資料品質檢查函數
+CREATE OR REPLACE FUNCTION check_epa_data_quality()
+RETURNS TABLE(
+    station_id VARCHAR(20),
+    station_name VARCHAR(100),
+    total_records BIGINT,
+    valid_records BIGINT,
+    invalid_records BIGINT,
+    data_quality_ratio NUMERIC(5,2)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.station_id,
+        s.station_name,
+        COUNT(*) as total_records,
+        COUNT(CASE WHEN h.data_quality = 'good' THEN 1 END) as valid_records,
+        COUNT(CASE WHEN h.data_quality = 'invalid' THEN 1 END) as invalid_records,
+        ROUND(
+            COUNT(CASE WHEN h.data_quality = 'good' THEN 1 END)::NUMERIC / 
+            COUNT(*)::NUMERIC * 100, 2
+        ) as data_quality_ratio
+    FROM epa_stations s
+    LEFT JOIN epa_hourly_data h ON s.station_id = h.station_id
+    GROUP BY s.station_id, s.station_name
+    ORDER BY s.station_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 註解
 COMMENT ON TABLE epa_stations IS 'EPA 空氣品質測站基本資料';
-COMMENT ON TABLE epa_hourly_data IS 'EPA 空氣品質小時值資料（分區表）';
+COMMENT ON TABLE epa_hourly_data IS 'EPA 空氣品質小時值資料（分區表，2019-2026年）';
 COMMENT ON VIEW epa_latest_data IS '最近24小時的空氣品質資料彙總';
+COMMENT ON VIEW epa_monthly_stats IS 'EPA 測站月度統計資料';
+COMMENT ON FUNCTION check_epa_data_quality() IS '檢查 EPA 資料品質統計';

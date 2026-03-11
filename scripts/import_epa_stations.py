@@ -38,10 +38,10 @@ def connect_db():
     """連接資料庫"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        print("✓ 資料庫連線成功")
+        print("[OK] 資料庫連線成功")
         return conn
     except Exception as e:
-        print(f"✗ 資料庫連線失敗: {e}")
+        print(f"[ERROR] 資料庫連線失敗: {e}")
         return None
 
 def parse_concentration(value):
@@ -61,7 +61,7 @@ def import_json_file(conn, file_path, station_id):
             data = json.load(f)
         
         if not data:
-            print(f"    ⚠ 檔案為空")
+            print(f"    [WARNING] 檔案為空")
             return 0
         
         print(f"    找到 {len(data)} 筆原始資料")
@@ -94,7 +94,7 @@ def import_json_file(conn, file_path, station_id):
             ))
         
         if invalid_count > 0:
-            print(f"    ⚠ 發現 {invalid_count} 筆無效資料（將標記為 invalid）")
+            print(f"    [WARNING] 發現 {invalid_count} 筆無效資料（將標記為 invalid）")
         
         # 批次插入
         cursor = conn.cursor()
@@ -112,11 +112,11 @@ def import_json_file(conn, file_path, station_id):
         cursor.close()
         
         valid_count = len(insert_data) - invalid_count
-        print(f"    ✓ 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
+        print(f"    [OK] 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
         return len(insert_data)
         
     except Exception as e:
-        print(f"  ✗ 匯入失敗: {e}")
+        print(f"  [ERROR] 匯入失敗: {e}")
         conn.rollback()
         return 0
 
@@ -136,7 +136,7 @@ def main():
     data_dir = project_root / 'data' / 'raw' / 'epa-stations'
     
     if not data_dir.exists():
-        print(f"✗ 資料目錄不存在: {data_dir}")
+        print(f"[ERROR] 資料目錄不存在: {data_dir}")
         return
     
     print(f"\n資料目錄: {data_dir}")
@@ -150,17 +150,17 @@ def main():
         folder_path = data_dir / f"{folder_name}_Resource"
         
         if not folder_path.exists():
-            print(f"\n⚠ 測站資料夾不存在: {folder_name}")
+            print(f"\n[WARNING] 測站資料夾不存在: {folder_name}")
             continue
         
-        print(f"\n📍 處理測站: {folder_name} (ID: {station_id})")
+        print(f"\n[INFO] 處理測站: {folder_name} (ID: {station_id})")
         print("-" * 60)
         
         # 尋找所有 JSON 檔案（排除 hash.txt）
         json_files = [f for f in folder_path.glob('*.json') if f.name != 'hash.txt']
         
         if not json_files:
-            print("  ⚠ 找不到 JSON 檔案")
+            print("  [WARNING] 找不到 JSON 檔案")
             continue
         
         print(f"  找到 {len(json_files)} 個 JSON 檔案")
