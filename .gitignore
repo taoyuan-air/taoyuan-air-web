@@ -36,5 +36,40 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Data files (keep structure, ignore large data files)
+data/raw/**/*.json
+data/processed/**/*
+data/exports/**/*
+!data/raw/**/.gitkeep
+!data/processed/.gitkeep
+!data/exports/.gitkeep
+!data/README.md
+
+# Database
+*.sql.backup
+*.dump
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
 # Private documentation
 docs/
