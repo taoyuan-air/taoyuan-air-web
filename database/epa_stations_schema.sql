@@ -3,6 +3,10 @@
 -- 建立日期: 2024
 -- 資料範圍: 2019-2026年
 
+-- 0. 啟用必要的 PostgreSQL 擴充功能
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+
 -- 1. 建立 EPA 測站基本資料表
 CREATE TABLE IF NOT EXISTS epa_stations (
     station_id VARCHAR(20) PRIMARY KEY,
