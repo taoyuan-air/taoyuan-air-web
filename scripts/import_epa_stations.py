@@ -8,12 +8,21 @@ import os
 import json
 import psycopg2
 from psycopg2.extras import execute_batch
-from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
 # 載入環境變數
 load_dotenv()
+
+# 檢查必要的環境變數
+required_env_vars = ['POSTGRES_PASSWORD']
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    print(f"[ERROR] 缺少必要的環境變數: {', '.join(missing_vars)}")
+    print("請確認 .env 檔案中已設定以下變數:")
+    for var in missing_vars:
+        print(f"  {var}=your_actual_password")
+    exit(1)
 
 # 資料庫連線設定
 DB_CONFIG = {
@@ -21,7 +30,7 @@ DB_CONFIG = {
     'port': os.getenv('POSTGRES_PORT', '5432'),
     'database': os.getenv('POSTGRES_DB', 'taoyuan_air'),
     'user': os.getenv('POSTGRES_USER', 'taoyuan_user'),
-    'password': os.getenv('POSTGRES_PASSWORD', 'your_password')
+    'password': os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
 }
 
 # 測站 ID 對應（目前只有 5 個測站）
@@ -97,23 +106,37 @@ def import_json_file(conn, file_path, station_id):
             print(f"    [WARNING] 發現 {invalid_count} 筆無效資料（將標記為 invalid）")
         
         # 批次插入
-        cursor = conn.cursor()
-        insert_query = """
-            INSERT INTO epa_hourly_data 
-            (station_id, monitor_date, pollutant_id, pollutant_name, 
-             pollutant_eng_name, unit, concentration, concentration_numeric, data_quality)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT DO NOTHING
-        """
-        
-        print(f"    開始批次匯入...")
-        execute_batch(cursor, insert_query, insert_data, page_size=1000)
-        conn.commit()
-        cursor.close()
-        
-        valid_count = len(insert_data) - invalid_count
-        print(f"    [OK] 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
-        return len(insert_data)
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            insert_query = """
+                INSERT INTO epa_hourly_data 
+                (station_id, monitor_date, pollutant_id, pollutant_name, 
+                 pollutant_eng_name, unit, concentration, concentration_numeric, data_quality)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (station_id, monitor_date, pollutant_id) DO NOTHING
+            """
+            
+            print(f"    開始批次匯入...")
+            execute_batch(cursor, insert_query, insert_data, page_size=1000)
+            conn.commit()
+            
+            valid_count = len(insert_data) - invalid_count
+            print(f"    [OK] 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
+            return len(insert_data)
+            
+        except Exception as db_error:
+            print(f"    [ERROR] 資料庫操作失敗: {db_error}")
+            conn.rollback()
+            raise  # 重新拋出異常讓外層處理
+        finally:
+            # 確保游標在成功或失敗時都會被關閉
+            if cursor:
+                try:
+                    cursor.close()
+                except Exception:
+                    # 若游標尚未建立或已關閉，忽略錯誤
+                    pass
         
     except Exception as e:
         print(f"  [ERROR] 匯入失敗: {e}")

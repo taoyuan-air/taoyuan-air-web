@@ -34,8 +34,9 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data (
     concentration_numeric DECIMAL(10, 4),
     data_quality VARCHAR(10) DEFAULT 'good',
     created_at TIMESTAMP DEFAULT NOW(),
-    PRIMARY KEY (id, monitor_date),
-    FOREIGN KEY (station_id) REFERENCES epa_stations(station_id)
+    PRIMARY KEY (id, monitor_date),                                    -- 複合主鍵：序列ID + 分區鍵
+    FOREIGN KEY (station_id) REFERENCES epa_stations(station_id),      -- 外鍵約束：關聯測站表
+    UNIQUE (station_id, monitor_date, pollutant_id)                    -- 唯一約束：防止同測站同時間同污染物重複記錄
 ) PARTITION BY RANGE (monitor_date);
 
 -- 3. 建立完整分區表（2019-2026年，按月份）
@@ -221,12 +222,16 @@ BEGIN
     SELECT 
         s.station_id,
         s.station_name,
-        COUNT(*) as total_records,
+        COUNT(h.station_id) as total_records,                           -- 實際資料記錄數（忽略 NULL 值）
         COUNT(CASE WHEN h.data_quality = 'good' THEN 1 END) as valid_records,
         COUNT(CASE WHEN h.data_quality = 'invalid' THEN 1 END) as invalid_records,
         ROUND(
-            COUNT(CASE WHEN h.data_quality = 'good' THEN 1 END)::NUMERIC / 
-            COUNT(*)::NUMERIC * 100, 2
+            CASE 
+                WHEN COUNT(h.station_id) = 0 THEN 0                     -- 無資料時回傳 0%
+                ELSE COUNT(CASE WHEN h.data_quality = 'good' THEN 1 END)::NUMERIC 
+                     / NULLIF(COUNT(h.station_id), 0)::NUMERIC * 100    -- 防止除零錯誤
+            END,
+            2
         ) as data_quality_ratio
     FROM epa_stations s
     LEFT JOIN epa_hourly_data h ON s.station_id = h.station_id

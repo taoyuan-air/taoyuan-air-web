@@ -28,7 +28,17 @@ echo.
 
 REM Wait for database to be ready
 echo [3/4] Waiting for database to be ready...
-timeout /t 5 /nobreak >nul
+for /l %%i in (1,1,30) do (
+    docker exec taoyuan-air-db pg_isready -U taoyuan_user -d taoyuan_air >nul 2>&1
+    if not errorlevel 1 goto db_ready
+    echo   - Database not ready yet (attempt %%i of 30), waiting...
+    timeout /t 2 /nobreak >nul
+)
+echo X Database did not become ready within the expected time
+pause
+exit /b 1
+
+:db_ready
 echo OK Database ready
 echo.
 
@@ -47,6 +57,11 @@ echo ============================================================
 echo Database setup completed!
 echo ============================================================
 echo.
-echo Next step: python scripts\import_epa_stations.py
+echo Next steps:
+echo   1. Ensure required environment variables are configured (e.g. database connection settings).
+echo   2. Install Python dependencies:
+echo        pip install -r scripts\requirements.txt
+echo   3. Run the data import script:
+echo        python scripts\import_epa_stations.py
 echo.
 pause
