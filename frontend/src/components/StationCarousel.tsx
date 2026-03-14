@@ -10,7 +10,6 @@ import {
   Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
@@ -38,7 +37,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 48,
     aqi: 75,
     status: "MODERATE",
-    trend: [0.45, 0.5, 0.55, 0.6, 0.58, 0.62],
+    trend: [0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38, 0.55, 0.68, 0.45, 0.52],
   },
   {
     name: "中壢區",
@@ -47,7 +46,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 42,
     aqi: 72,
     status: "MODERATE",
-    trend: [0.4, 0.5, 0.6, 0.55, 0.7, 0.75],
+    trend: [0.4, 0.5, 0.6, 0.55, 0.7, 0.75, 0.42, 0.38, 0.65, 0.58, 0.48, 0.72, 0.35, 0.62, 0.68],
   },
   {
     name: "八德區",
@@ -56,7 +55,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 40,
     aqi: 68,
     status: "MODERATE",
-    trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5],
+    trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5, 0.38, 0.32, 0.46, 0.52, 0.44, 0.36, 0.48, 0.42, 0.38],
   },
   {
     name: "龜山區",
@@ -65,7 +64,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 44,
     aqi: 73,
     status: "MODERATE",
-    trend: [0.42, 0.48, 0.52, 0.58, 0.55, 0.6],
+    trend: [0.42, 0.48, 0.52, 0.58, 0.55, 0.6, 0.45, 0.38, 0.62, 0.48, 0.52, 0.58, 0.44, 0.56, 0.5],
   },
   {
     name: "蘆竹區",
@@ -74,7 +73,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 36,
     aqi: 62,
     status: "MODERATE",
-    trend: [0.28, 0.32, 0.35, 0.4, 0.38, 0.42],
+    trend: [0.28, 0.32, 0.35, 0.4, 0.38, 0.42, 0.25, 0.3, 0.45, 0.35, 0.28, 0.38, 0.32, 0.36, 0.3],
   },
   {
     name: "大園區",
@@ -83,7 +82,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 35,
     aqi: 58,
     status: "GOOD",
-    trend: [0.25, 0.3, 0.28, 0.32, 0.35, 0.33],
+    trend: [0.25, 0.3, 0.28, 0.32, 0.35, 0.33, 0.22, 0.26, 0.38, 0.3, 0.24, 0.32, 0.28, 0.34, 0.26],
   },
   {
     name: "大溪區",
@@ -92,7 +91,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 37,
     aqi: 60,
     status: "GOOD",
-    trend: [0.26, 0.31, 0.29, 0.34, 0.36, 0.35],
+    trend: [0.26, 0.31, 0.29, 0.34, 0.36, 0.35, 0.24, 0.28, 0.38, 0.32, 0.26, 0.34, 0.3, 0.36, 0.28],
   },
   {
     name: "平鎮區",
@@ -101,7 +100,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 40,
     aqi: 68,
     status: "MODERATE",
-    trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5],
+    trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5, 0.32, 0.38, 0.52, 0.44, 0.36, 0.46, 0.4, 0.48, 0.42],
   },
   {
     name: "楊梅區",
@@ -110,7 +109,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 41,
     aqi: 70,
     status: "MODERATE",
-    trend: [0.38, 0.43, 0.45, 0.48, 0.5, 0.52],
+    trend: [0.38, 0.43, 0.45, 0.48, 0.5, 0.52, 0.35, 0.4, 0.55, 0.46, 0.38, 0.48, 0.42, 0.5, 0.44],
   },
   {
     name: "龍潭區",
@@ -119,7 +118,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 38,
     aqi: 65,
     status: "MODERATE",
-    trend: [0.3, 0.35, 0.4, 0.45, 0.5, 0.48],
+    trend: [0.3, 0.35, 0.4, 0.45, 0.5, 0.48, 0.28, 0.32, 0.46, 0.42, 0.34, 0.44, 0.38, 0.46, 0.4],
   },
   {
     name: "觀音區",
@@ -128,7 +127,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 45,
     aqi: 78,
     status: "MODERATE",
-    trend: [0.5, 0.6, 0.65, 0.7, 0.68, 0.72],
+    trend: [0.5, 0.6, 0.65, 0.7, 0.68, 0.72, 0.48, 0.55, 0.75, 0.62, 0.58, 0.68, 0.52, 0.7, 0.64],
   },
   {
     name: "新屋區",
@@ -137,7 +136,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 43,
     aqi: 76,
     status: "MODERATE",
-    trend: [0.48, 0.55, 0.62, 0.68, 0.65, 0.7],
+    trend: [0.48, 0.55, 0.62, 0.68, 0.65, 0.7, 0.45, 0.52, 0.72, 0.58, 0.5, 0.65, 0.48, 0.68, 0.6],
   },
   {
     name: "復興區",
@@ -146,7 +145,7 @@ const DISTRICTS: DistrictData[] = [
     o3: 32,
     aqi: 52,
     status: "GOOD",
-    trend: [0.2, 0.25, 0.22, 0.28, 0.3, 0.26],
+    trend: [0.2, 0.25, 0.22, 0.28, 0.3, 0.26, 0.18, 0.24, 0.32, 0.26, 0.22, 0.28, 0.24, 0.3, 0.22],
   },
 ];
 
@@ -237,32 +236,40 @@ const useUserLocation = () => {
   return { location, permission, isLoading, requestLocation };
 };
 
-const TrendLine: React.FC<{ trend: number[] }> = ({ trend }) => {
-  const width = 220;
-  const height = 40;
-  const points = trend.map((value, index) => ({
-    x: (index / (trend.length - 1)) * width,
-    y: height - value * height,
-  }));
+const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
+  // 根據數值決定顏色
+  const getBarColor = (value: number) => {
+    if (value <= 0.3) return 'rgba(106, 190, 116, 0.8)'; // 綠色 - 低
+    if (value <= 0.5) return 'rgba(255, 193, 7, 0.8)';   // 黃色 - 一般
+    if (value <= 0.7) return 'rgba(255, 87, 34, 0.8)';   // 紅色 - 高
+    return 'rgba(156, 39, 176, 0.8)';                     // 紫色 - 很高
+  };
 
-  const pathData = points.reduce((acc, point, index) => {
-    if (index === 0) return `M ${point.x} ${point.y}`;
-    const prevPoint = points[index - 1];
-    const cpX = (prevPoint.x + point.x) / 2;
-    return `${acc} Q ${cpX} ${prevPoint.y}, ${cpX} ${(prevPoint.y + point.y) / 2} Q ${cpX} ${point.y}, ${point.x} ${point.y}`;
-  }, "");
+  const maxHeight = 32;
+  const barWidth = 8;  // 增加寬度
+  const barSpacing = 4; // 增加間距
+  const totalWidth = trend.length * (barWidth + barSpacing) - barSpacing;
 
   return (
-    <Svg width={width} height={height} style={styles.trendSvg}>
-      <Path
-        d={pathData}
-        stroke="#7FAE8A"
-        strokeWidth="2.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
+    <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
+      {trend.map((value, index) => {
+        const barHeight = Math.max(4, value * maxHeight); // 最小高度4px
+        return (
+          <View
+            key={index}
+            style={[
+              styles.trendBar,
+              {
+                height: barHeight,
+                width: barWidth,
+                backgroundColor: getBarColor(value),
+                marginRight: index < trend.length - 1 ? barSpacing : 0,
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
   );
 };
 
@@ -342,7 +349,7 @@ const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
           </View>
 
           <View style={styles.trendContainer}>
-            <TrendLine trend={district.trend} />
+            <TrendBars trend={district.trend} />
           </View>
         </View>
       </BlurView>
@@ -773,10 +780,16 @@ const styles = StyleSheet.create({
   },
   trendContainer: {
     height: 40,
-    justifyContent: "center",
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
-  trendSvg: {
-    marginLeft: -10,
+  trendBarsContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    height: 32,
+  },
+  trendBar: {
+    borderRadius: 2,
   },
   pagination: {
     flexDirection: "row",
