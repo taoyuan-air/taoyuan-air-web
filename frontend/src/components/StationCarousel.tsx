@@ -18,9 +18,9 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.75;
 const CARD_SPACING = 16;
 const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
-interface StationData {
+interface DistrictData {
   name: string;
-  type: string;
+  region: string;
   pm25: number;
   o3: number;
   aqi: number;
@@ -28,46 +28,10 @@ interface StationData {
   trend: number[];
 }
 
-const STATIONS: StationData[] = [
+const DISTRICTS: DistrictData[] = [
   {
-    name: "中壢",
-    type: "交通測站",
-    pm25: 18,
-    o3: 42,
-    aqi: 72,
-    status: "MODERATE",
-    trend: [0.4, 0.5, 0.6, 0.55, 0.7, 0.75],
-  },
-  {
-    name: "龍潭",
-    type: "一般測站",
-    pm25: 15,
-    o3: 38,
-    aqi: 65,
-    status: "MODERATE",
-    trend: [0.3, 0.35, 0.4, 0.45, 0.5, 0.48],
-  },
-  {
-    name: "觀音",
-    type: "背景測站",
-    pm25: 22,
-    o3: 45,
-    aqi: 78,
-    status: "MODERATE",
-    trend: [0.5, 0.6, 0.65, 0.7, 0.68, 0.72],
-  },
-  {
-    name: "大園",
-    type: "一般測站",
-    pm25: 12,
-    o3: 35,
-    aqi: 58,
-    status: "GOOD",
-    trend: [0.25, 0.3, 0.28, 0.32, 0.35, 0.33],
-  },
-  {
-    name: "桃園",
-    type: "一般測站",
+    name: "桃園區",
+    region: "北桃園",
     pm25: 20,
     o3: 48,
     aqi: 75,
@@ -75,13 +39,112 @@ const STATIONS: StationData[] = [
     trend: [0.45, 0.5, 0.55, 0.6, 0.58, 0.62],
   },
   {
-    name: "平鎮",
-    type: "一般測站",
+    name: "中壢區",
+    region: "北桃園",
+    pm25: 18,
+    o3: 42,
+    aqi: 72,
+    status: "MODERATE",
+    trend: [0.4, 0.5, 0.6, 0.55, 0.7, 0.75],
+  },
+  {
+    name: "八德區",
+    region: "北桃園",
     pm25: 16,
     o3: 40,
     aqi: 68,
     status: "MODERATE",
     trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5],
+  },
+  {
+    name: "龜山區",
+    region: "北桃園",
+    pm25: 19,
+    o3: 44,
+    aqi: 73,
+    status: "MODERATE",
+    trend: [0.42, 0.48, 0.52, 0.58, 0.55, 0.6],
+  },
+  {
+    name: "蘆竹區",
+    region: "北桃園",
+    pm25: 14,
+    o3: 36,
+    aqi: 62,
+    status: "MODERATE",
+    trend: [0.28, 0.32, 0.35, 0.4, 0.38, 0.42],
+  },
+  {
+    name: "大園區",
+    region: "北桃園",
+    pm25: 12,
+    o3: 35,
+    aqi: 58,
+    status: "GOOD",
+    trend: [0.25, 0.3, 0.28, 0.32, 0.35, 0.33],
+  },
+  {
+    name: "大溪區",
+    region: "北桃園",
+    pm25: 13,
+    o3: 37,
+    aqi: 60,
+    status: "GOOD",
+    trend: [0.26, 0.31, 0.29, 0.34, 0.36, 0.35],
+  },
+  {
+    name: "平鎮區",
+    region: "南桃園",
+    pm25: 16,
+    o3: 40,
+    aqi: 68,
+    status: "MODERATE",
+    trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5],
+  },
+  {
+    name: "楊梅區",
+    region: "南桃園",
+    pm25: 17,
+    o3: 41,
+    aqi: 70,
+    status: "MODERATE",
+    trend: [0.38, 0.43, 0.45, 0.48, 0.5, 0.52],
+  },
+  {
+    name: "龍潭區",
+    region: "南桃園",
+    pm25: 15,
+    o3: 38,
+    aqi: 65,
+    status: "MODERATE",
+    trend: [0.3, 0.35, 0.4, 0.45, 0.5, 0.48],
+  },
+  {
+    name: "觀音區",
+    region: "南桃園",
+    pm25: 22,
+    o3: 45,
+    aqi: 78,
+    status: "MODERATE",
+    trend: [0.5, 0.6, 0.65, 0.7, 0.68, 0.72],
+  },
+  {
+    name: "新屋區",
+    region: "南桃園",
+    pm25: 21,
+    o3: 43,
+    aqi: 76,
+    status: "MODERATE",
+    trend: [0.48, 0.55, 0.62, 0.68, 0.65, 0.7],
+  },
+  {
+    name: "復興區",
+    region: "南桃園",
+    pm25: 10,
+    o3: 32,
+    aqi: 52,
+    status: "GOOD",
+    trend: [0.2, 0.25, 0.22, 0.28, 0.3, 0.26],
   },
 ];
 
@@ -114,7 +177,7 @@ const TrendLine: React.FC<{ trend: number[] }> = ({ trend }) => {
   );
 };
 
-const StationCard: React.FC<{ station: StationData }> = ({ station }) => {
+const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
   return (
     <View style={styles.cardContainer}>
       {/* Blobs inside card for blur effect */}
@@ -150,47 +213,47 @@ const StationCard: React.FC<{ station: StationData }> = ({ station }) => {
 
         <View style={styles.cardInner}>
           <View style={styles.cardHeader}>
-            <Text style={styles.stationName}>{station.name}</Text>
+            <Text style={styles.stationName}>{district.name}</Text>
             <Text style={styles.updateTime}>Updated 10:37</Text>
           </View>
 
           <View style={styles.stationTypeRow}>
-            <Feather name="radio" size={13} color="#7FAE8A" />
-            <Text style={styles.stationType}>{station.type}</Text>
+            <Feather name="map-pin" size={13} color="#7FAE8A" />
+            <Text style={styles.stationType}>{district.region}</Text>
           </View>
 
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>PM2.5</Text>
               <Text style={[styles.metricValue, { color: "#504E4F" }]}>
-                {station.pm25}
+                {district.pm25}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>O3</Text>
               <Text style={[styles.metricValue, { color: "#504E4F" }]}>
-                {station.o3}
+                {district.o3}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>AQI</Text>
               <Text style={[styles.metricValue, { color: "#7FAE8A" }]}>
-                {station.aqi}
+                {district.aqi}
               </Text>
             </View>
           </View>
 
           <View style={styles.statusRow}>
             <Text style={[styles.statusBadge, { color: "#7FAE8A" }]}>
-              {station.status}
+              {district.status}
             </Text>
             <Text style={styles.trendLabel}>24h Trend</Text>
           </View>
 
           <View style={styles.trendContainer}>
-            <TrendLine trend={station.trend} />
+            <TrendLine trend={district.trend} />
           </View>
         </View>
       </BlurView>
@@ -204,10 +267,10 @@ export const StationCarousel: React.FC = () => {
   const autoPlayInterval = useRef<NodeJS.Timeout | null>(null);
   const currentIndex = useRef(1);
 
-  const infiniteStations = [
-    STATIONS[STATIONS.length - 1],
-    ...STATIONS,
-    STATIONS[0],
+  const infiniteDistricts = [
+    DISTRICTS[DISTRICTS.length - 1],
+    ...DISTRICTS,
+    DISTRICTS[0],
   ];
 
   useEffect(() => {
@@ -245,13 +308,13 @@ export const StationCarousel: React.FC = () => {
 
     if (index === 0) {
       setTimeout(() => {
-        currentIndex.current = STATIONS.length;
+        currentIndex.current = DISTRICTS.length;
         scrollViewRef.current?.scrollTo({
-          x: STATIONS.length * (CARD_WIDTH + CARD_SPACING),
+          x: DISTRICTS.length * (CARD_WIDTH + CARD_SPACING),
           animated: false,
         });
       }, 50);
-    } else if (index === infiniteStations.length - 1) {
+    } else if (index === infiniteDistricts.length - 1) {
       setTimeout(() => {
         currentIndex.current = 1;
         scrollViewRef.current?.scrollTo({
@@ -283,7 +346,7 @@ export const StationCarousel: React.FC = () => {
         onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
       >
-        {infiniteStations.map((station, index) => {
+        {infiniteDistricts.map((district, index) => {
           const inputRange = [
             (index - 1) * (CARD_WIDTH + CARD_SPACING),
             index * (CARD_WIDTH + CARD_SPACING),
@@ -328,7 +391,7 @@ export const StationCarousel: React.FC = () => {
 
           return (
             <Animated.View
-              key={`${station.name}-${index}`}
+              key={`${district.name}-${index}`}
               style={[
                 styles.cardWrapper,
                 {
@@ -343,7 +406,7 @@ export const StationCarousel: React.FC = () => {
                 },
               ]}
             >
-              <StationCard station={station} />
+              <DistrictCard district={district} />
             </Animated.View>
           );
         })}
@@ -351,7 +414,7 @@ export const StationCarousel: React.FC = () => {
 
       {/* Pagination dots */}
       <View style={styles.pagination}>
-        {STATIONS.map((_, index) => {
+        {DISTRICTS.map((_, index) => {
           const realIndex = index + 1;
           const inputRange = [
             (realIndex - 1) * (CARD_WIDTH + CARD_SPACING),
