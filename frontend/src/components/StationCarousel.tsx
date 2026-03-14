@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   Animated,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -148,6 +150,93 @@ const DISTRICTS: DistrictData[] = [
   },
 ];
 
+// 各區域的大概座標
+const DISTRICT_COORDINATES: Record<string, { latitude: number; longitude: number }> = {
+  "桃園區": { latitude: 24.9936, longitude: 121.3010 },
+  "中壢區": { latitude: 24.9539, longitude: 121.2248 },
+  "八德區": { latitude: 24.9440, longitude: 121.2970 },
+  "龜山區": { latitude: 25.0026, longitude: 121.3540 },
+  "蘆竹區": { latitude: 25.0442, longitude: 121.2918 },
+  "大園區": { latitude: 25.0608, longitude: 121.2006 },
+  "大溪區": { latitude: 24.8838, longitude: 121.2681 },
+  "平鎮區": { latitude: 24.9530, longitude: 121.2017 },
+  "楊梅區": { latitude: 24.9175, longitude: 121.1460 },
+  "龍潭區": { latitude: 24.8635, longitude: 121.2168 },
+  "觀音區": { latitude: 25.0354, longitude: 121.0823 },
+  "新屋區": { latitude: 24.9697, longitude: 121.1063 },
+  "復興區": { latitude: 24.8186, longitude: 121.3496 },
+};
+
+// 計算兩點間距離的函數
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // 地球半徑 (km)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// 找到最近的區域
+const findNearestDistrict = (userLat: number, userLon: number): string => {
+  let nearestDistrict = "中壢區"; // 預設值
+  let minDistance = Infinity;
+
+  Object.entries(DISTRICT_COORDINATES).forEach(([district, coords]) => {
+    const distance = calculateDistance(userLat, userLon, coords.latitude, coords.longitude);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestDistrict = district;
+    }
+  });
+
+  return nearestDistrict;
+};
+
+// 定位相關的 hook
+const useUserLocation = () => {
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [permission, setPermission] = useState<Location.PermissionStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const requestLocation = async () => {
+    setIsLoading(true);
+    try {
+      // 請求定位權限
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      setPermission(status);
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          '定位權限',
+          '需要定位權限來顯示您附近的空氣品質資訊',
+          [{ text: '確定', style: 'default' }]
+        );
+        return;
+      }
+
+      // 獲取當前位置
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setLocation(location);
+    } catch (error) {
+      console.error('獲取定位失敗:', error);
+      Alert.alert('定位失敗', '無法獲取您的位置，將使用預設區域');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+  return { location, permission, isLoading, requestLocation };
+};
+
 const TrendLine: React.FC<{ trend: number[] }> = ({ trend }) => {
   const width = 220;
   const height = 40;
@@ -264,8 +353,16 @@ const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
 export const StationCarousel: React.FC = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const autoPlayInterval = useRef<NodeJS.Timeout | null>(null);
-  const currentIndex = useRef(1);
+  const { location, permission, isLoading } = useUserLocation();
+  const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
+  
+  // 根據定位或預設值計算預設索引
+  const defaultIndex = useMemo(() => {
+    const index = DISTRICTS.findIndex(district => district.name === defaultDistrict);
+    return index !== -1 ? index + 1 : 1; // +1 因為有無限滾動的前置項目
+  }, [defaultDistrict]);
+  
+  const currentIndex = useRef(defaultIndex);
 
   const infiniteDistricts = [
     DISTRICTS[DISTRICTS.length - 1],
@@ -273,39 +370,47 @@ export const StationCarousel: React.FC = () => {
     DISTRICTS[0],
   ];
 
+  // 當獲取到定位時，計算最近的區域
+  useEffect(() => {
+    if (location && permission === 'granted') {
+      const nearest = findNearestDistrict(
+        location.coords.latitude, 
+        location.coords.longitude
+      );
+      setDefaultDistrict(nearest);
+    }
+  }, [location, permission]);
+
+  // 初始化滾動位置
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({
-        x: CARD_WIDTH + CARD_SPACING,
+        x: defaultIndex * (CARD_WIDTH + CARD_SPACING),
         animated: false,
       });
-    }, 0);
-    startAutoPlay();
-    return () => stopAutoPlay();
+      currentIndex.current = defaultIndex;
+    }, 100);
   }, []);
 
-  const startAutoPlay = () => {
-    stopAutoPlay();
-    autoPlayInterval.current = setInterval(() => {
-      currentIndex.current = currentIndex.current + 1;
-      scrollViewRef.current?.scrollTo({
-        x: currentIndex.current * (CARD_WIDTH + CARD_SPACING),
-        animated: true,
-      });
-    }, 4000);
-  };
-
-  const stopAutoPlay = () => {
-    if (autoPlayInterval.current) {
-      clearInterval(autoPlayInterval.current);
+  // 當 defaultIndex 改變時重新滾動到正確位置
+  useEffect(() => {
+    if (scrollViewRef.current && defaultIndex !== currentIndex.current) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({
+          x: defaultIndex * (CARD_WIDTH + CARD_SPACING),
+          animated: true, // 讓使用者看到滾動效果
+        });
+        currentIndex.current = defaultIndex;
+      }, 200);
     }
-  };
+  }, [defaultIndex]);
 
   const handleMomentumScrollEnd = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
     currentIndex.current = index;
 
+    // 處理無限滾動的邊界情況
     if (index === 0) {
       setTimeout(() => {
         currentIndex.current = DISTRICTS.length;
@@ -324,11 +429,32 @@ export const StationCarousel: React.FC = () => {
       }, 50);
     }
 
-    startAutoPlay();
+    // 移除自動輪播重啟
+    // startAutoPlay();
   };
 
   return (
     <View style={styles.container}>
+      {/* 定位狀態提示 */}
+      {isLoading && (
+        <View style={styles.locationStatus}>
+          <Feather name="map-pin" size={14} color="#7FAE8A" />
+          <Text style={styles.locationStatusText}>正在獲取您的位置...</Text>
+        </View>
+      )}
+      {permission === 'granted' && location && (
+        <View style={styles.locationStatus}>
+          <Feather name="check-circle" size={14} color="#7FAE8A" />
+          <Text style={styles.locationStatusText}>已定位到 {defaultDistrict}</Text>
+        </View>
+      )}
+      {permission === 'denied' && (
+        <View style={styles.locationStatus}>
+          <Feather name="map-pin" size={14} color="#999" />
+          <Text style={styles.locationStatusTextGray}>使用預設區域：{defaultDistrict}</Text>
+        </View>
+      )}
+      
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -336,13 +462,15 @@ export const StationCarousel: React.FC = () => {
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         snapToInterval={CARD_WIDTH + CARD_SPACING}
-        snapToAlignment="center"
-        contentContainerStyle={{ paddingHorizontal: SIDE_SPACING }}
+        snapToAlignment="start"
+        contentContainerStyle={{ 
+          paddingLeft: SIDE_SPACING,
+          paddingRight: SIDE_SPACING,
+        }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false },
         )}
-        onScrollBeginDrag={stopAutoPlay}
         onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
       >
@@ -467,6 +595,30 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 24,
     position: "relative",
+  },
+  locationStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderRadius: 16,
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "rgba(127, 174, 138, 0.2)",
+  },
+  locationStatusText: {
+    fontSize: 12,
+    color: "#7FAE8A",
+    fontWeight: "500",
+  },
+  locationStatusTextGray: {
+    fontSize: 12,
+    color: "#999",
+    fontWeight: "500",
   },
   cardWrapper: {
     width: CARD_WIDTH,
