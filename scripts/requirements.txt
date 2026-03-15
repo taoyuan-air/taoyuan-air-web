@@ -1,0 +1,3 @@
+# EPA 測站資料匯入腳本依賴套件
+psycopg2-binary>=2.9.0
+python-dotenv>=1.0.0
