@@ -237,38 +237,121 @@ const useUserLocation = () => {
 };
 
 const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
-  // 根據數值決定顏色
-  const getBarColor = (value: number) => {
-    if (value <= 0.3) return 'rgba(106, 190, 116, 0.8)'; // 綠色 - 低
-    if (value <= 0.5) return 'rgba(255, 193, 7, 0.8)';   // 黃色 - 一般
-    if (value <= 0.7) return 'rgba(255, 87, 34, 0.8)';   // 紅色 - 高
-    return 'rgba(156, 39, 176, 0.8)';                     // 紫色 - 很高
+  // 獲取當前時間並生成時間標籤
+  const getCurrentTimeLabels = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const labels = [];
+    const times = [];
+    
+    // 生成過去5個整點時間（歷史數據）
+    for (let i = 5; i >= 1; i--) {
+      const pastHour = currentHour - i;
+      const hour = pastHour < 0 ? pastHour + 24 : pastHour;
+      times.push(hour);
+      labels.push(`${hour.toString().padStart(2, '0')}:00`);
+    }
+    
+    // 當前時間
+    times.push(currentHour);
+    labels.push(`${currentHour.toString().padStart(2, '0')}:00 NOW`);
+    
+    // 生成未來5個整點時間（預測數據）
+    for (let i = 1; i <= 5; i++) {
+      const futureHour = (currentHour + i) % 24;
+      times.push(futureHour);
+      labels.push(`${futureHour.toString().padStart(2, '0')}:00`);
+    }
+    
+    return { labels, times };
   };
 
-  const maxHeight = 32;
-  const barWidth = 8;  // 增加寬度
-  const barSpacing = 4; // 增加間距
-  const totalWidth = trend.length * (barWidth + barSpacing) - barSpacing;
+  // 根據數值決定顏色
+  const getBarColor = (value: number, isPrediction: boolean = false) => {
+    let baseColor;
+    if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
+    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
+    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
+    
+    // 預測數據使用更透明的樣式
+    const opacity = isPrediction ? ', 0.5)' : ', 0.8)';
+    return baseColor + opacity;
+  };
+
+  const maxHeight = 56;  // 從48增加到56 (+17%)
+  const barWidth = 12;   // 從10增加到12 (+20%)
+  const barSpacing = 6;  // 從5增加到6 (+20%)
+  const { labels } = getCurrentTimeLabels();
+  
+  // 使用前11個數據點（5個歷史 + 1個當前 + 5個預測）
+  const displayData = trend.slice(0, 11);
+  const totalWidth = displayData.length * (barWidth + barSpacing) - barSpacing;
 
   return (
-    <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
-      {trend.map((value, index) => {
-        const barHeight = Math.max(4, value * maxHeight); // 最小高度4px
-        return (
-          <View
-            key={index}
-            style={[
-              styles.trendBar,
-              {
-                height: barHeight,
-                width: barWidth,
-                backgroundColor: getBarColor(value),
-                marginRight: index < trend.length - 1 ? barSpacing : 0,
-              },
-            ]}
-          />
-        );
-      })}
+    <View style={styles.trendBarsWrapper}>
+      {/* 柱狀圖 */}
+      <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
+        {displayData.map((value, index) => {
+          const barHeight = Math.max(5, value * maxHeight); // 最小高度從4增加到5
+          const isPrediction = index > 5; // 索引大於5的是預測數據
+          const isNow = index === 5; // 索引5是當前時間
+          
+          return (
+            <View key={index} style={styles.barWrapper}>
+              <View
+                style={[
+                  styles.trendBar,
+                  {
+                    height: barHeight,
+                    width: barWidth,
+                    backgroundColor: getBarColor(value, isPrediction),
+                    marginRight: index < displayData.length - 1 ? barSpacing : 0,
+                    borderWidth: isNow ? 1 : 0,
+                    borderColor: isNow ? '#7FAE8A' : 'transparent',
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+      
+      {/* 時間標籤 */}
+      <View style={styles.timeLabelsContainer}>
+        {labels.slice(0, 11).map((label, index) => {
+          const isNow = index === 5;
+          const isPrediction = index > 5;
+          
+          return (
+            <View 
+              key={index} 
+              style={[
+                styles.timeLabelWrapper,
+                { 
+                  width: barWidth,
+                  marginRight: index < displayData.length - 1 ? barSpacing : 0
+                }
+              ]}
+            >
+              <Text 
+                style={[
+                  styles.timeLabel,
+                  isNow && styles.timeLabelNow,
+                  isPrediction && styles.timeLabelPrediction
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {isNow ? 'NOW' : label.replace(':00', '')}
+              </Text>
+              {isNow && (
+                <View style={styles.nowIndicator} />
+              )}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 };
@@ -345,7 +428,7 @@ const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
             <Text style={[styles.statusBadge, { color: "#7FAE8A" }]}>
               {district.status}
             </Text>
-            <Text style={styles.trendLabel}>24h Trend</Text>
+            <Text style={styles.trendLabel}>24hr Trend</Text>
           </View>
 
           <View style={styles.trendContainer}>
@@ -779,17 +862,56 @@ const styles = StyleSheet.create({
     color: "rgba(93, 115, 137, 0.65)",
   },
   trendContainer: {
-    height: 40,
+    height: 80,  // 從70增加到80以配合更大的柱狀圖
     justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  trendBarsWrapper: {
     alignItems: "center",
   },
   trendBarsContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    height: 32,
+    height: 56,  // 從48增加到56以配合柱狀高度
+    marginBottom: 10,  // 稍微增加間距
   },
   trendBar: {
     borderRadius: 2,
+  },
+  barWrapper: {
+    alignItems: "center",
+  },
+  timeLabelsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 20,
+    width: "100%",
+  },
+  timeLabelWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeLabel: {
+    fontSize: 9,
+    color: "rgba(93, 115, 137, 0.6)",
+    fontWeight: "400",
+    textAlign: "center",
+  },
+  timeLabelNow: {
+    color: "#7FAE8A",
+    fontWeight: "700",
+    fontSize: 10,
+  },
+  timeLabelPrediction: {
+    color: "rgba(93, 115, 137, 0.4)",
+    fontStyle: "italic",
+  },
+  nowIndicator: {
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "#7FAE8A",
+    marginTop: 2,
   },
   pagination: {
     flexDirection: "row",
