@@ -29,7 +29,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
     severity: ["嚴重度", "高風險", "中等風險", "低風險"]
   };
 
-  const eventData = [
+  const allEventData = [
     {
       id: 1,
       category: "工業聚集區",
@@ -45,22 +45,154 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       severityColor: "#FFB74D",
       statusColor: "#FFFFFF",
       icon: "business",
+      isActive: true,
+      isResolved: false,
     },
     {
       id: 2,
       category: "大氣流入",
       title: "重度 PM2.5 流入",
       description: "跨境污染物影響北部住宅區域。",
-      severity: "嚴重程度",
+      severity: "高風險",
       status: "AI 識別",
+      trend: "上升中",
+      exposure: "~3.5k 人",
       duration: "2小時15分鐘 活躍",
       location: "蘆竹區",
       confidence: "98.4%",
       severityColor: "#E57373",
       statusColor: "#FFFFFF",
       icon: "warning",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 3,
+      category: "交通排放",
+      title: "中壢交流道壅塞",
+      description: "尖峰時段車流導致 NOx 濃度升高。",
+      severity: "低風險",
+      status: "固定站",
+      trend: "下降中",
+      exposure: "~800 人",
+      duration: "1小時30分鐘 持續",
+      location: "中壢區",
+      healthIndex: "良好",
+      severityColor: "#81C784",
+      statusColor: "#FFFFFF",
+      icon: "car",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 4,
+      category: "工業聚集區",
+      title: "大園工業區異常",
+      description: "檢測到 VOCs 濃度異常升高。",
+      severity: "中等風險",
+      status: "AI 識別",
+      trend: "已穩定",
+      exposure: "~2.1k 人",
+      duration: "已解決",
+      location: "大園區",
+      confidence: "92.1%",
+      severityColor: "#9E9E9E",
+      statusColor: "#FFFFFF",
+      icon: "business",
+      isActive: false,
+      isResolved: true,
+    },
+    {
+      id: 5,
+      category: "區域性事件",
+      title: "桃園市區空品惡化",
+      description: "多個測站同時檢測到 PM2.5 升高。",
+      severity: "高風險",
+      status: "固定站",
+      trend: "持平",
+      exposure: "~5.8k 人",
+      duration: "3小時 持續",
+      location: "桃園區",
+      healthIndex: "不健康",
+      severityColor: "#EF5350",
+      statusColor: "#FFFFFF",
+      icon: "alert-circle",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 6,
+      category: "工業聚集區",
+      title: "蘆竹化工廠異味",
+      description: "居民通報異味，檢測到硫化物濃度異常。",
+      severity: "中等風險",
+      status: "AI 識別",
+      trend: "監控中",
+      exposure: "~1.8k 人",
+      duration: "1小時45分鐘 持續",
+      location: "蘆竹區",
+      confidence: "87.3%",
+      severityColor: "#FFB74D",
+      statusColor: "#FFFFFF",
+      icon: "business",
+      isActive: true,
+      isResolved: false,
+    },
+    {
+      id: 7,
+      category: "露天燃燒",
+      title: "觀音農地燃燒",
+      description: "衛星影像偵測到露天燃燒活動。",
+      severity: "低風險",
+      status: "衛星監測",
+      trend: "已撲滅",
+      exposure: "~300 人",
+      duration: "已解決",
+      location: "觀音區",
+      healthIndex: "輕微影響",
+      severityColor: "#9E9E9E",
+      statusColor: "#FFFFFF",
+      icon: "flame",
+      isActive: false,
+      isResolved: true,
+    },
+    {
+      id: 8,
+      category: "交通排放",
+      title: "桃園機場航班密集",
+      description: "航班起降密集導致周邊 NOx 濃度上升。",
+      severity: "低風險",
+      status: "固定站",
+      trend: "週期性",
+      exposure: "~1.5k 人",
+      duration: "2小時 持續",
+      location: "大園區",
+      healthIndex: "可接受",
+      severityColor: "#81C784",
+      statusColor: "#FFFFFF",
+      icon: "airplane",
+      isActive: true,
+      isResolved: false,
     },
   ];
+
+  const getFilteredEvents = () => {
+    return allEventData.filter(event => {
+      if (selectedFilter === "活躍事件" && !event.isActive) return false;
+      if (selectedFilter === "已解決事件" && !event.isResolved) return false;
+      if (selectedFilter === "歷史事件" && event.isActive) return false;
+      
+      if (selectedDistrict !== "所有區域" && event.location !== selectedDistrict) return false;
+      
+      if (selectedSeverity === "高風險" && event.severity !== "高風險") return false;
+      if (selectedSeverity === "中等風險" && event.severity !== "中等風險") return false;
+      if (selectedSeverity === "低風險" && event.severity !== "低風險") return false;
+      
+      return true;
+    });
+  };
+
+  const eventData = getFilteredEvents();
 
   return (
     <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>

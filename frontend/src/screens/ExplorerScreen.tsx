@@ -40,7 +40,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
     );
   };
 
-  const monitoringData = [
+  const allMonitoringData = [
     {
       id: 1,
       district: "中壢區",
@@ -52,7 +52,9 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "EPA",
       version: "v2.1",
-      color: "#4CAF50"
+      color: "#4CAF50",
+      timeCategory: "近24小時",
+      region: "中壢區"
     },
     {
       id: 2,
@@ -65,7 +67,9 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "微感測",
       version: "v2.0",
-      color: "#FFA868"
+      color: "#FFA868",
+      timeCategory: "近24小時",
+      region: "桃園區"
     },
     {
       id: 3,
@@ -78,9 +82,225 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "光達",
       version: "v2.1",
-      color: "#4CAF50"
+      color: "#4CAF50",
+      timeCategory: "近24小時",
+      region: "觀音區"
+    },
+    {
+      id: 4,
+      district: "大園工業區",
+      station: "Station TY-15",
+      time: "12:30 PM",
+      passed: true,
+      pollutant: "O3",
+      value: 35,
+      unit: "ppb",
+      source: "EPA",
+      version: "v2.1",
+      color: "#4CAF50",
+      timeCategory: "近24小時",
+      region: "大園區"
+    },
+    {
+      id: 5,
+      district: "桃園市區",
+      station: "Micro-Sensor B12",
+      time: "11:15 AM",
+      passed: false,
+      pollutant: "NOX",
+      value: 85,
+      unit: "ppb",
+      source: "微感測",
+      version: "v1.8",
+      color: "#FF6B6B",
+      timeCategory: "近24小時",
+      region: "桃園區"
+    },
+    {
+      id: 6,
+      district: "中壢商業區",
+      station: "LUV-Station C3",
+      time: "10:45 AM",
+      passed: true,
+      pollutant: "VOCs",
+      value: 22,
+      unit: "ppb",
+      source: "LUV",
+      version: "v3.0",
+      color: "#4CAF50",
+      timeCategory: "近24小時",
+      region: "中壢區"
+    },
+    {
+      id: 7,
+      district: "觀音工業區",
+      station: "Grid Beta-7",
+      time: "昨日 23:30",
+      passed: false,
+      pollutant: "PM2.5",
+      value: 52,
+      unit: "μg/m³",
+      source: "微感測",
+      version: "v2.0",
+      color: "#FFA868",
+      timeCategory: "近3天",
+      region: "觀音區"
+    },
+    {
+      id: 8,
+      district: "大園住宅區",
+      station: "Station TY-22",
+      time: "昨日 22:15",
+      passed: true,
+      pollutant: "O3",
+      value: 28,
+      unit: "ppb",
+      source: "EPA",
+      version: "v2.1",
+      color: "#4CAF50",
+      timeCategory: "近3天",
+      region: "大園區"
+    },
+    {
+      id: 9,
+      district: "桃園機場周邊",
+      station: "LIDAR-Point A1",
+      time: "昨日 20:00",
+      passed: true,
+      pollutant: "NOX",
+      value: 42,
+      unit: "ppb",
+      source: "光達",
+      version: "v2.3",
+      color: "#4CAF50",
+      timeCategory: "近3天",
+      region: "大園區"
+    },
+    {
+      id: 10,
+      district: "中壢工業區",
+      station: "Micro-Array D5",
+      time: "昨日 18:45",
+      passed: false,
+      pollutant: "VOCs",
+      value: 78,
+      unit: "ppb",
+      source: "微感測",
+      version: "v1.9",
+      color: "#FF6B6B",
+      timeCategory: "近3天",
+      region: "中壢區"
+    },
+    {
+      id: 11,
+      district: "桃園都會區",
+      station: "LUV-Hub M1",
+      time: "3天前 16:30",
+      passed: true,
+      pollutant: "PM2.5",
+      value: 18,
+      unit: "μg/m³",
+      source: "LUV",
+      version: "v3.0",
+      color: "#4CAF50",
+      timeCategory: "近7天",
+      region: "桃園區"
+    },
+    {
+      id: 12,
+      district: "觀音沿海",
+      station: "Station TY-35",
+      time: "4天前 14:20",
+      passed: true,
+      pollutant: "O3",
+      value: 31,
+      unit: "ppb",
+      source: "EPA",
+      version: "v2.1",
+      color: "#4CAF50",
+      timeCategory: "近7天",
+      region: "觀音區"
+    },
+    {
+      id: 13,
+      district: "大園農業區",
+      station: "LIDAR-Grid F8",
+      time: "5天前 12:10",
+      passed: false,
+      pollutant: "NOX",
+      value: 95,
+      unit: "ppb",
+      source: "光達",
+      version: "v2.3",
+      color: "#FF6B6B",
+      timeCategory: "近7天",
+      region: "大園區"
+    },
+    {
+      id: 14,
+      district: "中壢市中心",
+      station: "Micro-Net G2",
+      time: "6天前 09:45",
+      passed: true,
+      pollutant: "VOCs",
+      value: 25,
+      unit: "ppb",
+      source: "微感測",
+      version: "v2.0",
+      color: "#4CAF50",
+      timeCategory: "近7天",
+      region: "中壢區"
+    },
+    {
+      id: 15,
+      district: "桃園高鐵區",
+      station: "LUV-Station H4",
+      time: "7天前 15:30",
+      passed: true,
+      pollutant: "PM2.5",
+      value: 15,
+      unit: "μg/m³",
+      source: "LUV",
+      version: "v3.0",
+      color: "#4CAF50",
+      timeCategory: "近7天",
+      region: "桃園區"
     }
   ];
+
+  const getFilteredData = () => {
+    return allMonitoringData.filter(item => {
+      // 搜尋文字篩選
+      if (searchText && !item.district.toLowerCase().includes(searchText.toLowerCase()) && 
+          !item.station.toLowerCase().includes(searchText.toLowerCase())) {
+        return false;
+      }
+      
+      // 時間篩選
+      if (selectedTimeFilter !== "近24小時" && item.timeCategory !== selectedTimeFilter) {
+        return false;
+      }
+      
+      // 污染物篩選
+      if (selectedPollutantFilter !== "PM2.5" && item.pollutant !== selectedPollutantFilter) {
+        return false;
+      }
+      
+      // 區域篩選
+      if (selectedRegionFilter !== "全市" && item.region !== selectedRegionFilter) {
+        return false;
+      }
+      
+      // 資料來源篩選
+      if (selectedDataSources.length > 0 && !selectedDataSources.includes(item.source)) {
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
+  const monitoringData = getFilteredData();
 
   return (
     <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
