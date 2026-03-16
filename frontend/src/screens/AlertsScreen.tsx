@@ -14,6 +14,7 @@ import { TopNavigation } from "../navigation/TopNavigation";
 import { useStore } from "../store";
 import { getAlerts, setScenario } from "../api";
 import { AlertKind } from "../types";
+import { PentagonRadar } from "../components/PentagonRadar";
 
 interface AlertsScreenProps {
   scrollRef?: (ref: any) => void;
@@ -30,32 +31,6 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
     activity: 80,
     urgency: 20,
   });
-
-  const radarSvg = `
-    <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="180,60 294.6,111.2 243.5,244.8 116.5,244.8 65.4,111.2" 
-               fill="none" stroke="rgba(143,169,111,0.2)" stroke-width="1"/>
-      <polygon points="180,100.8 249.7,137.5 202.3,216.5 157.7,216.5 130.3,137.5" 
-               fill="none" stroke="rgba(143,169,111,0.25)" stroke-width="1"/>
-      <polygon points="180,140.4 219.8,163.7 181.2,188.3 178.8,188.3 154.6,163.7" 
-               fill="none" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <line x1="180" y1="180" x2="180" y2="60" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <line x1="180" y1="180" x2="294.6" y2="111.2" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <line x1="180" y1="180" x2="243.5" y2="244.8" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <line x1="180" y1="180" x2="116.5" y2="244.8" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <line x1="180" y1="180" x2="65.4" y2="111.2" stroke="rgba(143,169,111,0.3)" stroke-width="1"/>
-      <polygon points="180,84 274.2,127.8 211.8,222.4 138.2,222.4 86.4,127.8" 
-               fill="rgba(120,170,140,0.35)" 
-               stroke="rgba(120,170,140,0.8)" 
-               stroke-width="2"/>
-      <circle cx="180" cy="180" r="2" fill="#8FA96F"/>
-      <text x="180" y="35" text-anchor="middle" font-size="13" font-weight="600" fill="#555A4F">化學</text>
-      <text x="320" y="95" text-anchor="middle" font-size="13" font-weight="600" fill="#555A4F">粉塵</text>
-      <text x="270" y="275" text-anchor="middle" font-size="13" font-weight="600" fill="#555A4F">生物</text>
-      <text x="90" y="275" text-anchor="middle" font-size="13" font-weight="600" fill="#555A4F">氣體</text>
-      <text x="40" y="95" text-anchor="middle" font-size="13" font-weight="600" fill="#555A4F">氣候</text>
-    </svg>
-  `;
 
   useEffect(() => {
     loadAlerts();
@@ -270,23 +245,11 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
                   <View style={styles.analysisItem}>
                     <Text style={styles.analysisLabel}>異常偵測</Text>
                     <View style={styles.radarContainer}>
-                      <View style={styles.pentagonRadar}>
-                        <View style={styles.gridLayer3} />
-                        <View style={styles.gridLayer2} />
-                        <View style={styles.gridLayer1} />
-                        <View style={styles.axisLine1} />
-                        <View style={styles.axisLine2} />
-                        <View style={styles.axisLine3} />
-                        <View style={styles.axisLine4} />
-                        <View style={styles.axisLine5} />
-                        <View style={styles.dataPolygon} />
-                        <View style={styles.centerPoint} />
-                      </View>
-                    </View>
-                    <View style={styles.radarLabels}>
-                      <Text style={styles.radarLabel}>化學</Text>
-                      <Text style={styles.radarLabel}>粉塵</Text>
-                      <Text style={styles.radarLabel}>生物</Text>
+                      <PentagonRadar 
+                        data={[0.8, 0.6, 0.7, 0.9, 0.5]}
+                        labels={['化學', '粉塵', '生物', '氣體', '氣候']}
+                        size={120}
+                      />
                     </View>
                   </View>
 
@@ -394,35 +357,11 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
               <Text style={styles.aiCardSubtitle}>穩定指數: 92%</Text>
             </View>
             <View style={styles.radarContainer}>
-              <View style={styles.pentagonRadar}>
-                <View style={styles.gridLayer3} />
-                <View style={styles.gridLayer2} />
-                <View style={styles.gridLayer1} />
-                <View style={styles.axisLine1} />
-                <View style={styles.axisLine2} />
-                <View style={styles.axisLine3} />
-                <View style={styles.axisLine4} />
-                <View style={styles.axisLine5} />
-                <View style={styles.dataPolygon} />
-                <View style={styles.centerPoint} />
-              </View>
-              <Text
-                style={[styles.dimensionLabel, { top: 5, alignSelf: "center" }]}
-              >
-                化學
-              </Text>
-              <Text style={[styles.dimensionLabel, { top: 35, right: 5 }]}>
-                粉塵
-              </Text>
-              <Text style={[styles.dimensionLabel, { bottom: 25, right: 20 }]}>
-                生物
-              </Text>
-              <Text style={[styles.dimensionLabel, { bottom: 25, left: 20 }]}>
-                氣體
-              </Text>
-              <Text style={[styles.dimensionLabel, { top: 35, left: 5 }]}>
-                氣候
-              </Text>
+              <PentagonRadar 
+                data={[0.9, 0.7, 0.8, 0.6, 0.75]}
+                labels={['化學', '粉塵', '生物', '氣體', '氣候']}
+                size={100}
+              />
             </View>
           </View>
 
@@ -655,120 +594,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
   },
-  pentagonRadar: {
-    width: 100,
-    height: 100,
-    position: "relative",
-  },
-  gridLayer3: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderWidth: 1,
-    borderColor: "rgba(143, 169, 111, 0.2)",
-    backgroundColor: "transparent",
-    borderRadius: 20,
-    transform: [{ rotate: "45deg" }],
-  },
-  gridLayer2: {
-    position: "absolute",
-    width: 70,
-    height: 70,
-    top: 15,
-    left: 15,
-    borderWidth: 1,
-    borderColor: "rgba(143, 169, 111, 0.25)",
-    backgroundColor: "transparent",
-    borderRadius: 14,
-    transform: [{ rotate: "45deg" }],
-  },
-  gridLayer1: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    top: 30,
-    left: 30,
-    borderWidth: 1,
-    borderColor: "rgba(143, 169, 111, 0.3)",
-    backgroundColor: "transparent",
-    borderRadius: 8,
-    transform: [{ rotate: "45deg" }],
-  },
-  axisLine1: {
-    position: "absolute",
-    width: 1,
-    height: 50,
-    backgroundColor: "rgba(143, 169, 111, 0.3)",
-    top: 0,
-    left: 49.5,
-  },
-  axisLine2: {
-    position: "absolute",
-    width: 35,
-    height: 1,
-    backgroundColor: "rgba(143, 169, 111, 0.3)",
-    top: 20,
-    right: 0,
-    transform: [{ rotate: "72deg" }],
-    transformOrigin: "left center",
-  },
-  axisLine3: {
-    position: "absolute",
-    width: 35,
-    height: 1,
-    backgroundColor: "rgba(143, 169, 111, 0.3)",
-    bottom: 15,
-    right: 15,
-    transform: [{ rotate: "144deg" }],
-    transformOrigin: "left center",
-  },
-  axisLine4: {
-    position: "absolute",
-    width: 35,
-    height: 1,
-    backgroundColor: "rgba(143, 169, 111, 0.3)",
-    bottom: 15,
-    left: 15,
-    transform: [{ rotate: "-144deg" }],
-    transformOrigin: "right center",
-  },
-  axisLine5: {
-    position: "absolute",
-    width: 35,
-    height: 1,
-    backgroundColor: "rgba(143, 169, 111, 0.3)",
-    top: 20,
-    left: 0,
-    transform: [{ rotate: "-72deg" }],
-    transformOrigin: "right center",
-  },
-  dataPolygon: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    top: 20,
-    left: 20,
-    backgroundColor: "rgba(120, 170, 140, 0.35)",
-    borderWidth: 2,
-    borderColor: "rgba(120, 170, 140, 0.8)",
-    borderRadius: 12,
-    transform: [{ rotate: "45deg" }],
-  },
-  centerPoint: {
-    position: "absolute",
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#8FA96F",
-    top: 48,
-    left: 48,
-  },
-  dimensionLabel: {
-    position: "absolute",
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#555A4F",
-  },
   chartContainer: {
     flex: 1,
     alignItems: "center",
@@ -986,15 +811,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  radarLabels: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  radarLabel: {
-    fontSize: 8,
-    fontWeight: "bold",
-    color: "#555A4F",
-  },
+
   policyCard: {
     marginHorizontal: 24,
     marginTop: 16,
