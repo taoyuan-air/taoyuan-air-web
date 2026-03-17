@@ -106,11 +106,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton}>
+          <View style={styles.logoutIcon}>
+            <Feather name="log-out" size={16} color="#E76F51" />
+          </View>
           <Text style={styles.logoutText}>登出</Text>
         </TouchableOpacity>
-
-        {/* Version */}
-        <Text style={styles.versionText}>TAOYUAN AIR V2.4.0</Text>
       </ScrollView>
     </LinearGradient>
   );
@@ -150,18 +150,24 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: "center",
     marginBottom: 24,
+    paddingTop: 20,
   },
   avatarContainer: {
     position: "relative",
-    marginBottom: 12,
+    marginBottom: 20,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#D4B896",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarText: {
     fontSize: 24,
@@ -170,16 +176,22 @@ const styles = StyleSheet.create({
   },
   premiumBadge: {
     position: "absolute",
-    bottom: -2,
-    left: "50%",
-    marginLeft: -185,
+    bottom: -8,
+    right: -4,
     backgroundColor: "#6A8D73",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: "white",
   },
   premiumText: {
     fontSize: 10,
@@ -187,18 +199,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: 8,
+    marginTop: 4,
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: 15,
     color: "#666",
+    marginBottom: 8,
   },
   settingsSection: {
-    gap: 8,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 24,
   },
   settingItem: {
     padding: 0,
@@ -207,7 +221,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   settingLeft: {
     flexDirection: "row",
@@ -233,23 +248,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   logoutButton: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
     paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(231, 111, 81, 0.08)",
+    borderRadius: 20,
     marginBottom: 12,
-    marginHorizontal: 60,
-    borderWidth: 2,
-    borderColor: "#E76F51",
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(231, 111, 81, 0.2)",
+  },
+  logoutIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(231, 111, 81, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#E76F51",
     fontWeight: "600",
-  },
-  versionText: {
-    fontSize: 12,
-    color: "#999",
-    textAlign: "center",
-    marginBottom: 20,
   },
 });
