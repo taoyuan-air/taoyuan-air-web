@@ -97,7 +97,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
                 >
                   <Feather name="bell" size={20} color="white" />
                 </View>
-                <Text style={styles.settingTitle}>通知偏好設定</Text>
+                <Text style={styles.settingTitle}>通知偏好</Text>
               </View>
               <Feather name="chevron-right" size={20} color="#999" />
             </View>
