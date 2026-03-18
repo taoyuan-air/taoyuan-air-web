@@ -82,7 +82,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
                   <Feather name="heart" size={20} color="white" />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>健康檔案設定</Text>
+                  <Text style={styles.settingTitle}>健康檔案</Text>
                 </View>
               </View>
               <Feather name="chevron-right" size={20} color="#999" />
