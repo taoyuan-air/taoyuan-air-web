@@ -55,6 +55,14 @@ export interface Station {
   updatedAt: string;
 }
 
+export interface EpaStationData {
+  sitename: string;
+  aqi: number;
+  pm25: number;
+  o3: number;
+  nox: number;
+}
+
 export interface VerticalProfile {
   gridId: string;
   timestamp: string;
