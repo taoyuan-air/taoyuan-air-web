@@ -275,17 +275,24 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
     return { labels, times };
   };
 
-  // 根據數值決定顏色
+// 根據數值決定顏色（包含預測數據的灰階對應）
   const getBarColor = (value: number, isPrediction: boolean = false) => {
+    // 1. 如果是預測數據，使用不同深度的灰色
+    if (isPrediction) {
+      if (value <= 0.3) return 'rgba(224, 224, 224, 0.6)'; // 淺灰 (對應 綠色等級)
+      if (value <= 0.5) return 'rgba(189, 189, 189, 0.6)'; // 次淺灰 (對應 黃色等級)
+      if (value <= 0.7) return 'rgba(117, 117, 117, 0.6)'; // 中深灰 (對應 紅色等級)
+      return 'rgba(66, 66, 66, 0.6)';                   // 深灰 (對應 紫色等級)
+    }
+
+    // 2. 如果是真實數據，使用原本的彩色系統
     let baseColor;
     if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
     else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
     else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
     else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
     
-    // 預測數據使用更透明的樣式
-    const opacity = isPrediction ? ', 0.5)' : ', 0.8)';
-    return baseColor + opacity;
+    return baseColor + ', 0.8)';
   };
 
   const maxHeight = 56;  // 從48增加到56 (+17%)
