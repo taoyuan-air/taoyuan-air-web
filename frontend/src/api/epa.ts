@@ -15,10 +15,7 @@ export interface EpaStationData {
   nox: number;
 }
 
-/**
- * 取得 EPA 目標測站的即時空氣品質資料。
- * 每個測站分別送出單一 filters 參數（避免 API 將多個 filters 當作 AND 條件）。
- */
+// 取得 EPA 目標測站的即時空氣品質資料。
 export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
   const apiKey = process.env.EXPO_PUBLIC_EPA_API_KEY;
   if (!apiKey) {
@@ -26,7 +23,7 @@ export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
     return [];
   }
 
-  // ------- 產出單一站點的請求 URL -------
+  // 單一站點的請求
   const buildUrl = (station: string): string => {
     const base = 'https://data.moenv.gov.tw/api/v2/aqx_p_432';
     const params = new URLSearchParams({

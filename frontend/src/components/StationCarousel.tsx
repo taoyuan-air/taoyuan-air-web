@@ -277,14 +277,22 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
   // 根據數值決定顏色
   const getBarColor = (value: number, isPrediction: boolean = false) => {
-    let baseColor;
-    if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
-    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
-    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
-    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
-    
-    // 預測數據使用更透明的樣式
-    const opacity = isPrediction ? ', 0.5)' : ', 0.8)';
+    if (!isPrediction) {
+      let baseColor: string;
+      if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
+      else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+      else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高 
+      else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
+
+      const opacity = ', 0.8)'; // 非預測使用較不透明的樣式
+      return baseColor + opacity;
+    }
+
+    // 預測：灰階（數值越高越黑、越低越白）
+    const gray = Math.round(255 * (1 - value)); // 灰階強度
+    const baseColor = `rgba(${gray},${gray},${gray}`;
+
+    const opacity = ', 0.5)'; // 預測使用更透明的樣式
     return baseColor + opacity;
   };
 
