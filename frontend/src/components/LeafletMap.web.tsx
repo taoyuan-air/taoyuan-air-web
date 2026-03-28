@@ -17,6 +17,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
   const mapRef = useRef<any>(null); // 儲存 Leaflet Map 實例
   const windyStoreRef = useRef<any>(null); // 儲存 Windy Store 實例
   const polygonLayerGroupRef = useRef<any>(null); // 用來管理網格圖層
+  const LRef = useRef<any>(null); // 儲存 Windy 提供的 Leaflet 實例
 
   useEffect(() => {
     // 1. 定義載入腳本的輔助函式
@@ -42,7 +43,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
 
         // 第三步：開始初始化地圖
         const options = {
-          key: "YOUR_WINDY_API_KEY",
+          key: 'YOUR API KEY',
           lat: 25.0,
           lon: 121.25,
           zoom: 11,
@@ -50,15 +51,39 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
 
         // @ts-ignore
         window.windyInit(options, (windyAPI: any) => {
-          const { map, store, L } = windyAPI;
+          // 1. 先確認 windyAPI 是否存在
+          if (!windyAPI) {
+            console.error("Windy API 初始化失敗，未回傳物件");
+            return;
+          }
+
+          // 2. 嘗試從 windyAPI 取得 L，如果沒有則嘗試從 window 取得
+          const L = windyAPI.L || (window as any).L;
+          const map = windyAPI.map;
+          const store = windyAPI.store;
+
+          if (!L) {
+            console.error("無法取得 Leaflet (L) 實例");
+            return;
+          }
+
+          // 3. 賦值給 Ref
           mapRef.current = map;
           windyStoreRef.current = store;
-          
-          // 準備好圖層組
-          polygonLayerGroupRef.current = L.layerGroup().addTo(map);
-          
-          // 畫出網格
-          renderPolygons(L, gridCells);
+          LRef.current = L;
+
+          // 4. 建立圖層組
+          try {
+            polygonLayerGroupRef.current = L.layerGroup().addTo(map);
+            console.log("Windy 圖層組建立成功");
+          } catch (e) {
+            console.error("建立 layerGroup 時出錯:", e);
+          }
+
+          // 5. 渲染網格
+          if (gridCells && gridCells.length > 0) {
+            renderPolygons(gridCells);
+          }
         });
       } catch (err) {
         console.error("Windy 載入失敗:", err);
@@ -70,11 +95,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
 
   // 當網格資料更新時，重新畫網格
   useEffect(() => {
-    if (mapRef.current && polygonLayerGroupRef.current) {
-      // @ts-ignore
-      const L = window.L; // 獲取全域 Leaflet
+    if (mapRef.current && polygonLayerGroupRef.current && LRef.current) {
       polygonLayerGroupRef.current.clearLayers(); // 清除舊的
-      renderPolygons(L, gridCells);
+      if (gridCells && gridCells.length > 0) {
+        renderPolygons(gridCells);
+      }
     }
   }, [gridCells]);
 
@@ -86,9 +111,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
     }
   }, [mapMode]);
 
-  const renderPolygons = (L: any, cells: GridCell[]) => {
+  const renderPolygons = (cells: GridCell[]) => {
+    const L = LRef.current;
+    const layerGroup = polygonLayerGroupRef.current;
+
+    if (!L || !layerGroup) return;
+
     cells.forEach((grid) => {
-      const positions = grid.polygonCoords.map(coord => [coord.latitude, coord.longitude]);
+      const positions = grid.polygonCoords.map(coord => [coord.latitude, coord.longitude] as [number, number]);
       
       const polygon = L.polygon(positions, {
         fillColor: getGridColor(grid.values.value),
@@ -97,7 +127,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
         weight: 1,
       });
 
-      polygon.on('click', () => onGridPress?.(grid));
+      polygon.on('click', (e: any) => {
+        // 防止地圖點擊事件冒泡
+        if (e.originalEvent) e.originalEvent.stopPropagation();
+        onGridPress?.(grid);
+      });
       polygon.addTo(polygonLayerGroupRef.current);
     });
   };
