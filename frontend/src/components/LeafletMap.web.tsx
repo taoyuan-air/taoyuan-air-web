@@ -42,8 +42,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
         await loadScript('https://api.windy.com/assets/map-forecast/libBoot.js', 'windy-sdk');
 
         // 第三步：開始初始化地圖
+        const apikey = process.env.EXPO_PUBLIC_WINDY_API_KEY;
         const options = {
-          key: 'YOUR API KEY',
+          key: apikey,
           lat: 25.0,
           lon: 121.25,
           zoom: 11,
