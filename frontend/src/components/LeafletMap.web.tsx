@@ -60,20 +60,54 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
 
           // 2. 嘗試從 windyAPI 取得 L，如果沒有則嘗試從 window 取得
           const L = windyAPI.L || (window as any).L;
-          const map = windyAPI.map;
-          const store = windyAPI.store;
-
+          const { colors, store, map } = windyAPI;
           if (!L) {
             console.error("無法取得 Leaflet (L) 實例");
             return;
           }
 
-          // 3. 賦值給 Ref
+          // 3. 修改風速圖背景顏色
+          const targetLayer = colors.wind; 
+          if (targetLayer && typeof targetLayer.changeColor === 'function') {
+            try {
+              // 呼叫該圖層專屬的 changeColor 方法
+              targetLayer.changeColor([
+                [0,[128, 128, 128, 255]],
+                [1,[128, 128, 128, 255]],
+                [3,[128, 128, 128, 255]],
+                [5,[128, 128, 128, 255]],
+                [7,[128, 128, 128, 255]],
+                [9,[128, 128, 128, 255]],
+                [11,[128, 128, 128, 255]],
+                [13,[128, 128, 128, 255]],
+                [15,[128, 128, 128, 255]],
+                [17,[128, 128, 128, 255]],
+                [19,[128, 128, 128, 255]],
+                [21,[128, 128, 128, 255]],
+                [24,[128, 128, 128, 255]],
+                [27,[128, 128, 128, 255]],
+                [29,[128, 128, 128, 255]],
+                [36,[128, 128, 128, 255]],
+                [46,[128, 128, 128, 255]],
+                [51,[128, 128, 128, 255]],
+                [77,[128, 128, 128, 255]],
+                [104,[128,128,128,255]]
+              ]);
+              console.log("wind 色階自定義成功");
+            } catch (e) {
+              console.error("執行 changeColor 時出錯:", e);
+            }
+          } else {
+            console.warn("找不到該圖層的顏色定義，請檢查名稱是否正確。目前的圖層清單：", Object.keys(colors));
+          }
+          store.set('overlay', 'wind');
+
+          // 4. 賦值給 Ref
           mapRef.current = map;
           windyStoreRef.current = store;
           LRef.current = L;
 
-          // 4. 建立圖層組
+          // 5. 建立圖層組
           try {
             polygonLayerGroupRef.current = L.layerGroup().addTo(map);
             console.log("Windy 圖層組建立成功");
@@ -81,7 +115,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
             console.error("建立 layerGroup 時出錯:", e);
           }
 
-          // 5. 渲染網格
+          // 6. 渲染網格
           if (gridCells && gridCells.length > 0) {
             renderPolygons(gridCells);
           }
@@ -138,11 +172,41 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
   };
 
   return (
+      <View style={styles.container}>
+        {/* 注入 CSS 隱藏 Windy 的 UI 元件 */}
+        <style dangerouslySetInnerHTML={{ __html: `
+
+          /* 隱藏右上角 Overlay 選擇器 (桌機與手機版) */
+          #windy #ovr-select, 
+          #windy #mobile-ovr-select,
+          #windy .bottom-right-controls,
+          #windy .right-border {
+            display: none !important;
+          }
+
+          /* 隱藏左上角搜尋框與 Logo (選用) */
+          #windy #logo {
+            display: none !important;
+          }
+
+          /* 隱藏 Leaflet 原生的縮放按鈕容器 */
+          #windy .leaflet-control-zooml {
+            display: none !important;
+          }
+        `}} />
+
+        {/* Windy 地圖容器 */}
+        <div id="windy" style={{ width: '100%', height: '100%' }}></div>
+      </View>
+    );
+
+  /* 原本的return (沒有把windy.com、地圖選擇隱藏)
+  return (
     <View style={styles.container}>
-      {/* Windy 需要一個 ID 為 windy 的 div */}
       <div id="windy" style={{ width: '100%', height: '100%' }}></div>
     </View>
   );
+  */
 };
 
 const styles = StyleSheet.create({
