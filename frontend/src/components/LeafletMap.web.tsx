@@ -9,10 +9,37 @@ interface LeafletMapProps {
 }
 
 const getGridColor = (value: number) => {
-  if (value <= 30)  return 'rgba(0, 228, 0, 0.3)';    // 綠：良好
-  if (value <= 60)  return 'rgba(255, 255, 0, 0.3)';  // 黃：普通
-  if (value <= 90)  return 'rgba(255, 126, 0, 0.3)';  // 橘：對敏感族群不健康
-  return             'rgba(255, 0, 0, 0.3)';           // 紅：不健康
+  // 定義色階錨點 [數值, r, g, b]
+  const stops = [
+    [0,   0,   228, 0  ],  // 綠
+    [50,  255, 255, 0  ],  // 黃
+    [100, 255, 126, 0  ],  // 橘
+    [150, 255, 0,   0  ],  // 紅
+    [200, 126, 0,   35 ],  // 深紅紫
+  ];
+
+  // 找到 value 落在哪兩個錨點之間
+  const clamped = Math.max(0, Math.min(200, value));
+  let lower = stops[0];
+  let upper = stops[stops.length - 1];
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (clamped >= stops[i][0] && clamped <= stops[i + 1][0]) {
+      lower = stops[i];
+      upper = stops[i + 1];
+      break;
+    }
+  }
+
+  // 計算該區間內的比例
+  const ratio = (clamped - lower[0]) / (upper[0] - lower[0]);
+
+  // 線性插值 RGB
+  const r = Math.round(lower[1] + (upper[1] - lower[1]) * ratio);
+  const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
+  const b = Math.round(lower[3] + (upper[3] - lower[3]) * ratio);
+
+  return `rgba(${r}, ${g}, ${b}, 0.55)`;
 };
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress }) => {
