@@ -42,6 +42,7 @@ data/raw/**/*.txt
 data/processed/**/*
 data/exports/**/*
 !data/raw/**/.gitkeep
+!data/raw/**/hash.txt
 !data/processed/.gitkeep
 !data/exports/.gitkeep
 !data/README.md
