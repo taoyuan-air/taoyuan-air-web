@@ -38,6 +38,7 @@ yarn-error.*
 
 # Data files (keep structure, ignore large data files)
 data/raw/**/*.json
+data/raw/**/*.txt
 data/processed/**/*
 data/exports/**/*
 !data/raw/**/.gitkeep
