@@ -107,8 +107,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
   };
 
   const getGridColor = (value: number) => {
-    const opacity = Math.min(0.8, Math.max(0.12, value / 100));
-    return `rgba(106, 141, 115, ${opacity})`;
+    if (value <= 30)  return 'rgba(0, 228, 0, 0.3)';    // 綠：良好
+    if (value <= 60)  return 'rgba(255, 255, 0, 0.3)';  // 黃：普通
+    if (value <= 90)  return 'rgba(255, 126, 0, 0.3)';  // 橘：對敏感族群不健康
+    return             'rgba(255, 0, 0, 0.3)';           // 紅：不健康
   };
 
   const getPollutantLabel = () => {
