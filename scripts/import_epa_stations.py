@@ -9,6 +9,7 @@ import json
 import psycopg2
 from psycopg2.extras import execute_batch
 from pathlib import Path
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # 載入環境變數
@@ -62,6 +63,18 @@ def parse_concentration(value):
     except (ValueError, TypeError):
         return None
 
+
+def parse_monitor_date(value):
+    """將 EPA 時間字串轉為 datetime，支援有/無秒格式。"""
+    if not value:
+        return None
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
+
 def import_json_file(conn, file_path, station_id):
     """匯入單一 JSON 檔案"""
     try:
@@ -78,10 +91,16 @@ def import_json_file(conn, file_path, station_id):
         # 準備批次插入資料
         insert_data = []
         invalid_count = 0
+        skipped_count = 0
         
         for record in data:
             concentration = record.get('concentration')
             concentration_numeric = parse_concentration(concentration)
+            monitor_date = parse_monitor_date(record.get('monitordate'))
+
+            if monitor_date is None:
+                skipped_count += 1
+                continue
             
             # 判斷資料品質
             if concentration_numeric is None:
@@ -92,18 +111,23 @@ def import_json_file(conn, file_path, station_id):
             
             insert_data.append((
                 station_id,
-                record.get('monitordate'),
+                monitor_date,
                 record.get('itemid'),
                 record.get('itemname'),
                 record.get('itemengname'),
                 record.get('itemunit'),
                 concentration,
                 concentration_numeric,
-                data_quality
+                data_quality,
+                monitor_date,
+                monitor_date + timedelta(minutes=59),
+                'history'
             ))
         
         if invalid_count > 0:
-            print(f"    [WARNING] 發現 {invalid_count} 筆無效資料（將標記為 invalid）")
+            print(f"    [WARNING] 發現 {invalid_count} 筆濃度無效資料（將標記為 invalid）")
+        if skipped_count > 0:
+            print(f"    [WARNING] 發現 {skipped_count} 筆時間格式錯誤資料（已跳過）")
         
         # 批次插入
         cursor = None
@@ -112,9 +136,18 @@ def import_json_file(conn, file_path, station_id):
             insert_query = """
                 INSERT INTO epa_hourly_data 
                 (station_id, monitor_date, pollutant_id, pollutant_name, 
-                 pollutant_eng_name, unit, concentration, concentration_numeric, data_quality)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (station_id, monitor_date, pollutant_id) DO NOTHING
+                 pollutant_eng_name, unit, concentration, concentration_numeric, data_quality,
+                 period_start, period_end, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (station_id, monitor_date, pollutant_id)
+                DO UPDATE SET
+                    concentration = EXCLUDED.concentration,
+                    concentration_numeric = EXCLUDED.concentration_numeric,
+                    data_quality = EXCLUDED.data_quality,
+                    period_start = EXCLUDED.period_start,
+                    period_end = EXCLUDED.period_end,
+                    source = EXCLUDED.source
+                WHERE epa_hourly_data.source = 'realtime'
             """
             
             print(f"    開始批次匯入...")
@@ -122,7 +155,10 @@ def import_json_file(conn, file_path, station_id):
             conn.commit()
             
             valid_count = len(insert_data) - invalid_count
-            print(f"    [OK] 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
+            print(
+                f"    [OK] 成功匯入 {len(insert_data)} 筆資料 "
+                f"(有效: {valid_count}, 無效: {invalid_count}, 跳過: {skipped_count})"
+            )
             return len(insert_data)
             
         except Exception as db_error:

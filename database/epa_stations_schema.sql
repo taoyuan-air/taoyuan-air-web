@@ -21,7 +21,18 @@ CREATE TABLE IF NOT EXISTS epa_stations (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 2. 建立 EPA 空氣品質小時值資料表（分區表）
+-- 2. 建立 EPA 污染物種類表（V2 三層架構）
+CREATE TABLE IF NOT EXISTS epa_pollutants (
+    pollutant_id VARCHAR(10) PRIMARY KEY,
+    pollutant_name VARCHAR(50) NOT NULL,
+    pollutant_eng_name VARCHAR(50) NOT NULL,
+    unit VARCHAR(20) NOT NULL,
+    aggregation_type VARCHAR(20) NOT NULL DEFAULT '1hr_mean',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 3. 建立 EPA 空氣品質小時值資料表（分區表）
 CREATE TABLE IF NOT EXISTS epa_hourly_data (
     id BIGSERIAL,
     station_id VARCHAR(20) NOT NULL,
@@ -33,13 +44,17 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data (
     concentration VARCHAR(20),
     concentration_numeric DECIMAL(10, 4),
     data_quality VARCHAR(10) DEFAULT 'good',
+    period_start TIMESTAMP,
+    period_end TIMESTAMP,
+    source VARCHAR(20) DEFAULT 'history',
     created_at TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (id, monitor_date),                                    -- 複合主鍵：序列ID + 分區鍵
     FOREIGN KEY (station_id) REFERENCES epa_stations(station_id),      -- 外鍵約束：關聯測站表
+    FOREIGN KEY (pollutant_id) REFERENCES epa_pollutants(pollutant_id),-- 外鍵約束：關聯污染物表
     UNIQUE (station_id, monitor_date, pollutant_id)                    -- 唯一約束：防止同測站同時間同污染物重複記錄
 ) PARTITION BY RANGE (monitor_date);
 
--- 3. 建立完整分區表（2019-2026年，按月份）
+-- 4. 建立完整分區表（2019-2026年，按月份）
 
 -- 2019年分區
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2019_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2019-01-01') TO ('2019-02-01');
@@ -144,14 +159,14 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_01 PARTITION OF epa_hourly_data 
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
 
--- 4. 建立索引
+-- 5. 建立索引
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_station ON epa_hourly_data(station_id);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_date ON epa_hourly_data(monitor_date);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_pollutant ON epa_hourly_data(pollutant_eng_name);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_station_date ON epa_hourly_data(station_id, monitor_date);
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_quality ON epa_hourly_data(data_quality);
 
--- 5. 建立彙總視圖（方便查詢）
+-- 6. 建立彙總視圖（方便查詢）
 CREATE OR REPLACE VIEW epa_latest_data AS
 SELECT 
     s.station_id,
@@ -170,7 +185,7 @@ WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
 GROUP BY s.station_id, s.station_name, s.county, h.monitor_date
 ORDER BY h.monitor_date DESC;
 
--- 6. 建立月度統計視圖
+-- 7. 建立月度統計視圖
 CREATE OR REPLACE VIEW epa_monthly_stats AS
 SELECT 
     s.station_id,
@@ -188,7 +203,7 @@ WHERE h.concentration_numeric IS NOT NULL
 GROUP BY s.station_id, s.station_name, DATE_TRUNC('month', h.monitor_date), h.pollutant_eng_name
 ORDER BY month DESC, s.station_id, h.pollutant_eng_name;
 
--- 7. 插入桃園市 5 個測站基本資料
+-- 8. 插入桃園市 5 個測站基本資料
 INSERT INTO epa_stations (station_id, station_name, county, latitude, longitude, address) VALUES
 ('17', '桃園', '桃園市', 24.9936, 121.3010, '桃園區'),
 ('18', '大園', '桃園市', 25.0608, 121.2000, '大園區'),
@@ -202,12 +217,29 @@ ON CONFLICT (station_id) DO UPDATE SET
     longitude = EXCLUDED.longitude,
     updated_at = NOW();
 
--- 8. 更新 location 欄位（PostGIS 幾何）
+-- 9. 插入 EPA 污染物種類資料（V2）
+INSERT INTO epa_pollutants
+    (pollutant_id, pollutant_name, pollutant_eng_name, unit, aggregation_type, description)
+VALUES
+    ('1',  '二氧化硫',   'SO2',   'ppb',   '1hr_mean', NULL),
+    ('2',  '一氧化碳',   'CO',    'ppm',   '1hr_mean', NULL),
+    ('3',  '臭氧',       'O3',    'ppb',   '1hr_mean', NULL),
+    ('7',  '二氧化氮',   'NO2',   'ppb',   '1hr_mean', NULL),
+    ('10', '懸浮微粒',   'PM10',  'μg/m³', '1hr_mean', NULL),
+    ('33', '細懸浮微粒', 'PM2.5', 'μg/m³', '1hr_mean', NULL)
+ON CONFLICT (pollutant_id) DO UPDATE SET
+    pollutant_name = EXCLUDED.pollutant_name,
+    pollutant_eng_name = EXCLUDED.pollutant_eng_name,
+    unit = EXCLUDED.unit,
+    aggregation_type = EXCLUDED.aggregation_type,
+    description = EXCLUDED.description;
+
+-- 10. 更新 location 欄位（PostGIS 幾何）
 UPDATE epa_stations 
 SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
 WHERE location IS NULL;
 
--- 9. 建立資料品質檢查函數
+-- 11. 建立資料品質檢查函數
 CREATE OR REPLACE FUNCTION check_epa_data_quality()
 RETURNS TABLE(
     station_id VARCHAR(20),
@@ -242,6 +274,7 @@ $$ LANGUAGE plpgsql;
 
 -- 註解
 COMMENT ON TABLE epa_stations IS 'EPA 空氣品質測站基本資料';
+COMMENT ON TABLE epa_pollutants IS 'EPA 污染物種類與量測設定';
 COMMENT ON TABLE epa_hourly_data IS 'EPA 空氣品質小時值資料（分區表，2019-2026年）';
 COMMENT ON VIEW epa_latest_data IS '最近24小時的空氣品質資料彙總';
 COMMENT ON VIEW epa_monthly_stats IS 'EPA 測站月度統計資料';
