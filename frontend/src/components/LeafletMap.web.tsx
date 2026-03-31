@@ -53,12 +53,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
   const LRef = useRef<any>(null); // 儲存 Windy 提供的 Leaflet 實例
 
   // Taoyuan 區域的模擬 PM2.5 點位資料
-  const MOCK_DATA = Array.from({ length: 300 }, () => ({
+  const MOCK_DATA = Array.from({ length: 700 }, () => ({
     coordinates: [
-      121.1 + Math.random() * 0.5,  // 經度：121.1 ~ 121.6
-      24.9 + Math.random() * 0.3,   // 緯度：24.9 ~ 25.2
+      121.0 + Math.random() * 0.55,
+      24.72 + Math.random() * 0.38,
     ] as [number, number],
-    value: Math.random() * 150,
+    value: Math.random() * Math.random() * Math.random() * 100, // 三重 random，更多數值趨近零
   }));
 
   const INITIAL_VIEW_STATE: MapViewState = {
@@ -89,17 +89,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
       data: MOCK_DATA,
       getPosition: (d: any) => d.coordinates,
       getElevationWeight: (d: any) => d.value,
-      elevationScale: 80,
+      elevationScale: 12,
       extruded: true,
       radius: 500,           // 每個六角形的半徑（公尺）
       coverage: 1,
       upperPercentile: 100,
       colorRange: [
-        [0, 228, 0],
-        [255, 255, 0],
-        [255, 126, 0],
-        [255, 0, 0],
-        [126, 0, 35],
+        [80,  185, 80 ],   // 柔綠（良好）
+        [210, 200, 80 ],   // 柔黃（普通）
+        [210, 130, 60 ],   // 柔橘（輕度）
+        [190, 70,  70 ],   // 柔紅（中度）
+        [140, 70,  140],   // 柔紫（重度）
+        [100, 40,  80 ],   // 深紫（危險）
       ],
       pickable: true,
       onHover: (info: any) => { console.log('Hovered:', info); return true; },
