@@ -125,33 +125,60 @@ def read_file_with_auto_encoding(filepath: Path) -> tuple[str, str]:
 def parse_txt_to_records(filepath: Path) -> list[dict]:
     content, used_enc = read_file_with_auto_encoding(filepath)
     lines = content.splitlines()
-    records, headers, col_width = [], [], 9
+    
+    records = []
+    headers = []
 
     for line in lines:
+        # 1. 基礎過濾：跳過空白行與純註解行
         clean = line.strip()
-
-        # 處理註解與自動偵測寬度
         if not clean or clean.startswith("*"):
-            if "7個字元" in clean: col_width = 7
             continue
-        # 處理標題行
-        if clean.startswith("#"):
-            headers = clean.lstrip("#").strip().split()[2:]
-            if "  " not in line[17:26]: col_width = 7
-            continue
-
-        if not headers or len(clean) < 17:
-            continue 
-        # 解析資料列
-        stno = clean[0:6].strip()
-        datetime_str = clean[7:17].strip()
-        data_part = clean[17:]
-
-        # 按寬度切割
-        raw_values = [data_part[i:i+col_width].strip() for i in range(0, len(data_part), col_width)]
-        data_dict = {headers[i]: v for i, v in enumerate(raw_values) if i < len(headers)}
         
-        records.append({"stno": stno, "datetime": datetime_str, "data": data_dict})
+        # 2. 處理表頭列：擷取欄位名稱
+        if clean.startswith("#"):
+            parts = clean.lstrip("#").strip().split()
+            if len(parts) > 2:
+                headers = parts[2:]  # 跳過站號與時間欄位
+            continue
+        
+        # 3. 資料列檢查：確保已經有表頭且長度足以包含站號與時間 (前 17 字元)
+        if not headers or len(line) < 17:
+            continue
+
+        # 4. 解析固定前綴：站號 (0-6) 與 時間 (7-17)
+        stno = line[0:6].strip()
+        datetime_str = line[7:17].strip()
+        
+        # 5. 動態計算資料欄位寬度
+        data_part = line[17:]
+        num_cols = len(headers)
+        
+        if num_cols > 0:
+            # 自動偵測寬度：剩餘長度 // 欄位數量
+            col_width = len(data_part) // num_cols
+            
+            # 安全機制：如果長度不夠整除，預設回 9
+            if col_width < 1:
+                col_width = 9
+        else:
+            col_width = 9
+
+        # 6. 按計算出的寬度切割字串
+        raw_values = [
+            data_part[i : i + col_width].strip() 
+            for i in range(0, len(data_part), col_width)
+        ]
+        
+        # 7. 封裝成字典：zip 會自動配對 headers 與 raw_values
+        data_dict = dict(zip(headers, raw_values))
+        
+        records.append({
+            "stno": stno, 
+            "datetime": datetime_str, 
+            "data": data_dict
+        })
+        
     return records
 
 def unpivot_record(record: dict) -> list[tuple]:
