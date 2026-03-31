@@ -106,13 +106,19 @@ export const MapScreen = () => {
         />
       </View>
 
-      {/* Windy 來源標記 (位於右下角) */}
-      <View style={styles.windyAttribution}>
-        <Text style={styles.windyAttributionText}>Source：</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
-          <Text style={[styles.windyAttributionText, styles.windyLink]}>Windy.com</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 來源標記 (依地圖模式切換) */}
+      {mapMode === '2D' ? (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>Source：</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
+            <Text style={[styles.windyAttributionText, styles.windyLink]}>Windy.com</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>© Esri, Maxar, Earthstar Geographics</Text>
+        </View>
+      )}
 
       {/* Legend */}
       <View style={styles.legendPanel}>

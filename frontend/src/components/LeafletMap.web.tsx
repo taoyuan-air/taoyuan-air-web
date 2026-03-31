@@ -1,6 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { GridCell } from '../types';
+import { DeckGL } from '@deck.gl/react';
+import { TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer } from '@deck.gl/layers';
+import { HexagonLayer } from '@deck.gl/aggregation-layers';
+import type { MapViewState } from '@deck.gl/core';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
@@ -8,6 +13,7 @@ interface LeafletMapProps {
   onGridPress?: (grid: GridCell) => void;
 }
 
+// Grid 線性色階函式，根據數值返回對應的 RGBA 顏色
 const getGridColor = (value: number) => {
   // 定義色階錨點 [數值, r, g, b]
   const stops = [
@@ -17,12 +23,10 @@ const getGridColor = (value: number) => {
     [150, 255, 0,   0  ],  // 紅
     [200, 126, 0,   35 ],  // 深紅紫
   ];
-
   // 找到 value 落在哪兩個錨點之間
   const clamped = Math.max(0, Math.min(200, value));
   let lower = stops[0];
   let upper = stops[stops.length - 1];
-
   for (let i = 0; i < stops.length - 1; i++) {
     if (clamped >= stops[i][0] && clamped <= stops[i + 1][0]) {
       lower = stops[i];
@@ -30,10 +34,8 @@ const getGridColor = (value: number) => {
       break;
     }
   }
-
   // 計算該區間內的比例
   const ratio = (clamped - lower[0]) / (upper[0] - lower[0]);
-
   // 線性插值 RGB
   const r = Math.round(lower[1] + (upper[1] - lower[1]) * ratio);
   const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
@@ -42,11 +44,67 @@ const getGridColor = (value: number) => {
   return `rgba(${r}, ${g}, ${b}, 0.4)`;
 };
 
+let windyInitialized = false;
+
 export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress }) => {
   const mapRef = useRef<any>(null); // 儲存 Leaflet Map 實例
   const windyStoreRef = useRef<any>(null); // 儲存 Windy Store 實例
   const polygonLayerGroupRef = useRef<any>(null); // 用來管理網格圖層
   const LRef = useRef<any>(null); // 儲存 Windy 提供的 Leaflet 實例
+
+  // Taoyuan 區域的模擬 PM2.5 點位資料
+  const MOCK_DATA = Array.from({ length: 300 }, () => ({
+    coordinates: [
+      121.1 + Math.random() * 0.5,  // 經度：121.1 ~ 121.6
+      24.9 + Math.random() * 0.3,   // 緯度：24.9 ~ 25.2
+    ] as [number, number],
+    value: Math.random() * 150,
+  }));
+
+  const INITIAL_VIEW_STATE: MapViewState = {
+    longitude: 121.25,
+    latitude: 25.0,
+    zoom: 10,
+    pitch: 45,
+    bearing: 0,
+  };
+
+  const deckLayers = [
+    new TileLayer({
+      data: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      minZoom: 0,
+      maxZoom: 19,
+      tileSize: 256,
+      renderSubLayers: (props: any) => {
+        const { bbox: { west, south, east, north } } = props.tile;
+        return new BitmapLayer({
+          id: props.id,
+          image: props.data,
+          bounds: [west, south, east, north],
+        });
+      },
+    }),
+    new HexagonLayer({
+      id: 'pm25-hexagon',
+      data: MOCK_DATA,
+      getPosition: (d: any) => d.coordinates,
+      getElevationWeight: (d: any) => d.value,
+      elevationScale: 80,
+      extruded: true,
+      radius: 500,           // 每個六角形的半徑（公尺）
+      coverage: 1,
+      upperPercentile: 100,
+      colorRange: [
+        [0, 228, 0],
+        [255, 255, 0],
+        [255, 126, 0],
+        [255, 0, 0],
+        [126, 0, 35],
+      ],
+      pickable: true,
+      onHover: (info: any) => { console.log('Hovered:', info); return true; },
+    }),
+  ];
 
   useEffect(() => {
     // 1. 定義載入腳本的輔助函式
@@ -63,6 +121,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
     };
 
     const initAll = async () => {
+      
+      if (windyInitialized) return; 
+      windyInitialized = true;
+
       try {
         // 第一步：載入 Leaflet 1.4.0
         await loadScript('https://unpkg.com/leaflet@1.4.0/dist/leaflet.js', 'leaflet-js');
@@ -166,14 +228,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
       }
     }
   }, [gridCells]);
-
-  // 當 mapMode 改變時切換底圖
-  useEffect(() => {
-    if (windyStoreRef.current) {
-      // Windy 的 satellite 模式是透過 store 切換的
-      windyStoreRef.current.set('overlay', mapMode === 'Satellite' ? 'satellite' : 'pm25');
-    }
-  }, [mapMode]);
+  
 
   const renderPolygons = (cells: GridCell[]) => {
     const L = LRef.current;
@@ -201,31 +256,35 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
   };
 
   return (
-      <View style={styles.container}>
-        {/* 注入 CSS 調整 Windy 的 UI 元件 */}
-        <style dangerouslySetInnerHTML={{ __html: `
+    <View style={styles.container}>
+      {/* Satellite 模式：deck.gl */}
+      {mapMode === 'Satellite' && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <DeckGL
+            initialViewState={INITIAL_VIEW_STATE}
+            controller={true}
+            layers={deckLayers}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </View>
+      )}
 
-          /* 隱藏右上角 Overlay 選擇器 (桌機與手機版) */
+      {/* 2D 模式：Windy，用 display 控制顯示，不卸載 */}
+      <View style={[StyleSheet.absoluteFillObject, { display: mapMode === 'Satellite' ? 'none' : 'flex' }]}>
+        <style dangerouslySetInnerHTML={{ __html: `
           #windy #ovr-select, 
           #windy #mobile-ovr-select,
           #windy #logo {
             display: none !important;
           }
-         
+}
         `}} />
-
-        {/* Windy 地圖容器 */}
         <div id="windy" style={{ width: '100%', height: '100%' }}></div>
       </View>
-    );
-
-  /* 原本的return (沒有把windy.com、地圖選擇隱藏)
-  return (
-    <View style={styles.container}>
-      <div id="windy" style={{ width: '100%', height: '100%' }}></div>
     </View>
   );
-  */
+
+
 };
 
 const styles = StyleSheet.create({
