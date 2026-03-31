@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS cwa_observations (
     observation_id      VARCHAR(20) PRIMARY KEY,
     observation_name    VARCHAR(100) NOT NULL,
     unit                VARCHAR(20),
-    aggregation_type    VARCHAR(50),                        -- 彙總方式（如：avg、sum、max、min）
+    aggregation_type    VARCHAR(50), 
     created_at          TIMESTAMP DEFAULT NOW(),
     updated_at          TIMESTAMP DEFAULT NOW()
 );
@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS cwa_hourly_data (
     concentration           VARCHAR(20),
     concentration_numeric   DECIMAL(10, 4),
     data_quality            VARCHAR(10) DEFAULT 'good',
+    period_start            TIMESTAMP,
+    period_end              TIMESTAMP,
+    source                  VARCHAR(20) DEFAULT 'history',
     created_at              TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (id, monitor_date),                                             -- 複合主鍵：序列ID + 分區鍵
     FOREIGN KEY (station_id) REFERENCES cwa_stations(station_id),               -- 外鍵約束：關聯測站表
@@ -168,6 +171,8 @@ CREATE INDEX IF NOT EXISTS idx_cwa_hourly_date          ON cwa_hourly_data(monit
 CREATE INDEX IF NOT EXISTS idx_cwa_hourly_observation   ON cwa_hourly_data(observation_id);
 CREATE INDEX IF NOT EXISTS idx_cwa_hourly_station_date  ON cwa_hourly_data(station_id, monitor_date);
 CREATE INDEX IF NOT EXISTS idx_cwa_hourly_quality       ON cwa_hourly_data(data_quality);
+CREATE INDEX IF NOT EXISTS idx_cwa_hourly_p_start      ON cwa_hourly_data(period_start);
+CREATE INDEX IF NOT EXISTS idx_cwa_hourly_p_end        ON cwa_hourly_data(period_end);
 CREATE INDEX IF NOT EXISTS idx_cwa_stations_location    ON cwa_stations USING GIST(location);
 
 -- ========================================================
@@ -318,6 +323,9 @@ $$ LANGUAGE plpgsql;
 COMMENT ON TABLE cwa_stations     IS 'CWA 氣象測站基本資料';
 COMMENT ON TABLE cwa_observations  IS 'CWA 氣象觀測項目定義';
 COMMENT ON TABLE cwa_hourly_data   IS 'CWA 氣象小時值資料（分區表，2019-2026年）';
+COMMENT ON COLUMN cwa_hourly_data.period_start IS '觀測統計區間的起始時間';
+COMMENT ON COLUMN cwa_hourly_data.period_end IS '觀測統計區間的結束時間';
+COMMENT ON COLUMN cwa_hourly_data.source IS '資料來源標記（history, realtime）';
 COMMENT ON VIEW  cwa_latest_data   IS '最近24小時的氣象觀測資料彙總';
 COMMENT ON VIEW  cwa_monthly_stats IS 'CWA 測站月度統計資料';
 COMMENT ON FUNCTION check_cwa_data_quality() IS '檢查 CWA 資料品質統計';
