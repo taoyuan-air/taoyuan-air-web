@@ -34,9 +34,9 @@ if missing_vars:
 # ===========================================================
 DB_CONFIG = {
     "host": os.getenv("POSTGRES_HOST", "localhost"),
-    "port": os.getenv("POSTGRES_PORT", "5433"),
-    "dbname": os.getenv("POSTGRES_DB", "cwa_weather"),
-    "user": os.getenv("POSTGRES_USER", "cwa_user"),
+    "port": os.getenv("POSTGRES_PORT", "5432"),
+    "dbname": os.getenv("POSTGRES_DB", "taoyuan_air"),
+    "user": os.getenv("POSTGRES_USER", "taoyuan_user"),
     "password": os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
 }
 
