@@ -54,6 +54,16 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data (
     UNIQUE (station_id, monitor_date, pollutant_id)                    -- 唯一約束：防止同測站同時間同污染物重複記錄
 ) PARTITION BY RANGE (monitor_date);
 
+-- 3-1. 舊版資料庫升級：補齊 V2 欄位（重複執行安全）
+ALTER TABLE IF EXISTS epa_hourly_data
+    ADD COLUMN IF NOT EXISTS period_start TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS period_end TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'history';
+
+UPDATE epa_hourly_data
+SET source = 'history'
+WHERE source IS NULL;
+
 -- 4. 建立完整分區表（2019-2026年，按月份）
 
 -- 2019年分區
@@ -225,7 +235,7 @@ VALUES
     ('2',  '一氧化碳',   'CO',    'ppm',   '1hr_mean', NULL),
     ('3',  '臭氧',       'O3',    'ppb',   '1hr_mean', NULL),
     ('7',  '二氧化氮',   'NO2',   'ppb',   '1hr_mean', NULL),
-    ('10', '懸浮微粒',   'PM10',  'μg/m³', '1hr_mean', NULL),
+    ('4',  '懸浮微粒',   'PM10',  'μg/m³', '1hr_mean', NULL),
     ('33', '細懸浮微粒', 'PM2.5', 'μg/m³', '1hr_mean', NULL)
 ON CONFLICT (pollutant_id) DO UPDATE SET
     pollutant_name = EXCLUDED.pollutant_name,

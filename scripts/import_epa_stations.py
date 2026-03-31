@@ -54,6 +54,37 @@ def connect_db():
         print(f"[ERROR] 資料庫連線失敗: {e}")
         return None
 
+
+def ensure_epa_hourly_schema(conn):
+    """補齊 epa_hourly_data 的 V2 欄位，避免舊資料庫結構造成匯入失敗。"""
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            ALTER TABLE IF EXISTS public.epa_hourly_data
+            ADD COLUMN IF NOT EXISTS period_start TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS period_end TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'history';
+            """
+        )
+        cursor.execute(
+            """
+            UPDATE public.epa_hourly_data
+            SET source = 'history'
+            WHERE source IS NULL;
+            """
+        )
+        conn.commit()
+        print("[OK] 已確認 epa_hourly_data 欄位相容（period_start/period_end/source）")
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 資料表結構修復失敗: {e}")
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
 def parse_concentration(value):
     """解析濃度值，處理 'x' 等無效值"""
     if value is None or value == '' or value == 'x':
@@ -189,6 +220,9 @@ def main():
     conn = connect_db()
     if not conn:
         return
+
+    # 先補齊舊資料庫缺漏欄位，避免批次匯入時出現 column does not exist
+    ensure_epa_hourly_schema(conn)
     
     # 取得專案根目錄
     project_root = Path(__file__).parent.parent
