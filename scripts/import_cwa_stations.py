@@ -49,7 +49,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -113,11 +113,21 @@ def parse_cwa_datetime(dt_str: str) -> datetime | None:
     """
     dt_str = str(dt_str).strip()
     try:
+        # 處理 24 小時制問題 (e.g., 2019030124 -> 2019030200)
+        is_24h = False
+        if len(dt_str) >= 10 and dt_str[8:10] == "24":
+            dt_str = dt_str[:8] + "00" + dt_str[10:]
+            is_24h = True
+
+        dt = None
         if len(dt_str) == 10:
-            return datetime.strptime(dt_str, "%Y%m%d%H")
+            dt = datetime.strptime(dt_str, "%Y%m%d%H")
         elif len(dt_str) == 12:
-            return datetime.strptime(dt_str, "%Y%m%d%H%M")
-        return None
+            dt = datetime.strptime(dt_str, "%Y%m%d%H%M")
+        
+        if dt and is_24h:
+            dt += timedelta(days=1)
+        return dt
     except (ValueError, TypeError):
         return None
 
@@ -165,65 +175,74 @@ def _parse_txt_value(raw: str) -> Any:
     except ValueError:
         return stripped if stripped else None
 
+def read_file_with_auto_encoding(filepath: Path) -> str:
+    """嘗試用不同編碼讀取檔案內容，失敗則切換"""
+    encodings = ["utf-8", "cp950"] 
+    
+    for enc in encodings:
+        try:
+            with open(filepath, "r", encoding=enc) as f:
+                return f.read(), enc
+        except UnicodeDecodeError:
+            continue
+            
+    # 如果都失敗，使用 errors='replace' 強制讀取並記錄警告
+    log.error(f"無法辨識檔案編碼: {filepath.name}，將強制以 utf-8 替換錯誤字元讀取")
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        return f.read(), "utf-8"
 
 def parse_txt_to_records(filepath: Path) -> list[dict]:
-    """
-    解析 TXT 檔，回傳與 JSON 格式相同的 list[dict]：
-        [{"stno": "...", "datetime": "...", "data": {...}}, ...]
-
-    固定寬度格式：
-      col 0-5   : stno（6碼）
-      col 7-16  : datetime（10碼）
-      col 17+   : 觀測值，每 9 個字元一欄
-    """
     records  = []
     headers  = []
     line_num = 0
+    col_width = 9  # 預設格式
 
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            line_num += 1
-            clean = line.rstrip("\n")
+    # --- 自動獲取內容與編碼 ---
+    content, used_encoding = read_file_with_auto_encoding(filepath)
+    lines = content.splitlines()
 
-            # 略過空行與 '*' 註解行
-            if not clean.strip() or clean.startswith("*"):
-                continue
+    for line in lines:
+        line_num += 1
+        clean = line.rstrip("\n")
 
-            # '#' 標題行：第 0 欄=stno、第 1 欄=datetime，之後為觀測項
-            if clean.startswith("#"):
-                all_cols = clean.lstrip("#").strip().split()
-                headers  = all_cols[2:] if len(all_cols) > 2 else []
-                log.debug("  [%s] 第 %d 行：擷取 %d 個觀測項標題",
-                          filepath.name, line_num, len(headers))
-                continue
+        # 1. 處理註解與自動偵測寬度
+        if not clean.strip() or clean.startswith("*"):
+            if "7個字元" in clean:
+                col_width = 7
+            elif "9個字元" in clean:
+                col_width = 9
+            continue
 
-            if not headers:
-                continue
+        # 2. 處理標題行
+        if clean.startswith("#"):
+            all_cols = clean.lstrip("#").strip().split()
+            headers  = all_cols[2:]
+            if "  " not in clean[17:26]: 
+                col_width = 7
+            continue
 
-            if len(clean) < 17:
-                log.warning("  [%s] 第 %d 行：長度不足（%d 字元），略過",
-                            filepath.name, line_num, len(clean))
-                continue
+        if not headers or len(clean) < 17:
+            continue
+        
+        # 3. 解析資料列
+        stno = clean[0:6].strip()
+        datetime_str = clean[7:17].strip()
+        data_part = clean[17:]
 
-            stno         = clean[0:6].strip()
-            datetime_str = clean[7:17].strip()
-            data_part    = clean[17:]
+        # 根據偵測到的 col_width 切割
+        raw_values = [data_part[i:i+col_width] for i in range(0, len(data_part), col_width)]
 
-            # 每 9 個字元切一欄
-            raw_values = [data_part[i:i+9] for i in range(0, len(data_part), 9)]
-
-            data_dict: dict = {}
-            for i, raw_val in enumerate(raw_values):
-                if i >= len(headers):
-                    break
+        data_dict = {}
+        for i, raw_val in enumerate(raw_values):
+            if i < len(headers):
                 data_dict[headers[i]] = _parse_txt_value(raw_val)
 
-            if stno and datetime_str:
-                records.append({
-                    "stno":     stno,
-                    "datetime": datetime_str,
-                    "data":     data_dict,
-                })
+        if stno and datetime_str:
+            records.append({
+                "stno":     stno,
+                "datetime": datetime_str,
+                "data":     data_dict,
+            })
 
     return records
 
@@ -484,7 +503,6 @@ def main():
         "🏁 全部完成！原始 %d 筆，展開後新增 %d 列，略過 %d 筆（非桃園），invalid %d 個。",
         total["raw"], total["inserted"], total["skipped"], total["invalid"],
     )
-
 
 if __name__ == "__main__":
     main()
