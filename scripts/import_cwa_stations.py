@@ -1,50 +1,10 @@
 #!/usr/bin/env python3
 """
-import_cwa_json.py
-==================
-將中央氣象署逐時資料（TXT 或 JSON）匯入 PostgreSQL 氣象資料庫。
-
-本腳本自動判斷副檔名：
-  - 輸入 TXT → 解析為記錄結構 → 另存 JSON 檔落地 → 寫入資料庫
-  - 輸入 JSON → 直接讀取 → 寫入資料庫
-
-【TXT 檔格式】
-  氣象署固定寬度文字檔：
-    col 0-5   : 測站代碼（stno）
-    col 7-16  : 觀測時間（datetime，YYYYMMDDHH）
-    col 17+   : 觀測值，每 9 個字元一欄
-  以 '*' 開頭為註解行（略過），以 '#' 開頭為欄位標題行。
-
-【JSON 檔格式】
-  標準 JSON array 或每行一筆的 JSONL，結構如下：
-  {"stno": "12J990", "datetime": "2026020101", "data": {"TX01": 15.3, "PP01": 0.0}}
-
-【主要功能】
-  - 自動判斷 TXT / JSON 並選擇對應解析邏輯
-  - TXT 轉換後的 JSON 自動儲存至 --json-dir 指定目錄（預設與 TXT 同目錄）
-  - 桃園市測站白名單過濾
-  - Wide → Long Format 轉置（Unpivot）
-  - 無效值清洗（None / -99.5 / -999 → NULL, data_quality='invalid'）
-  - ON CONFLICT DO NOTHING（支援安全重複匯入）
-  - execute_values 批次插入（高效能）
-
-【使用方式】
-    # 匯入單一 TXT 檔（自動另存 JSON 至同目錄）
-    python import_cwa_json.py --file data/20260299.agr_hr.txt
-
-    # 匯入單一 TXT 檔，JSON 另存至指定目錄
-    python import_cwa_json.py --file data/20260299.agr_hr.txt --json-dir data/json/
-
-    # 匯入單一 JSON 檔
-    python import_cwa_json.py --file data/json/20260299.agr_hr.json
-
-    # 批次匯入整個目錄（TXT + JSON 混合皆可）
-    python import_cwa_json.py --dir data/
-
-    # 批次匯入並遞迴搜尋子目錄，TXT 的 JSON 另存至指定目錄
-    python import_cwa_json.py --dir data/txt/ --recursive --json-dir data/json/
+CWA 測站資料匯入腳本
+自動讀取 cwa-stations-data 目錄下的 TXT 檔案，經轉檔與處理後匯入資料庫
 """
 
+import os
 import argparse
 import json
 import logging
@@ -55,45 +15,56 @@ from typing import Any, Iterator
 
 import psycopg2
 from psycopg2.extras import execute_values
+from dotenv import load_dotenv
+
+# 載入環境變數
+load_dotenv()
+
+# 檢查必要的環境變數
+required_env_vars = ['POSTGRES_PASSWORD']
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    print(f"[ERROR] 缺少必要的環境變數: {', '.join(missing_vars)}")
+    print("請確認 .env 檔案中已設定以下變數:")
+    for var in missing_vars:
+        print(f"  {var}=your_actual_password")
+    exit(1)
 
 # ===========================================================
-# 資料庫連線設定(測試用臨時建置之資料庫)
+# 1. 資料庫連線設定
 # ===========================================================
 DB_CONFIG = {
-    "host":     "localhost",
-    "port":     5433,
-    "dbname":   "cwa_weather",
-    "user":     "cwa_user",
-    "password": "cwa_pass_2024",
+    "host": os.getenv("POSTGRES_HOST", "localhost"),
+    "port": os.getenv("POSTGRES_PORT", "5433"),
+    "dbname": os.getenv("POSTGRES_DB", "cwa_weather"),
+    "user": os.getenv("POSTGRES_USER", "cwa_user"),
+    "password": os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
 }
 
 # ===========================================================
-# 桃園市測站 ID 白名單
+# 2. 桃園市測站 ID 對應
 # ===========================================================
-TAOYUAN_STATION_IDS: set[str] = {
+TAOYUAN_STATION_IDS = {
     # 中央氣象署有人站
-    "467050",   # 桃園
+    "467050",
     # 自動氣象站 
     "C1C510",   "C0C800",   "C0C790",   "C0C750",
     "C0C740",   "C0C730",   "C0C720",   "C0C710",
     "C0C700",   "C0C680",   "C0C670",   "C0C660",
     "C0C650",   "C0C630",   "C0C620",   "C0C490",
-    "C0C646", 
+    "C0C460", 
     # 農業氣象站 
     "72C440",   "82C160",   "A2C560",   "C2C410",
     "C2C590", 
     # 依實際需求繼續補充 ...
 }
+REQUIRED_OBS_IDS = {"PP01", "PS01", "RH01", "TX01", "WD01", "WD02"}
 
-# ===========================================================
 # 無效值定義
-# ===========================================================
 INVALID_FLOAT_VALUES: set[float] = {-99.5, -999.0, -9999.0}
 INVALID_STR_VALUES: set[str]     = {"-99.5", "-999", "-9999", "NONE", "X", "x", ""}
 
-# ===========================================================
 # Logging
-# ===========================================================
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -101,60 +72,53 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
 # ===========================================================
-# 共用工具
+# 3. 工具函式 (時間、清洗、編碼)
 # ===========================================================
 
 def parse_cwa_datetime(dt_str: str) -> datetime | None:
-    """
-    解析氣象署時間字串（YYYYMMDDHH 或 YYYYMMDDHHmm），
-    回傳不含時區的 datetime，對應 schema 的 TIMESTAMP 欄位。
-    """
+    """解析時間並修正 24:00 為隔日 00:00"""
     dt_str = str(dt_str).strip()
     try:
-        # 處理 24 小時制問題 (e.g., 2019030124 -> 2019030200)
         is_24h = False
         if len(dt_str) >= 10 and dt_str[8:10] == "24":
             dt_str = dt_str[:8] + "00" + dt_str[10:]
             is_24h = True
-
-        dt = None
-        if len(dt_str) == 10:
-            dt = datetime.strptime(dt_str, "%Y%m%d%H")
-        elif len(dt_str) == 12:
-            dt = datetime.strptime(dt_str, "%Y%m%d%H%M")
         
-        if dt and is_24h:
+        fmt = "%Y%m%d%H" if len(dt_str) == 10 else "%Y%m%d%H%M"
+        dt = datetime.strptime(dt_str, fmt)
+        if is_24h:
             dt += timedelta(days=1)
         return dt
-    except (ValueError, TypeError):
+    except:
         return None
 
-
 def clean_value(raw: Any) -> tuple[str | None, float | None, str]:
-    """
-    清洗單一觀測值，回傳 (concentration, concentration_numeric, data_quality)。
-      - 正常值  → ('15.3', 15.3, 'good')
-      - 無效值  → ('None', None, 'invalid') 或 ('-99.5', None, 'invalid')
-    """
+    """清洗觀測值並判斷資料品質"""
     if raw is None:
         return (None, None, "invalid")
-
     raw_str = str(raw).strip()
-
     if raw_str.upper() in {v.upper() for v in INVALID_STR_VALUES}:
         return (raw_str if raw_str else None, None, "invalid")
-
     try:
         numeric = float(raw_str)
         if numeric in INVALID_FLOAT_VALUES:
             return (raw_str, None, "invalid")
         return (raw_str, numeric, "good")
-    except (ValueError, TypeError):
+    except:
         return (raw_str, None, "invalid")
 
-
+def read_file_with_auto_encoding(filepath: Path) -> tuple[str, str]:
+    """自動偵測編碼 (UTF-8 / CP950)"""
+    for enc in ["utf-8", "cp950"]:
+        try:
+            with open(filepath, "r", encoding=enc) as f:
+                return f.read(), enc
+        except UnicodeDecodeError:
+            continue
+    log.warning(f"無法辨識檔案編碼: {filepath.name}，使用 errors='replace'")
+    return filepath.read_text(encoding="utf-8", errors="replace"), "utf-8"
+    
 # ===========================================================
 # TXT 解析
 # ===========================================================
@@ -174,22 +138,6 @@ def _parse_txt_value(raw: str) -> Any:
         return None if numeric in INVALID_FLOAT_VALUES else numeric
     except ValueError:
         return stripped if stripped else None
-
-def read_file_with_auto_encoding(filepath: Path) -> str:
-    """嘗試用不同編碼讀取檔案內容，失敗則切換"""
-    encodings = ["utf-8", "cp950"] 
-    
-    for enc in encodings:
-        try:
-            with open(filepath, "r", encoding=enc) as f:
-                return f.read(), enc
-        except UnicodeDecodeError:
-            continue
-            
-    # 如果都失敗，使用 errors='replace' 強制讀取並記錄警告
-    log.error(f"無法辨識檔案編碼: {filepath.name}，將強制以 utf-8 替換錯誤字元讀取")
-    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
-        return f.read(), "utf-8"
 
 def parse_txt_to_records(filepath: Path) -> list[dict]:
     records  = []
