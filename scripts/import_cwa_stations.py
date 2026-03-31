@@ -165,7 +165,7 @@ def parse_txt_to_records(filepath: Path) -> list[dict]:
         datetime_str = line[7:17].strip()
         
         # 5. 動態計算資料欄位寬度
-        data_part = line[17:].rstrip()
+        data_part = line[17:]
         num_cols = len(headers)
         
         if num_cols > 0:
@@ -309,10 +309,12 @@ def main():
     # --- 批次檔案收集邏輯 ---
     if args.file:
         files = [args.file]
+        base_dir = args.file.parent
     else:
         # 遞迴尋找所有 .txt，並排除隱藏檔
-        files = sorted(list(args.dir.rglob("*.txt")))
-        log.info(f"📂 批次模式：在 {args.dir} 找到 {len(files)} 個 TXT 檔案")
+        base_dir = args.dir
+        files = sorted(list(base_dir.rglob("*.txt")))
+        log.info(f"📂 批次模式：在 {base_dir} 找到 {len(files)} 個原始 TXT 檔案")
 
     try:
         conn = psycopg2.connect(**DB_CONFIG)
@@ -320,9 +322,13 @@ def main():
         
         for f in files:
             if not f.is_file(): continue
-            
+            relative_path = f.relative_to(base_dir)
+            current_json_output_dir = None
+            if args.json_dir:
+                current_json_output_dir = args.json_dir / relative_path.parent
+
             # 執行處理
-            res = process_file(conn, f, args.batch_size, args.json_dir)
+            res = process_file(conn, f, args.batch_size, current_json_output_dir)
             
             total_stats["files"] += 1
             total_stats["rows"] += res.get("inserted", 0)
