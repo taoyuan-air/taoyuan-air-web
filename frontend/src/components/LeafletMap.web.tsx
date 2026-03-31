@@ -39,7 +39,7 @@ const getGridColor = (value: number) => {
   const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
   const b = Math.round(lower[3] + (upper[3] - lower[3]) * ratio);
 
-  return `rgba(${r}, ${g}, ${b}, 0.55)`;
+  return `rgba(${r}, ${g}, ${b}, 0.4)`;
 };
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress }) => {
@@ -202,26 +202,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
 
   return (
       <View style={styles.container}>
-        {/* 注入 CSS 隱藏 Windy 的 UI 元件 */}
+        {/* 注入 CSS 調整 Windy 的 UI 元件 */}
         <style dangerouslySetInnerHTML={{ __html: `
 
           /* 隱藏右上角 Overlay 選擇器 (桌機與手機版) */
           #windy #ovr-select, 
           #windy #mobile-ovr-select,
-          #windy .bottom-right-controls,
-          #windy .right-border {
-            display: none !important;
-          }
-
-          /* 隱藏左上角搜尋框與 Logo (選用) */
           #windy #logo {
             display: none !important;
           }
-
-          /* 隱藏 Leaflet 原生的縮放按鈕容器 */
-          #windy .leaflet-control-zooml {
-            display: none !important;
-          }
+         
         `}} />
 
         {/* Windy 地圖容器 */}

@@ -21,6 +21,7 @@ import { HealthBadge } from '../components/HealthBadge';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { getGrid, getVerticalProfile, setScenario } from '../api';
 import { GridCell, VerticalProfile } from '../types';
+import { Linking } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -271,6 +272,14 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
           />
         )}
       </MapView>
+
+      {/* Windy 來源標記 (位於右下角) */}
+      <View style={styles.windyAttribution}>
+        <Text style={styles.windyAttributionText}>Source：</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
+          <Text style={[styles.windyAttributionText, styles.windyLink]}>Windy.com</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Legend */}
       <View style={styles.legendPanel}>
@@ -759,5 +768,31 @@ const styles = StyleSheet.create({
     color: '#6A8D73',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  windyAttribution: {
+    position: 'absolute',
+    right: 20,           
+    bottom: 120,
+    zIndex: 20,          
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    paddingHorizontal: 6,
+    paddingVertical: 4.5,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  windyAttributionText: {
+    fontSize: 10,
+    color: '#444',
+    fontWeight: '500',
+  },
+  windyLink: {
+    textDecorationLine: 'underline',
+    color: '#6A8D73', 
   },
 });

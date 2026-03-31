@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Animated, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { useStore } from '../store';
 import { LeafletMap } from '../components/LeafletMap.web';
 import { GridCell } from '../types';
+import { Linking } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -105,6 +106,14 @@ export const MapScreen = () => {
         />
       </View>
 
+      {/* Windy 來源標記 (位於右下角) */}
+      <View style={styles.windyAttribution}>
+        <Text style={styles.windyAttributionText}>Source：</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
+          <Text style={[styles.windyAttributionText, styles.windyLink]}>Windy.com</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Legend */}
       <View style={styles.legendPanel}>
         <View style={styles.legendCard}>
@@ -161,7 +170,8 @@ export const MapScreen = () => {
                 <>
                   <View style={styles.sheetHeader}>
                     <View style={styles.locationInfo}>
-                      <Text style={styles.districtName}>{selectedGrid.district || '桃園市'}</Text>
+                      <Text style={styles.districtName}>{(selectedGrid as any) .district|| '桃園市'}</Text>
+                      {/*這邊.district原本有紅字是還沒實作其他地區(縣市的名字)*/}
                       <Text style={styles.gridId}>GRID ID: {selectedGrid.gridId}</Text>
                     </View>
                     <View style={styles.riskBadge}>
@@ -232,10 +242,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   searchIcon: { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#333', outlineStyle: 'none' },
+  searchInput: { 
+    flex: 1, 
+    fontSize: 16, 
+    color: '#333',
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none' as any,
+      },
+    }),
+  },
   searchDivider: { width: 1, height: 20, backgroundColor: '#E0E0E0', marginHorizontal: 12 },
-  mapModeButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  mapModeText: { fontSize: 12, color: '#6A8D73', fontWeight: '600' },
+  mapModeButton: { flexDirection: 'row', alignItems: 'center' },
+  mapModeText: { fontSize: 12, color: '#6A8D73', fontWeight: '600', marginLeft: 4 },
   mapContainer: {
     flex: 1,
     marginTop: 80,
@@ -255,7 +274,6 @@ const styles = StyleSheet.create({
   pollutantSwitcher: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
     marginBottom: 12,
   },
   pollutantDot: {
@@ -265,6 +283,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(106, 141, 115, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginHorizontal: 4,
   },
   activePollutantDot: { backgroundColor: '#6A8D73' },
   pollutantDotText: { fontSize: 10, fontWeight: '600', color: '#6A8D73' },
@@ -289,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    minHeight: screenHeight * 0.5,
+    minHeight: Dimensions.get('window').height * 0.5,
   },
   sheetHandle: {
     width: 40,
@@ -368,11 +387,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     borderRadius: 12,
-    gap: 8,
   },
   analysisButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  windyAttribution: {
+    position: 'absolute',
+    right: 20,  
+    bottom: 120,
+    zIndex: 20, 
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    paddingHorizontal: 6,
+    paddingVertical: 4.5,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  windyAttributionText: {
+    fontSize: 10,
+    color: '#444',
+    fontWeight: '500',
+  },
+  windyLink: {
+    textDecorationLine: 'underline',
+    color: '#6A8D73', 
   },
 });
