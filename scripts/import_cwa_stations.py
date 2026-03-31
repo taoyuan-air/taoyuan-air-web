@@ -60,8 +60,15 @@ TAOYUAN_STATION_IDS = {
 REQUIRED_OBS_IDS = {"PP01", "PS01", "RH01", "TX01", "WD01", "WD02"}
 
 # 無效值定義
-INVALID_FLOAT_VALUES = {-99.5, -999.0, -9999.0, -9991.0}
-INVALID_STR_VALUES = {"-99.5", "-999", "-9999", "-9991", "NONE", "X", "x", ""}
+INVALID_FLOAT_VALUES = {
+    -999.1, -9991, # 儀器故障待修
+    -9.6, -999.6, -9996, # 資料累計於後
+    -9.5, -99.5, -999.5, -9995, -9999.5, # 故障
+    -9.7, -99.7, -999.7, -9997, -9999.7, # 不明原因
+    -9999 # 未觀測
+    # -9.8, -9998 # 雨跡 (Trace)
+}
+INVALID_STR_VALUES = {"NONE", "X", "x", "", "NULL"}
 
 # Logging
 logging.basicConfig(
@@ -97,14 +104,21 @@ def clean_value(raw: Any) -> tuple[str | None, float | None, str]:
     if raw is None:
         return (None, None, "invalid")
     raw_str = str(raw).strip()
-    if raw_str.upper() in {v.upper() for v in INVALID_STR_VALUES}:
+    raw_upper = raw_str.upper()
+
+    if raw_upper in INVALID_STR_VALUES:
         return (raw_str if raw_str else None, None, "invalid")
     try:
         numeric = float(raw_str)
+        # 處理雨跡 (Trace)，目前先存為 0.0，並標記品質為 'trace'
+        if numeric in [-9.8, -9998.0]:
+            return (raw_str, 0.0, "trace")
+        # 處理其他無效數值代碼
         if numeric in INVALID_FLOAT_VALUES:
             return (raw_str, None, "invalid")
+        
         return (raw_str, numeric, "good")
-    except:
+    except(ValueError, TypeError):
         return (raw_str, None, "invalid")
 
 def read_file_with_auto_encoding(filepath: Path) -> tuple[str, str]:
@@ -151,7 +165,7 @@ def parse_txt_to_records(filepath: Path) -> list[dict]:
         datetime_str = line[7:17].strip()
         
         # 5. 動態計算資料欄位寬度
-        data_part = line[17:]
+        data_part = line[17:].rstrip()
         num_cols = len(headers)
         
         if num_cols > 0:
