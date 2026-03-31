@@ -8,10 +8,9 @@ import os
 import argparse
 import json
 import logging
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import psycopg2
 from psycopg2.extras import execute_values
@@ -137,7 +136,7 @@ def parse_txt_to_records(filepath: Path) -> list[dict]:
             continue
         # 處理標題行
         if clean.startswith("#"):
-            headers  = clean.lstrip("#").strip().split()[2:]
+            headers = clean.lstrip("#").strip().split()[2:]
             if "  " not in line[17:26]: col_width = 7
             continue
 
@@ -160,20 +159,40 @@ def unpivot_record(record: dict) -> list[tuple]:
     station_id = str(record.get("stno", "")).strip().upper()
     if station_id not in TAOYUAN_STATION_IDS: return []
 
-    monitor_date = parse_cwa_datetime(record.get("datetime", ""))
-    if not monitor_date: return []
+    raw_dt = parse_cwa_datetime(record.get("datetime", ""))
+    if not raw_dt: return []
 
     rows = []
     obs_data = record.get("data", {})
 
     for obs_id, raw_val in obs_data.items():
-        obs_id_upper = str(obs_id).strip().upper()
+        obs_id_upper = obs_id.strip().upper()
         if obs_id_upper not in REQUIRED_OBS_IDS:
             continue
         conc_str, conc_num, quality = clean_value(raw_val)
-        rows.append((station_id, monitor_date, obs_id.upper(), conc_str, conc_num, quality))
-    return rows
 
+        # 1. 降水量 PP01：時間往前推 1 小時，區間為該小時初到 59 分
+        if obs_id_upper == 'PP01':
+            monitor_date = raw_dt - timedelta(hours=1)
+            p_start = monitor_date
+            p_end = monitor_date + timedelta(minutes=59)
+
+        # 2. 平均風 WD01, WD02：區間為前 10 分鐘到前 1 分鐘
+        elif obs_id_upper in ['WD01', 'WD02']:
+            monitor_date = raw_dt
+            p_start = raw_dt - timedelta(minutes=10)
+            p_end = raw_dt - timedelta(minutes=1)
+
+        # 3. 瞬時值 TX01, RH01, PS01：區間為前 1 分鐘到該時刻
+        elif obs_id_upper in ['TX01', 'RH01', 'PS01']:
+            monitor_date = raw_dt
+            p_start = raw_dt - timedelta(minutes=1)
+            p_end = raw_dt
+        
+        source = "history"
+
+        rows.append((station_id, monitor_date, obs_id_upper, conc_str, conc_num, quality, p_start, p_end, source))
+    return rows
 
 # ===========================================================
 # 5. 資料庫操作
@@ -182,7 +201,7 @@ def unpivot_record(record: dict) -> list[tuple]:
 def batch_insert(conn, rows: list[tuple], batch_size: int) -> int:
     sql = """
         INSERT INTO cwa_hourly_data 
-        (station_id, monitor_date, observation_id, concentration, concentration_numeric, data_quality)
+        (station_id, monitor_date, observation_id, concentration, concentration_numeric, data_quality, period_start, period_end, source)
         VALUES %s
         ON CONFLICT (station_id, monitor_date, observation_id) DO NOTHING;
     """
@@ -195,7 +214,7 @@ def batch_insert(conn, rows: list[tuple], batch_size: int) -> int:
     return total_inserted
 
 def process_file(conn, filepath: Path, batch_size: int, json_dir: Path | None) -> dict:
-    log.info(f"▶ 處理檔案： {filepath.name}")
+    log.info(f"▶ 處理檔案: {filepath.name}")
     stats = {"raw": 0, "inserted": 0, "skipped": 0}
 
     is_txt = filepath.suffix.lower() == ".txt"
@@ -240,27 +259,38 @@ def process_file(conn, filepath: Path, batch_size: int, json_dir: Path | None) -
 def main():
     parser = argparse.ArgumentParser(description="CWA Data Importer")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--file", type=Path)
-    group.add_argument("--dir",  type=Path)
+    group.add_argument("--file", type=Path, help="單一檔案路徑")
+    group.add_argument("--dir",  type=Path, help="整個目錄進行批次匯入")
     parser.add_argument("--json-dir", type=Path, help="JSON 落地目錄")
     parser.add_argument("--batch-size", type=int, default=5000)
     args = parser.parse_args()
 
-    files = [args.file] if args.file else list(args.dir.glob("*.txt")) + list(args.dir.glob("*.json"))
+    # --- 批次檔案收集邏輯 ---
+    if args.file:
+        files = [args.file]
+    else:
+        # 遞迴尋找所有 .txt，並排除隱藏檔
+        files = sorted(list(args.dir.rglob("*.txt")))
+        log.info(f"📂 批次模式：在 {args.dir} 找到 {len(files)} 個 TXT 檔案")
 
-    # 資料庫連線
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        log.info(f"🐘 資料庫連線成功: {DB_CONFIG['dbname']}")
+        total_stats = {"files": 0, "rows": 0}
         
         for f in files:
-            if f.exists():
-                process_file(conn, f, args.batch_size, args.json_dir)
-        
+            if not f.is_file(): continue
+            
+            # 執行處理
+            res = process_file(conn, f, args.batch_size, args.json_dir)
+            
+            total_stats["files"] += 1
+            total_stats["rows"] += res.get("inserted", 0)
+            
+        log.info(f"🏁 批次匯入完成！成功處理 {total_stats['files']} 個檔案，共新增 {total_stats['rows']} 列資料。")
         conn.close()
-        log.info("🏁 全部處理完成")
+        
     except Exception as e:
-        log.error(f"💥 程式終止: {e}")
+        log.error(f"💥 批次執行中斷: {e}")
 
 if __name__ == "__main__":
     main()
