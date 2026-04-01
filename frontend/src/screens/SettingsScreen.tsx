@@ -39,7 +39,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               <Text style={styles.premiumText}>PREMIUM</Text>
             </View>
           </View>
-          <Text style={styles.userName}>陳小明</Text>
+          <Text style={styles.userName}>陳曉明</Text>
           <Text style={styles.userEmail}>wei-ting.chen@taoyuan.io</Text>
         </View>
 

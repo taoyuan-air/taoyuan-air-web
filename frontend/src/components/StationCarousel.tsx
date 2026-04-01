@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
+import { fetchEpaStations, EpaStationData } from '../api/epa';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -165,6 +166,14 @@ const DISTRICT_COORDINATES: Record<string, { latitude: number; longitude: number
   "新屋區": { latitude: 24.9697, longitude: 121.1063 },
   "復興區": { latitude: 24.8186, longitude: 121.3496 },
 };
+const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+  '中壢': '中壢區',
+  '桃園': '桃園區',
+  '大園': '大園區',
+  '觀音': '觀音區',
+  '平鎮': '平鎮區',
+  '龍潭': '龍潭區',
+};  
 
 // 計算兩點間距離的函數
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -268,14 +277,22 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
   // 根據數值決定顏色
   const getBarColor = (value: number, isPrediction: boolean = false) => {
-    let baseColor;
-    if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
-    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
-    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
-    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
-    
-    // 預測數據使用更透明的樣式
-    const opacity = isPrediction ? ', 0.5)' : ', 0.8)';
+    if (!isPrediction) {
+      let baseColor: string;
+      if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
+      else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+      else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高 
+      else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
+
+      const opacity = ', 0.8)'; // 非預測使用較不透明的樣式
+      return baseColor + opacity;
+    }
+
+    // 預測：灰階（數值越高越黑、越低越白）
+    const gray = Math.round(255 * (1 - value)); // 灰階強度
+    const baseColor = `rgba(${gray},${gray},${gray}`;
+
+    const opacity = ', 0.5)'; // 預測使用更透明的樣式
     return baseColor + opacity;
   };
 
@@ -356,7 +373,13 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
   );
 };
 
-const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
+const DistrictCard: React.FC<{
+  district: DistrictData;
+  epaOverride?: { pm25: number; o3: number; aqi: number };
+}> = ({ district, epaOverride }) => {
+  const displayPm25 = epaOverride?.pm25 ?? district.pm25;
+  const displayO3 = epaOverride?.o3 ?? district.o3;
+  const displayAqi = epaOverride?.aqi ?? district.aqi;
   return (
     <View style={styles.cardContainer}>
       {/* Blobs inside card for blur effect */}
@@ -405,21 +428,21 @@ const DistrictCard: React.FC<{ district: DistrictData }> = ({ district }) => {
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>PM2.5</Text>
               <Text style={[styles.metricValue, { color: "#504E4F" }]}>
-                {district.pm25}
+                {displayPm25}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>O3</Text>
               <Text style={[styles.metricValue, { color: "#504E4F" }]}>
-                {district.o3}
+                {displayO3}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>AQI</Text>
               <Text style={[styles.metricValue, { color: "#7FAE8A" }]}>
-                {district.aqi}
+                {displayAqi}
               </Text>
             </View>
           </View>
@@ -444,6 +467,25 @@ export const StationCarousel: React.FC = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
+  const [epaDataMap, setEpaDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number }>>({});
+
+  useEffect(() => {
+    fetchEpaStations()
+      .then((stations) => {
+        console.log('[EPA] 取得的 stations:', stations);
+        const map: Record<string, { pm25: number; o3: number; aqi: number }> = {};
+        stations.forEach((s) => {
+          const districtName = EPA_STATION_TO_DISTRICT[s.sitename];
+          if (districtName) {
+            map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi };
+          }
+        });
+        console.log('[EPA] 建立的 map:', map);
+        setEpaDataMap(map);
+      })
+      .catch((err) => console.warn('[EPA] 資料載入失敗，使用模擬資料:', err));
+  }, []);
+
   const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
   
   // 根據定位或預設值計算預設索引
@@ -624,7 +666,7 @@ export const StationCarousel: React.FC = () => {
                 },
               ]}
             >
-              <DistrictCard district={district} />
+              <DistrictCard district={district} epaOverride={epaDataMap[district.name]} />
             </Animated.View>
           );
         })}
