@@ -21,6 +21,7 @@ import { HealthBadge } from '../components/HealthBadge';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { getGrid, getVerticalProfile, setScenario } from '../api';
 import { GridCell, VerticalProfile } from '../types';
+import { Linking } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -107,8 +108,37 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
   };
 
   const getGridColor = (value: number) => {
-    const opacity = Math.min(0.8, Math.max(0.12, value / 100));
-    return `rgba(106, 141, 115, ${opacity})`;
+    // 定義色階錨點 [數值, r, g, b]
+    const stops = [
+      [0,   0,   228, 0  ],  // 綠
+      [50,  255, 255, 0  ],  // 黃
+      [100, 255, 126, 0  ],  // 橘
+      [150, 255, 0,   0  ],  // 紅
+      [200, 126, 0,   35 ],  // 深紅紫
+    ];
+
+    // 找到 value 落在哪兩個錨點之間
+    const clamped = Math.max(0, Math.min(200, value));
+    let lower = stops[0];
+    let upper = stops[stops.length - 1];
+
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (clamped >= stops[i][0] && clamped <= stops[i + 1][0]) {
+        lower = stops[i];
+        upper = stops[i + 1];
+        break;
+      }
+    }
+
+    // 計算該區間內的比例
+    const ratio = (clamped - lower[0]) / (upper[0] - lower[0]);
+
+    // 線性插值 RGB
+    const r = Math.round(lower[1] + (upper[1] - lower[1]) * ratio);
+    const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
+    const b = Math.round(lower[3] + (upper[3] - lower[3]) * ratio);
+
+    return `rgba(${r}, ${g}, ${b}, 0.55)`;
   };
 
   const getPollutantLabel = () => {
@@ -242,6 +272,20 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
           />
         )}
       </MapView>
+
+      {/* 來源標記 (依地圖模式切換) */}
+      {mapMode === '2D' ? (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>Source：</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
+            <Text style={[styles.windyAttributionText, styles.windyLink]}>Windy.com</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>© Esri, Maxar, Earthstar Geographics</Text>
+        </View>
+      )}
 
       {/* Legend */}
       <View style={styles.legendPanel}>
@@ -730,5 +774,31 @@ const styles = StyleSheet.create({
     color: '#6A8D73',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  windyAttribution: {
+    position: 'absolute',
+    right: 20,           
+    bottom: 120,
+    zIndex: 20,          
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    paddingHorizontal: 6,
+    paddingVertical: 4.5,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  windyAttributionText: {
+    fontSize: 10,
+    color: '#444',
+    fontWeight: '500',
+  },
+  windyLink: {
+    textDecorationLine: 'underline',
+    color: '#6A8D73', 
   },
 });
