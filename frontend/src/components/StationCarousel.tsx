@@ -277,23 +277,22 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
   // 根據數值決定顏色
   const getBarColor = (value: number, isPrediction: boolean = false) => {
-    if (!isPrediction) {
-      let baseColor: string;
-      if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
-      else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
-      else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高 
-      else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
-
-      const opacity = ', 0.8)'; // 非預測使用較不透明的樣式
-      return baseColor + opacity;
+    // 1. 如果是預測數據，使用不同深度的灰色
+    if (isPrediction) {
+      if (value <= 0.3) return 'rgba(224, 224, 224, 0.6)'; // 淺灰 (對應 綠色等級)
+      if (value <= 0.5) return 'rgba(189, 189, 189, 0.6)'; // 次淺灰 (對應 黃色等級)
+      if (value <= 0.7) return 'rgba(117, 117, 117, 0.6)'; // 中深灰 (對應 紅色等級)
+      return 'rgba(66, 66, 66, 0.6)';                   // 深灰 (對應 紫色等級)
     }
 
-    // 預測：灰階（數值越高越黑、越低越白）
-    const gray = Math.round(255 * (1 - value)); // 灰階強度
-    const baseColor = `rgba(${gray},${gray},${gray}`;
+    // 2. 如果是真實數據，使用原本的彩色系統
+    let baseColor;
+    if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
+    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
+    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
 
-    const opacity = ', 0.5)'; // 預測使用更透明的樣式
-    return baseColor + opacity;
+    return baseColor + ', 0.8)';
   };
 
   const maxHeight = 56;  // 從48增加到56 (+17%)
