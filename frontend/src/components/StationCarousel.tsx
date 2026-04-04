@@ -375,7 +375,8 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 const DistrictCard: React.FC<{
   district: DistrictData;
   epaOverride?: { pm25: number; o3: number; aqi: number };
-}> = ({ district, epaOverride }) => {
+  updateTime?: string;
+}> = ({ district, epaOverride, updateTime }) => {
   const displayPm25 = epaOverride?.pm25 ?? district.pm25;
   const displayO3 = epaOverride?.o3 ?? district.o3;
   const displayAqi = epaOverride?.aqi ?? district.aqi;
@@ -415,7 +416,9 @@ const DistrictCard: React.FC<{
         <View style={styles.cardInner}>
           <View style={styles.cardHeader}>
             <Text style={styles.stationName}>{district.name}</Text>
-            <Text style={styles.updateTime}>Updated 10:37</Text>
+            <Text style={styles.updateTime}>
+              {updateTime ? `Updated ${updateTime}` : 'Updated --:--'}
+            </Text>
           </View>
 
           <View style={styles.stationTypeRow}>
@@ -462,27 +465,31 @@ const DistrictCard: React.FC<{
   );
 };
 
-export const StationCarousel: React.FC = () => {
+export const StationCarousel: React.FC<{ onAqiResolved?: (aqi: number) => void }> = ({ onAqiResolved }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
-  const [epaDataMap, setEpaDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number }>>({});
+  const [epaDataMap, setEpaDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }>>({});
 
   useEffect(() => {
-    fetchEpaStations()
-      .then((stations) => {
-        console.log('[EPA] 取得的 stations:', stations);
-        const map: Record<string, { pm25: number; o3: number; aqi: number }> = {};
-        stations.forEach((s) => {
-          const districtName = EPA_STATION_TO_DISTRICT[s.sitename];
-          if (districtName) {
-            map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi };
-          }
-        });
-        console.log('[EPA] 建立的 map:', map);
-        setEpaDataMap(map);
-      })
-      .catch((err) => console.warn('[EPA] 資料載入失敗，使用模擬資料:', err));
+  const fmt = (raw?: string) => {
+    if (!raw) return undefined;
+    const m = raw.match(/(\d{1,2}):(\d{2})/);
+    return m ? `${m[1].padStart(2,'0')}:${m[2]}` : undefined;
+  };
+  fetchEpaStations()
+    .then((stations) => {
+      const map: Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }> = {};
+      stations.forEach((s) => {
+        const districtName = EPA_STATION_TO_DISTRICT[s.sitename];
+        if (districtName) {
+          const rawTime = s.datacreationdate ?? (s as any).time ?? (s as any).publishtime;
+          map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi, updateTime: fmt(rawTime) };
+        }
+      });
+      setEpaDataMap(map);
+    })
+    .catch((err) => console.warn('[EPA] 資料載入失敗:', err));
   }, []);
 
   const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
@@ -511,6 +518,17 @@ export const StationCarousel: React.FC = () => {
       setDefaultDistrict(nearest);
     }
   }, [location, permission]);
+
+  useEffect(() => {
+    if (!onAqiResolved) return;
+    const entry = epaDataMap[defaultDistrict];
+    if (entry) {
+      onAqiResolved(entry.aqi);
+    } else {
+      const d = DISTRICTS.find(d => d.name === defaultDistrict);
+      if (d) onAqiResolved(d.aqi);
+    }
+  }, [epaDataMap, defaultDistrict, onAqiResolved]);
 
   // 初始化滾動位置
   useEffect(() => {
@@ -665,7 +683,11 @@ export const StationCarousel: React.FC = () => {
                 },
               ]}
             >
-              <DistrictCard district={district} epaOverride={epaDataMap[district.name]} />
+              <DistrictCard
+                district={district}
+                epaOverride={epaDataMap[district.name]}
+                updateTime={epaDataMap[district.name]?.updateTime}
+              />
             </Animated.View>
           );
         })}

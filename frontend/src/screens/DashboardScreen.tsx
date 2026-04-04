@@ -12,6 +12,54 @@ import { useStore } from '../store';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from '../api';
 import { StationCarousel } from '../components';
+import Svg, { Circle } from 'react-native-svg';
+
+const GAUGE_SIZE = 200;
+const STROKE_WIDTH = 14;
+const GAUGE_RADIUS = (GAUGE_SIZE - STROKE_WIDTH) / 2;
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
+
+const getAQIColor = (aqi: number) => {
+  if (aqi <= 50)  return '#6abe74';
+  if (aqi <= 100) return '#f5c518';
+  if (aqi <= 150) return '#ff8c00';
+  if (aqi <= 200) return '#e53935';
+  return '#9c27b0';
+};
+
+const getAQIStatus = (aqi: number) => {
+  if (aqi <= 50)  return 'Good';
+  if (aqi <= 100) return 'Moderate';
+  if (aqi <= 150) return 'Sensitive';
+  if (aqi <= 200) return 'Unhealthy';
+  return 'Hazardous';
+};
+
+const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
+  const percentage  = Math.min(Math.max(aqi / 200, 0), 1);
+  const color       = getAQIColor(aqi);
+  const dashOffset  = GAUGE_CIRCUMFERENCE * (1 - percentage);
+  return (
+    <View style={{ width: GAUGE_SIZE, height: GAUGE_SIZE, justifyContent: 'center', alignItems: 'center' }}>
+      <Svg width={GAUGE_SIZE} height={GAUGE_SIZE} style={{ position: 'absolute' }}>
+        <Circle cx={100} cy={100} r={GAUGE_RADIUS} stroke={`${color}33`} strokeWidth={STROKE_WIDTH} fill="none" />
+        <Circle
+          cx={100} cy={100} r={GAUGE_RADIUS}
+          stroke={color} strokeWidth={STROKE_WIDTH} fill="none"
+          strokeDasharray={GAUGE_CIRCUMFERENCE}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          transform={`rotate(-90, 100, 100)`}
+        />
+      </Svg>
+      <View style={styles.gaugeInnerCircle}>
+        <Text style={styles.gaugeLabel}>CURRENT AQI</Text>
+        <Text style={[styles.gaugeValue, { color }]}>{aqi}</Text>
+        <Text style={[styles.gaugeBadgeText, { color }]}>{getAQIStatus(aqi)}</Text>
+      </View>
+    </View>
+  );
+};
 
 interface DashboardScreenProps {
   scrollRef?: (ref: any) => void;
@@ -29,6 +77,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
     isLoading,
     setIsLoading
   } = useStore();
+
+  const [locatedAqi, setLocatedAqi] = useState<number>(65);
 
   useEffect(() => {
     loadData();
@@ -108,25 +158,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
         {/* Large AQI Gauge */}
         <View style={styles.gaugeSection}>
-          <View style={styles.gaugeContainer}>
-            {/* Outer ring with gradient effect */}
-            <View style={styles.gaugeOuterRing}>
-              <View style={styles.gaugeProgressRing} />
-            </View>
-            {/* Inner white circle */}
-            <View style={styles.gaugeInnerCircle}>
-              <Text style={styles.gaugeLabel}>CURRENT AQI</Text>
-              <Text style={styles.gaugeValue}>{aqiData.aqi}</Text>
-              <View style={styles.gaugeBadge}>
-                <Feather name="check-circle" size={12} color="#6abe74" />
-                <Text style={styles.gaugeBadgeText}>Moderate</Text>
-              </View>
-            </View>
-          </View>
+          <AQIGauge aqi={locatedAqi} />
         </View>
 
         {/* Station Carousel */}
-        <StationCarousel />
+        <StationCarousel onAqiResolved={setLocatedAqi} />
 
         {/* AI Trend Analysis Block */}
         <View style={styles.insightSection}>
@@ -248,64 +284,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gaugeOuterRing: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(106, 190, 116, 0.1)',
-    borderWidth: 14,
-    borderColor: 'rgba(106, 190, 116, 0.2)',
-  },
-  gaugeProgressRing: {
-    position: 'absolute',
-    width: 172,
-    height: 172,
-    borderRadius: 86,
-    top: -7,
-    left: -7,
-    borderWidth: 14,
-    borderColor: 'transparent',
-    borderLeftColor: '#6abe74',
-    borderBottomColor: '#6abe74',
-    transform: [{ rotate: '-45deg' }],
-  },
   gaugeInnerCircle: {
-    width: 158,
-    height: 158,
-    borderRadius: 79,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  width: 158, height: 158, borderRadius: 79,
+  backgroundColor: 'white', justifyContent: 'center', alignItems: 'center',
+  shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1, shadowRadius: 12, elevation: 4,
   },
   gaugeLabel: {
-    fontSize: 10,
-    color: '#9ca3af',
-    fontWeight: '500',
-    letterSpacing: 2,
-    marginBottom: 6,
+    fontSize: 10, color: '#9ca3af', fontWeight: '500', letterSpacing: 2, marginBottom: 6,
   },
   gaugeValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#6abe74',
-    lineHeight: 48,
-    marginBottom: 6,
+    fontSize: 48, fontWeight: 'bold', lineHeight: 48, marginBottom: 4,
+  },
+  gaugeBadgeText: {
+    fontSize: 14, fontWeight: '500',
   },
   gaugeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  gaugeBadgeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6abe74',
   },
   insightSection: {
     paddingHorizontal: 24,
