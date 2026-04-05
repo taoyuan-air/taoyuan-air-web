@@ -453,7 +453,7 @@ const DistrictCard: React.FC<{
             <Text style={[styles.statusBadge, { color: "#7FAE8A" }]}>
               {district.status}
             </Text>
-            <Text style={styles.trendLabel}>24hr Trend</Text>
+            <Text style={styles.trendLabel}>pm2.5 Trend</Text>
           </View>
 
           <View style={styles.trendContainer}>
