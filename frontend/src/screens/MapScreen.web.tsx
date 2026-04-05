@@ -16,6 +16,7 @@ export const MapScreen = () => {
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(screenHeight)).current;
+  const [satAttribution, setSatAttribution] = useState('Powered by Esri');
 
   const getPollutantLabel = () => {
     switch (selectedPollutant) {
@@ -116,7 +117,9 @@ export const MapScreen = () => {
         </View>
       ) : (
         <View style={styles.windyAttribution}>
-          <Text style={styles.windyAttributionText}>© Esri, Maxar, Earthstar Geographics</Text>
+          <Text style={styles.windyAttributionText}>
+            {"Source: Esri, i-cubed, USDA, USGS, AEX, \nGeoEye, nGetmapping, Aerogrid, IGN, IGP, \nUPR-EGP, and the GIS User Community\n｜Powered by Esri"}
+          </Text> 
         </View>
       )}
 
@@ -176,7 +179,7 @@ export const MapScreen = () => {
                 <>
                   <View style={styles.sheetHeader}>
                     <View style={styles.locationInfo}>
-                      <Text style={styles.districtName}>{(selectedGrid as any) .district|| '桃園市'}</Text>
+                      <Text style={styles.districtName}>{(selectedGrid as any).district || '桃園市'}</Text>
                       {/*這邊.district原本有紅字是還沒實作其他地區(縣市的名字)*/}
                       <Text style={styles.gridId}>GRID ID: {selectedGrid.gridId}</Text>
                     </View>

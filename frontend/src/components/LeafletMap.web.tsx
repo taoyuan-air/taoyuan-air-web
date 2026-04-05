@@ -314,7 +314,6 @@ const styles = StyleSheet.create({
 });
 
 
-
 /*———————————————————————————————————————————————————————
    Backup: LeafletMap.web.tsx (Frirst original version)
 —————————————————————————————————————————————————————————
