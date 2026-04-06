@@ -211,8 +211,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 <Text style={styles.cardStatus}>LOW</Text>
               </View>
               <View style={styles.cardValue}>
-                <Text style={styles.valueNumber}>12</Text>
-                <Text style={styles.valueUnit}>μg/m³</Text>
+                <Text style={styles.valueNumber}>15</Text>
+                <Text style={styles.valueUnit}>{'\u00B5'}g/m³</Text>
               </View>
               <View style={styles.chartContainer}>
                 <View style={styles.trendLine}>
@@ -467,7 +467,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#9ca3af',
-    textTransform: 'uppercase',
   },
   chartContainer: {
     height: 40,
