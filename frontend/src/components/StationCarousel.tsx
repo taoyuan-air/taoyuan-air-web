@@ -465,7 +465,10 @@ const DistrictCard: React.FC<{
   );
 };
 
-export const StationCarousel: React.FC<{ onAqiResolved?: (aqi: number) => void }> = ({ onAqiResolved }) => {
+export const StationCarousel: React.FC<{
+  onAqiResolved?: (aqi: number) => void;
+  onDistrictResolved?: (district: string) => void;
+}> = ({ onAqiResolved, onDistrictResolved }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
@@ -520,6 +523,9 @@ export const StationCarousel: React.FC<{ onAqiResolved?: (aqi: number) => void }
   }, [location, permission]);
 
   useEffect(() => {
+    // Notify parent of the resolved district name
+    onDistrictResolved?.(defaultDistrict);
+
     if (!onAqiResolved) return;
     const entry = epaDataMap[defaultDistrict];
     if (entry) {
@@ -528,7 +534,7 @@ export const StationCarousel: React.FC<{ onAqiResolved?: (aqi: number) => void }
       const d = DISTRICTS.find(d => d.name === defaultDistrict);
       if (d) onAqiResolved(d.aqi);
     }
-  }, [epaDataMap, defaultDistrict, onAqiResolved]);
+  }, [epaDataMap, defaultDistrict, onAqiResolved, onDistrictResolved]);
 
   // 初始化滾動位置
   useEffect(() => {
