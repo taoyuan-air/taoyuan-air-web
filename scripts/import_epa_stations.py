@@ -34,14 +34,14 @@ DB_CONFIG = {
     'password': os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
 }
 
-# 測站 ID 對應（目前只有 5 個測站）
+# 測站 ID 對應
 STATION_MAPPING = {
     'AQX_P_205': '17',  # 桃園
     'AQX_P_206': '18',  # 大園
     'AQX_P_207': '19',  # 觀音
     'AQX_P_208': '20',  # 平鎮
     'AQX_P_209': '21',  # 龍潭
-    # 'AQX_P_210': '22',  # 中壢（尚未取得資料）
+    'AQX_P_255': '68',  # 中壢
 }
 
 def connect_db():

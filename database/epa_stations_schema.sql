@@ -168,6 +168,15 @@ CREATE TABLE IF NOT EXISTS epa_hourly_data_2025_12 PARTITION OF epa_hourly_data 
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_01 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_02 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_03 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_04 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_05 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_06 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_07 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_08 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_09 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_10 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_11 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+CREATE TABLE IF NOT EXISTS epa_hourly_data_2026_12 PARTITION OF epa_hourly_data FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
 
 -- 5. 建立索引
 CREATE INDEX IF NOT EXISTS idx_epa_hourly_station ON epa_hourly_data(station_id);
@@ -213,14 +222,14 @@ WHERE h.concentration_numeric IS NOT NULL
 GROUP BY s.station_id, s.station_name, DATE_TRUNC('month', h.monitor_date), h.pollutant_eng_name
 ORDER BY month DESC, s.station_id, h.pollutant_eng_name;
 
--- 8. 插入桃園市 5 個測站基本資料
+-- 7. 插入桃園市 6 個測站基本資料
 INSERT INTO epa_stations (station_id, station_name, county, latitude, longitude, address) VALUES
 ('17', '桃園', '桃園市', 24.9936, 121.3010, '桃園區'),
 ('18', '大園', '桃園市', 25.0608, 121.2000, '大園區'),
 ('19', '觀音', '桃園市', 25.0354, 121.0820, '觀音區'),
 ('20', '平鎮', '桃園市', 24.9533, 121.2039, '平鎮區'),
-('21', '龍潭', '桃園市', 24.8633, 121.2164, '龍潭區')
--- ('22', '中壢', '桃園市', 24.9536, 121.2256, '中壢區')  -- 資料尚未取得
+('21', '龍潭', '桃園市', 24.8633, 121.2164, '龍潭區'),
+('68', '中壢', '桃園市', 24.9536, 121.2265, '中壢區')
 ON CONFLICT (station_id) DO UPDATE SET
     station_name = EXCLUDED.station_name,
     latitude = EXCLUDED.latitude,
