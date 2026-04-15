@@ -6,6 +6,7 @@ interface LeafletMapProps {
   gridCells: GridCell[];
   mapMode: '2D' | 'Satellite';
   onGridPress?: (grid: GridCell) => void;
+  isVisible?: boolean;
 }
 
 // Grid 線性色階函式，根據數值返回對應的 RGBA 顏色
@@ -37,7 +38,7 @@ const getGridColor = (value: number) => {
 
 let windyInitialized = false;
 
-export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress }) => {
+export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress, isVisible = true }) => {
   // —— 2D (Windy) refs ——
   const mapRef = useRef<any>(null);
   const windyStoreRef = useRef<any>(null);
@@ -270,6 +271,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
     }, 50);
     return () => clearTimeout(delay);
   }, [mapMode]);
+
+  // isVisible 切換時（從 FORECAST 切回 REALTIME），重新 invalidateSize
+  useEffect(() => {
+    if (!isVisible) return;
+    const delay = setTimeout(() => {
+      if (mapRef.current) mapRef.current.invalidateSize();
+      if (satMapRef.current) satMapRef.current.invalidateSize();
+    }, 80);
+    return () => clearTimeout(delay);
+  }, [isVisible]);
 
   // ——————————————————————————————————————————
   // Render

@@ -162,7 +162,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
 
   return (
     <View style={styles.container}>
-      <TopNavigation title="Map View" subtitle="REAL-TIME MONITORING" />
+      <TopNavigation 
+        title="Map View" 
+        subtitle={mode === 'FORECAST' ? 'FORECAST MODE' : 'REAL-TIME MONITORING'} 
+      />
       
       {/* Top Controls */}
       <View style={styles.topControls}>
@@ -253,8 +256,20 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
         )}
       </MapView>
 
-      {/* 來源標記 (依地圖模式切換) */}
-      {mapMode === '2D' ? (
+      {/* FORECAST 模式提示 */}
+      {mode === 'FORECAST' && (
+        <View style={styles.forecastBanner}>
+          <Ionicons name="time-outline" size={14} color="#6A8D73" />
+          <Text style={styles.forecastBannerText}>預報模式：顯示未來 24 小時預測數據</Text>
+        </View>
+      )}
+
+      {/* 來源標記 (依 mode + mapMode 切換) */}
+      {mode === 'FORECAST' ? (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>地圖來源：TGOS 國土測繪圖資</Text>
+        </View>
+      ) : mapMode === '2D' ? (
         <View style={styles.windyAttribution}>
           <Text style={styles.windyAttributionText}>Source：</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
@@ -720,6 +735,25 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  forecastBanner: {
+    position: 'absolute',
+    top: 210,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(181, 201, 154, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  forecastBannerText: {
+    fontSize: 12,
+    color: '#3a5a3a',
+    fontWeight: '500',
   },
   windyAttribution: {
     position: 'absolute',
