@@ -30,10 +30,10 @@ docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "\dt public.*"
 echo.
 
 echo [5] Check row counts...
-docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT CASE WHEN to_regclass('public.epa_stations') IS NULL THEN 'epa_stations: MISSING' ELSE 'epa_stations: ' || (SELECT COUNT(*)::text FROM epa_stations) END;"
-docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT CASE WHEN to_regclass('public.epa_hourly_data') IS NULL THEN 'epa_hourly_data: MISSING' ELSE 'epa_hourly_data: ' || (SELECT COUNT(*)::text FROM epa_hourly_data) END;"
-docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT 'epa_pollutants: ' || COUNT(*) FROM epa_pollutants;" 2>nul
-if errorlevel 1 echo epa_pollutants: MISSING
+docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT CASE WHEN to_regclass('public.moe_stations') IS NULL THEN 'moe_stations: MISSING' ELSE 'moe_stations: ' || (SELECT COUNT(*)::text FROM moe_stations) END;"
+docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT CASE WHEN to_regclass('public.moe_hourly_data') IS NULL THEN 'moe_hourly_data: MISSING' ELSE 'moe_hourly_data: ' || (SELECT COUNT(*)::text FROM moe_hourly_data) END;"
+docker exec taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "SELECT 'moe_pollutants: ' || COUNT(*) FROM moe_pollutants;" 2>nul
+if errorlevel 1 echo moe_pollutants: MISSING
 echo.
 
 echo ========================================

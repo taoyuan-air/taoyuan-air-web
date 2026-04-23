@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { fetchEpaStations, EpaStationData } from '../api/epa';
+import { fetchMoeStations, MoeStationData } from '../api/moe';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -166,7 +166,7 @@ const DISTRICT_COORDINATES: Record<string, { latitude: number; longitude: number
   "新屋區": { latitude: 24.9697, longitude: 121.1063 },
   "復興區": { latitude: 24.8186, longitude: 121.3496 },
 };
-const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+const MOE_STATION_TO_DISTRICT: Record<string, string> = {
   '中壢': '中壢區',
   '桃園': '桃園區',
   '大園': '大園區',
@@ -375,11 +375,11 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
 const DistrictCard: React.FC<{
   district: DistrictData;
-  epaOverride?: { pm25: number; o3: number; aqi: number };
-}> = ({ district, epaOverride }) => {
-  const displayPm25 = epaOverride?.pm25 ?? district.pm25;
-  const displayO3 = epaOverride?.o3 ?? district.o3;
-  const displayAqi = epaOverride?.aqi ?? district.aqi;
+  moeOverride?: { pm25: number; o3: number; aqi: number };
+}> = ({ district, moeOverride }) => {
+  const displayPm25 = moeOverride?.pm25 ?? district.pm25;
+  const displayO3 = moeOverride?.o3 ?? district.o3;
+  const displayAqi = moeOverride?.aqi ?? district.aqi;
   return (
     <View style={styles.cardContainer}>
       {/* Blobs inside card for blur effect */}
@@ -467,23 +467,23 @@ export const StationCarousel: React.FC = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
-  const [epaDataMap, setEpaDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number }>>({});
+  const [moeDataMap, setMoeDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number }>>({});
 
   useEffect(() => {
-    fetchEpaStations()
+    fetchMoeStations()
       .then((stations) => {
-        console.log('[EPA] 取得的 stations:', stations);
+        console.log('[MOE] 取得的 stations:', stations);
         const map: Record<string, { pm25: number; o3: number; aqi: number }> = {};
         stations.forEach((s) => {
-          const districtName = EPA_STATION_TO_DISTRICT[s.sitename];
+          const districtName = MOE_STATION_TO_DISTRICT[s.sitename];
           if (districtName) {
             map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi };
           }
         });
-        console.log('[EPA] 建立的 map:', map);
-        setEpaDataMap(map);
+        console.log('[MOE] 建立的 map:', map);
+        setMoeDataMap(map);
       })
-      .catch((err) => console.warn('[EPA] 資料載入失敗，使用模擬資料:', err));
+      .catch((err) => console.warn('[MOE] 資料載入失敗，使用模擬資料:', err));
   }, []);
 
   const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
@@ -666,7 +666,7 @@ export const StationCarousel: React.FC = () => {
                 },
               ]}
             >
-              <DistrictCard district={district} epaOverride={epaDataMap[district.name]} />
+              <DistrictCard district={district} moeOverride={moeDataMap[district.name]} />
             </Animated.View>
           );
         })}

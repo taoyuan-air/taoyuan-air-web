@@ -1,6 +1,6 @@
 export type Pollutant = 'PM25' | 'O3' | 'NOX' | 'VOCs';
 export type Mode = 'NOW' | 'FORECAST';
-export type Role = 'epa' | 'team';
+export type Role = 'moe' | 'team';
 export type Scenario = 'normal' | 'industrial' | 'event';
 export type StationType = 'MOENV' | 'LOCAL' | 'NCU';
 export type Severity = '低' | '中' | '高';
@@ -55,7 +55,7 @@ export interface Station {
   updatedAt: string;
 }
 
-export interface EpaStationData {
+export interface MoeStationData {
   sitename: string;
   aqi: number;
   pm25: number;

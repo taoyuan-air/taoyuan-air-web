@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-EPA 測站資料匯入腳本
-自動讀取 epa-stations-data 目錄下的 JSON 檔案並匯入資料庫
+MOE 測站資料匯入腳本
+自動讀取 moe-stations-data 目錄下的 JSON 檔案並匯入資料庫
 """
 
 import os
@@ -55,14 +55,14 @@ def connect_db():
         return None
 
 
-def ensure_epa_hourly_schema(conn):
-    """補齊 epa_hourly_data 的 V2 欄位，避免舊資料庫結構造成匯入失敗。"""
+def ensure_moe_hourly_schema(conn):
+    """補齊 moe_hourly_data 的 V2 欄位，避免舊資料庫結構造成匯入失敗。"""
     cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute(
             """
-            ALTER TABLE IF EXISTS public.epa_hourly_data
+            ALTER TABLE IF EXISTS public.moe_hourly_data
             ADD COLUMN IF NOT EXISTS period_start TIMESTAMP,
             ADD COLUMN IF NOT EXISTS period_end TIMESTAMP,
             ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'history';
@@ -70,13 +70,13 @@ def ensure_epa_hourly_schema(conn):
         )
         cursor.execute(
             """
-            UPDATE public.epa_hourly_data
+            UPDATE public.moe_hourly_data
             SET source = 'history'
             WHERE source IS NULL;
             """
         )
         conn.commit()
-        print("[OK] 已確認 epa_hourly_data 欄位相容（period_start/period_end/source）")
+        print("[OK] 已確認 moe_hourly_data 欄位相容（period_start/period_end/source）")
     except Exception as e:
         conn.rollback()
         print(f"[ERROR] 資料表結構修復失敗: {e}")
@@ -96,7 +96,7 @@ def parse_concentration(value):
 
 
 def parse_monitor_date(value):
-    """將 EPA 時間字串轉為 datetime，支援有/無秒格式。"""
+    """將 MOE 時間字串轉為 datetime，支援有/無秒格式。"""
     if not value:
         return None
     for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
@@ -165,7 +165,7 @@ def import_json_file(conn, file_path, station_id):
         try:
             cursor = conn.cursor()
             insert_query = """
-                INSERT INTO epa_hourly_data 
+                INSERT INTO moe_hourly_data 
                 (station_id, monitor_date, pollutant_id, pollutant_name, 
                  pollutant_eng_name, unit, concentration, concentration_numeric, data_quality,
                  period_start, period_end, source)
@@ -178,7 +178,7 @@ def import_json_file(conn, file_path, station_id):
                     period_start = EXCLUDED.period_start,
                     period_end = EXCLUDED.period_end,
                     source = EXCLUDED.source
-                WHERE epa_hourly_data.source = 'realtime'
+                WHERE moe_hourly_data.source = 'realtime'
             """
             
             print(f"    開始批次匯入...")
@@ -213,7 +213,7 @@ def import_json_file(conn, file_path, station_id):
 def main():
     """主程式"""
     print("=" * 60)
-    print("EPA 測站資料匯入工具")
+    print("MOE 測站資料匯入工具")
     print("=" * 60)
     
     # 連接資料庫
@@ -222,11 +222,11 @@ def main():
         return
 
     # 先補齊舊資料庫缺漏欄位，避免批次匯入時出現 column does not exist
-    ensure_epa_hourly_schema(conn)
+    ensure_moe_hourly_schema(conn)
     
     # 取得專案根目錄
     project_root = Path(__file__).parent.parent
-    data_dir = project_root / 'data' / 'raw' / 'epa-stations'
+    data_dir = project_root / 'data' / 'raw' / 'moe-stations'
     
     if not data_dir.exists():
         print(f"[ERROR] 資料目錄不存在: {data_dir}")

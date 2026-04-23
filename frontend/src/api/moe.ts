@@ -1,4 +1,4 @@
-const EPA_TARGET_STATIONS = [
+const MOE_TARGET_STATIONS = [
   '中壢',
   '桃園',
   '大園',
@@ -7,7 +7,7 @@ const EPA_TARGET_STATIONS = [
   '龍潭',
 ];
 
-export interface EpaStationData {
+export interface MoeStationData {
   sitename: string;
   aqi: number;
   pm25: number;
@@ -15,11 +15,11 @@ export interface EpaStationData {
   nox: number;
 }
 
-// 取得 EPA 目標測站的即時空氣品質資料。
-export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
-  const apiKey = process.env.EXPO_PUBLIC_EPA_API_KEY;
+// 取得 MOE 目標測站的即時空氣品質資料。
+export const fetchMoeStations = async (): Promise<MoeStationData[]> => {
+  const apiKey = process.env.EXPO_PUBLIC_MOE_API_KEY;
   if (!apiKey) {
-    console.warn('[EPA] EXPO_PUBLIC_EPA_API_KEY 未設定，跳過 API 請求');
+    console.warn('[MOE] EXPO_PUBLIC_MOE_API_KEY 未設定，跳過 API 請求');
     return [];
   }
 
@@ -39,7 +39,7 @@ export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
 
   try {
     // 針對每個站點發出請求，並同時等待全部完成
-    const stationUrls = EPA_TARGET_STATIONS.map(buildUrl);
+    const stationUrls = MOE_TARGET_STATIONS.map(buildUrl);
     const responses = await Promise.all(
       stationUrls.map(url =>
         fetch(url).then(async res => {
@@ -47,7 +47,7 @@ export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
             // 把錯誤內容也印出，方便除錯（金鑰錯誤、配額用盡等）
             const errorText = await res.text();
             throw new Error(
-              `EPA API 錯誤 ${res.status} ${res.statusText}: ${errorText.slice(0, 200)}`
+              `MOE API 錯誤 ${res.status} ${res.statusText}: ${errorText.slice(0, 200)}`
             );
           }
           return res.json();
@@ -61,16 +61,16 @@ export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
       // 檢查回應是陣列還是物件
       if (Array.isArray(r)) {
         allRecords = allRecords.concat(r);
-        console.log(`[EPA] 站點 ${EPA_TARGET_STATIONS[index]} 取得 ${r.length} 筆資料`);
+        console.log(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 取得 ${r.length} 筆資料`);
       } else if (r && r.records) {
         allRecords = allRecords.concat(r.records);
-        console.log(`[EPA] 站點 ${EPA_TARGET_STATIONS[index]} 取得 ${r.records.length} 筆資料 (來自 records 欄位)`);
+        console.log(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 取得 ${r.records.length} 筆資料 (來自 records 欄位)`);
       } else {
-        console.warn(`[EPA] 站點 ${EPA_TARGET_STATIONS[index]} 回應格式異常:`, r);
+        console.warn(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 回應格式異常:`, r);
       }
     });
 
-    console.log('[EPA] 收到的 records (總筆數):', allRecords.length);
+    console.log('[MOE] 收到的 records (總筆數):', allRecords.length);
 
     // 轉換成介面所需的型別
     return allRecords.map(record => ({
@@ -81,7 +81,7 @@ export const fetchEpaStations = async (): Promise<EpaStationData[]> => {
       nox: Number(record.nox) || 0,
     }));
   } catch (err) {
-    console.error('[EPA] 拉取資料失敗:', err);
+    console.error('[MOE] 拉取資料失敗:', err);
     // 依照需求決定要拋錯還是回傳空陣列；這裡選擇回傳空陣列以免 UI 因例外而掛掉
     return [];
   }
