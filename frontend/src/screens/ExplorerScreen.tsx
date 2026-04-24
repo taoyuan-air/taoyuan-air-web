@@ -18,19 +18,19 @@ interface ExplorerScreenProps {
 
 export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => {
   const [searchText, setSearchText] = useState("");
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState("餈?4撠?");
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState("近24小時");
   const [selectedPollutantFilter, setSelectedPollutantFilter] = useState("PM2.5");
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState("?典?");
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState("全部");
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>(["MOE"]);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [showPollutantFilter, setShowPollutantFilter] = useState(false);
   const [showRegionFilter, setShowRegionFilter] = useState(false);
   const [showDataSourceFilter, setShowDataSourceFilter] = useState(false);
 
-  const timeOptions = ["餈?4撠?", "餈?憭?, "餈?憭?];
+  const timeOptions = ["近24小時", "近一週", "近一月"];
   const pollutantOptions = ["PM2.5", "O3", "NOX", "VOCs"];
-  const regionOptions = ["?典?", "獢??", "銝剖ㄑ?", "憭批??", "閫?喳?"];
-  const dataSourceOptions = ["MOE", "敺格?皜?, "??", "LUV"];
+  const regionOptions = ["全部", "北區", "桃園市", "新竹縣市", "苗栗縣"];
+  const dataSourceOptions = ["MOE", "微型感測", "光達", "LUV"];
 
   const toggleDataSource = (source: string) => {
     setSelectedDataSources(prev => 
@@ -43,52 +43,52 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const allMonitoringData = [
     {
       id: 1,
-      district: "銝剖ㄑ?",
+      district: "桃園市",
       station: "Station TY-09",
       time: "14:02 PM",
       passed: true,
       pollutant: "PM2.5",
       value: 12,
-      unit: "弮g/m糧",
+      unit: "μg/m³",
       source: "MOE",
       version: "v2.1",
       color: "#4CAF50",
-      timeCategory: "餈?4撠?",
-      region: "銝剖ㄑ?"
+      timeCategory: "近24小時",
+      region: "桃園市"
     },
     {
       id: 2,
-      district: "?姘撌交平?",
+      district: "中壢平鎮區",
       station: "Grid Alpha-4",
       time: "13:45 PM",
       passed: false,
       pollutant: "PM2.5",
       value: 48,
-      unit: "弮g/m糧",
-      source: "敺格?皜?,
+      unit: "μg/m³",
+      source: "微型感測",
       version: "v2.0",
       color: "#FFA868",
-      timeCategory: "餈?4撠?",
-      region: "獢??"
+      timeCategory: "近24小時",
+      region: "北區"
     },
     {
       id: 3,
-      district: "閫?單絲撗?,
+      district: "龜山林口區",
       station: "Sensor TY-42",
       time: "13:20 PM",
       passed: true,
       pollutant: "PM2.5",
       value: 8,
-      unit: "弮g/m糧",
-      source: "??",
+      unit: "μg/m³",
+      source: "光達",
       version: "v2.1",
       color: "#4CAF50",
-      timeCategory: "餈?4撠?",
-      region: "閫?喳?"
+      timeCategory: "近24小時",
+      region: "苗栗縣"
     },
     {
       id: 4,
-      district: "憭批?撌交平?",
+      district: "新竹市平鎮區",
       station: "Station TY-15",
       time: "12:30 PM",
       passed: true,
@@ -98,27 +98,27 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       source: "MOE",
       version: "v2.1",
       color: "#4CAF50",
-      timeCategory: "餈?4撠?",
-      region: "憭批??"
+      timeCategory: "近24小時",
+      region: "新竹縣市"
     },
     {
       id: 5,
-      district: "獢?撣?",
+      district: "北區大同",
       station: "Micro-Sensor B12",
       time: "11:15 AM",
       passed: false,
       pollutant: "NOX",
       value: 85,
       unit: "ppb",
-      source: "敺格?皜?,
+      source: "微型感測",
       version: "v1.8",
       color: "#FF6B6B",
-      timeCategory: "餈?4撠?",
-      region: "獢??"
+      timeCategory: "近24小時",
+      region: "北區"
     },
     {
       id: 6,
-      district: "銝剖ㄑ?平?",
+      district: "桃園市平鎮",
       station: "LUV-Station C3",
       time: "10:45 AM",
       passed: true,
@@ -128,29 +128,29 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       source: "LUV",
       version: "v3.0",
       color: "#4CAF50",
-      timeCategory: "餈?4撠?",
-      region: "銝剖ㄑ?"
+      timeCategory: "近24小時",
+      region: "桃園市"
     },
     {
       id: 7,
-      district: "閫?喳極璆剖?",
+      district: "苗栗縣頭份市",
       station: "Grid Beta-7",
-      time: "?冽 23:30",
+      time: "昨日 23:30",
       passed: false,
       pollutant: "PM2.5",
       value: 52,
-      unit: "弮g/m糧",
-      source: "敺格?皜?,
+      unit: "μg/m³",
+      source: "微型感測",
       version: "v2.0",
       color: "#FFA868",
-      timeCategory: "餈?憭?,
-      region: "閫?喳?"
+      timeCategory: "近一週",
+      region: "苗栗縣"
     },
     {
       id: 8,
-      district: "憭批?雿??",
+      district: "新竹縣竹北市",
       station: "Station TY-22",
-      time: "?冽 22:15",
+      time: "昨日 22:15",
       passed: true,
       pollutant: "O3",
       value: 28,
@@ -158,59 +158,59 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       source: "MOE",
       version: "v2.1",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "憭批??"
+      timeCategory: "近一週",
+      region: "新竹縣市"
     },
     {
       id: 9,
-      district: "獢?璈?券?",
+      district: "北區仁愛路",
       station: "LIDAR-Point A1",
-      time: "?冽 20:00",
+      time: "昨日 20:00",
       passed: true,
       pollutant: "NOX",
       value: 42,
       unit: "ppb",
-      source: "??",
+      source: "光達",
       version: "v2.3",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "憭批??"
+      timeCategory: "近一週",
+      region: "新竹縣市"
     },
     {
       id: 10,
-      district: "銝剖ㄑ撌交平?",
+      district: "桃園市中壢區",
       station: "Micro-Array D5",
-      time: "?冽 18:45",
+      time: "昨日 18:45",
       passed: false,
       pollutant: "VOCs",
       value: 78,
       unit: "ppb",
-      source: "敺格?皜?,
+      source: "微型感測",
       version: "v1.9",
       color: "#FF6B6B",
-      timeCategory: "餈?憭?,
-      region: "銝剖ㄑ?"
+      timeCategory: "近一週",
+      region: "桃園市"
     },
     {
       id: 11,
-      district: "獢??賣??",
+      district: "北區民生路",
       station: "LUV-Hub M1",
-      time: "3憭拙? 16:30",
+      time: "3天前 16:30",
       passed: true,
       pollutant: "PM2.5",
       value: 18,
-      unit: "弮g/m糧",
+      unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "獢??"
+      timeCategory: "近一週",
+      region: "北區"
     },
     {
       id: 12,
-      district: "閫?單窒瘚?,
+      district: "苗栗縣苑裡鎮",
       station: "Station TY-35",
-      time: "4憭拙? 14:20",
+      time: "4天前 14:20",
       passed: true,
       pollutant: "O3",
       value: 31,
@@ -218,80 +218,80 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       source: "MOE",
       version: "v2.1",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "閫?喳?"
+      timeCategory: "近一週",
+      region: "苗栗縣"
     },
     {
       id: 13,
-      district: "憭批?颲脫平?",
+      district: "新竹縣關西鎮",
       station: "LIDAR-Grid F8",
-      time: "5憭拙? 12:10",
+      time: "5天前 12:10",
       passed: false,
       pollutant: "NOX",
       value: 95,
       unit: "ppb",
-      source: "??",
+      source: "光達",
       version: "v2.3",
       color: "#FF6B6B",
-      timeCategory: "餈?憭?,
-      region: "憭批??"
+      timeCategory: "近一週",
+      region: "新竹縣市"
     },
     {
       id: 14,
-      district: "銝剖ㄑ撣葉敹?,
+      district: "桃園市復興區",
       station: "Micro-Net G2",
-      time: "6憭拙? 09:45",
+      time: "6天前 09:45",
       passed: true,
       pollutant: "VOCs",
       value: 25,
       unit: "ppb",
-      source: "敺格?皜?,
+      source: "微型感測",
       version: "v2.0",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "銝剖ㄑ?"
+      timeCategory: "近一週",
+      region: "桃園市"
     },
     {
       id: 15,
-      district: "獢?擃?",
+      district: "北區大雅",
       station: "LUV-Station H4",
-      time: "7憭拙? 15:30",
+      time: "7天前 15:30",
       passed: true,
       pollutant: "PM2.5",
       value: 15,
-      unit: "弮g/m糧",
+      unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
       color: "#4CAF50",
-      timeCategory: "餈?憭?,
-      region: "獢??"
+      timeCategory: "近一週",
+      region: "北區"
     }
   ];
 
   const getFilteredData = () => {
     return allMonitoringData.filter(item => {
-      // ????蝭拚
+      // 搜尋篩選
       if (searchText && !item.district.toLowerCase().includes(searchText.toLowerCase()) && 
           !item.station.toLowerCase().includes(searchText.toLowerCase())) {
         return false;
       }
       
-      // ??蝭拚
-      if (selectedTimeFilter !== "餈?4撠?" && item.timeCategory !== selectedTimeFilter) {
+      // 時間篩選
+      if (selectedTimeFilter !== "近24小時" && item.timeCategory !== selectedTimeFilter) {
         return false;
       }
       
-      // 瘙⊥??拍祟??
+      // 污染物篩選
       if (selectedPollutantFilter !== "PM2.5" && item.pollutant !== selectedPollutantFilter) {
         return false;
       }
       
-      // ??祟??
-      if (selectedRegionFilter !== "?典?" && item.region !== selectedRegionFilter) {
+      // 地區篩選
+      if (selectedRegionFilter !== "全部" && item.region !== selectedRegionFilter) {
         return false;
       }
       
-      // 鞈?靘?蝭拚
+      // 資料來源篩選
       if (selectedDataSources.length > 0 && !selectedDataSources.includes(item.source)) {
         return false;
       }
@@ -304,7 +304,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 
   return (
     <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
-      <TopNavigation title="鞈?瑼Ｙ揣" subtitle="QUERY & ANALYSIS" />
+      <TopNavigation title="資料探索" subtitle="QUERY & ANALYSIS" />
       
       <ScrollView
         ref={scrollRef}
@@ -317,7 +317,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="??????葫??ID"
+              placeholder="搜尋地區或測站ID"
               placeholderTextColor="#999"
               value={searchText}
               onChangeText={setSearchText}
@@ -360,7 +360,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             style={[styles.filterButton, showDataSourceFilter && styles.activeFilter]}
             onPress={() => setShowDataSourceFilter(!showDataSourceFilter)}
           >
-            <Text style={[styles.filterText, showDataSourceFilter && styles.activeFilterText]}>鞈?靘?</Text>
+            <Text style={[styles.filterText, showDataSourceFilter && styles.activeFilterText]}>資料來源</Text>
             <Ionicons name="chevron-down" size={16} color={showDataSourceFilter ? "white" : "#6A8D73"} />
           </TouchableOpacity>
         </ScrollView>
@@ -436,7 +436,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 
         {/* Monitoring Feed Header */}
         <View style={styles.feedHeader}>
-          <Text style={styles.feedTitle}>??葫??</Text>
+          <Text style={styles.feedTitle}>監測資料</Text>
         </View>
 
         {/* Monitoring Cards */}
@@ -447,10 +447,10 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <View style={styles.cardHeader}>
                 <View style={styles.cardTitleContainer}>
                   <Text style={styles.cardTitle}>{item.district}</Text>
-                  <Text style={styles.cardSubtitle}>{item.station} ??{item.time}</Text>
+                  <Text style={styles.cardSubtitle}>{item.station} · {item.time}</Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#A8D5A8' : '#FFD4B3' }]}>
-                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#2E7D32' : '#D2691E' }]}>{item.passed ? '??' : '?啣虜'}</Text>
+                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#2E7D32' : '#D2691E' }]}>{item.passed ? '通過' : '異常'}</Text>
                 </View>
               </View>
               
@@ -459,8 +459,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
                 {/* Left: Pollutant, Source, Version */}
                 <View style={styles.cardInfo}>
                   <Text style={styles.pollutantName}>{item.pollutant}</Text>
-                  <Text style={styles.infoText}>靘?: {item.source}</Text>
-                  <Text style={styles.infoText}>?: {item.version}</Text>
+                  <Text style={styles.infoText}>來源: {item.source}</Text>
+                  <Text style={styles.infoText}>版本: {item.version}</Text>
                 </View>
                 
                 {/* Right: Value */}
@@ -488,14 +488,14 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
         {/* Health Advisory */}
         <View style={styles.advisoryContainer}>
           <View style={styles.advisoryHeader}>
-            <Text style={styles.advisoryTitle}>?亙熒撱箄降</Text>
+            <Text style={styles.advisoryTitle}>健康建議</Text>
           </View>
           <View style={styles.advisoryContent}>
             <View style={styles.advisoryIcon}>
               <Ionicons name="sparkles" size={24} color="white" />
             </View>
             <Text style={styles.advisoryText}>
-              獢?蝛箸除?釭靽?蝛拙????仿?憭暑??
+              北區空氣品質良好，適合戶外活動，請注意防曬。
             </Text>
           </View>
         </View>
@@ -765,4 +765,3 @@ const styles = StyleSheet.create({
     height: 100,
   },
 });
-
