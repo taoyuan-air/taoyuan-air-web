@@ -123,8 +123,8 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       const apiKey = process.env.EXPO_PUBLIC_TGOS_API_KEY;
 
       const scriptUrl = `https://api.tgos.tw/TGOS_MAP_API_3?APIKEY=${apiKey}`;
-      console.log("正在載入 script，網址如下:", scriptUrl);
-      console.log("APIKey 確認:", apiKey);
+      // console.log("正在載入 script，網址如下:", scriptUrl);
+      // console.log("APIKey 確認:", apiKey);
 
       try {
         await loadScript(scriptUrl, "tgos-sdk");
