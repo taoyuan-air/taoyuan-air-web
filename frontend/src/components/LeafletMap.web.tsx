@@ -107,11 +107,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
         
         // 載入 Leaflet CSS + JS
         await loadLink(
-          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.css',
           'leaflet-css',
         );
         await loadScript(
-          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.js',
           'leaflet-js',
         );
 
