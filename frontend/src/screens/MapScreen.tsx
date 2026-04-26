@@ -163,7 +163,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
   return (
     <View style={styles.container}>
       <TopNavigation 
-        title="Map View" 
+        title="監測地圖" 
         subtitle={mode === 'FORECAST' ? 'FORECAST MODE' : 'REAL-TIME MONITORING'} 
       />
       
@@ -202,7 +202,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
             <Ionicons 
               name={mapMode === '2D' ? 'map' : mapMode === '3D' ? 'cube-outline' : 'globe'} 
               size={20} 
-              color="#6A8D73" 
+              color="#E76595" 
             />
             <Text style={styles.mapModeText}>{mapMode}</Text>
           </TouchableOpacity>
@@ -250,7 +250,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
           <Polygon
             coordinates={selectedGrid.polygonCoords}
             fillColor="rgba(106, 141, 115, 0.9)"
-            strokeColor="#6A8D73"
+            strokeColor="#E76595"
             strokeWidth={3}
           />
         )}
@@ -259,7 +259,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
       {/* FORECAST 模式提示 */}
       {mode === 'FORECAST' && (
         <View style={styles.forecastBanner}>
-          <Ionicons name="time-outline" size={14} color="#6A8D73" />
+          <Ionicons name="time-outline" size={14} color="#E76595" />
           <Text style={styles.forecastBannerText}>預報模式：顯示未來 24 小時預測數據</Text>
         </View>
       )}
@@ -330,7 +330,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
       {/* Loading Indicator */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#6A8D73" />
+          <ActivityIndicator size="large" color="#E76595" />
         </View>
       )}
 
@@ -407,7 +407,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
                   {/* AI Insight */}
                   <View style={styles.aiSection}>
                     <View style={styles.aiHeader}>
-                      <Ionicons name="bulb" size={16} color="#B5C99A" />
+                      <Ionicons name="bulb" size={16} color="#FBA7BC" />
                       <Text style={styles.aiTitle}>AI 分析</Text>
                     </View>
                     <Text style={styles.aiText}>
@@ -433,6 +433,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 20,
   },
   topControls: {
     position: 'absolute',
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   activeModeButton: {
-    backgroundColor: '#B5C99A',
+    backgroundColor: '#FBA7BC',
   },
   modeButtonText: {
     fontSize: 14,
@@ -494,12 +495,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activePollutantDot: {
-    backgroundColor: '#6A8D73',
+    backgroundColor: '#E76595',
   },
   pollutantDotText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
   },
   activePollutantDotText: {
     color: 'white',
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
   legendTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
     textAlign: 'left',
     marginBottom: 12,
   },
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
   },
   mapModeText: {
     fontSize: 12,
-    color: '#6A8D73',
+    color: '#E76595',
     fontWeight: '600',
   },
   loadingOverlay: {
@@ -624,7 +625,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   riskBadge: {
-    backgroundColor: '#B5C99A',
+    backgroundColor: '#FBA7BC',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -676,7 +677,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   activeLevelBar: {
-    backgroundColor: '#B5C99A',
+    backgroundColor: '#FBA7BC',
   },
   aiSection: {
     backgroundColor: '#F8F9FA',
@@ -692,7 +693,7 @@ const styles = StyleSheet.create({
   aiTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#B5C99A',
+    color: '#FBA7BC',
     marginLeft: 6,
   },
   aiText: {
@@ -779,6 +780,6 @@ const styles = StyleSheet.create({
   },
   windyLink: {
     textDecorationLine: 'underline',
-    color: '#6A8D73', 
+    color: '#E76595', 
   },
 });

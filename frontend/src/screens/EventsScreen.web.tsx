@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TopNavigation } from "../navigation/TopNavigation";
+import { gradients, palette } from "../styles/theme";
 
 interface EventsScreenProps {
   scrollRef?: (ref: any) => void;
@@ -19,12 +20,14 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const [selectedFilter, setSelectedFilter] = useState("活躍事件");
   const [selectedDistrict, setSelectedDistrict] = useState("所有區域");
   const [selectedSeverity, setSelectedSeverity] = useState("嚴重度");
-  const [showFilterDropdown, setShowFilterDropdown] = useState<string | null>(null);
+  const [showFilterDropdown, setShowFilterDropdown] = useState<string | null>(
+    null,
+  );
 
   const filterOptions = {
     events: ["活躍事件", "歷史事件", "已解決事件"],
     districts: ["所有區域", "蘆竹區", "觀音區", "中壢區", "桃園區", "大園區"],
-    severity: ["嚴重度", "高風險", "中等風險", "低風險"]
+    severity: ["嚴重度", "高風險", "中等風險", "低風險"],
   };
 
   const allEventData = [
@@ -40,7 +43,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "45分鐘 持續",
       location: "觀音區",
       healthIndex: "敏感警告",
-      severityColor: "#FFB74D",
+      severityColor: palette.accentMint,
       icon: "business",
       isActive: true,
       isResolved: false,
@@ -57,7 +60,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "2小時15分鐘 活躍",
       location: "蘆竹區",
       confidence: "98.4%",
-      severityColor: "#E57373",
+      severityColor: palette.accentYellow,
       icon: "warning",
       isActive: true,
       isResolved: false,
@@ -74,7 +77,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "1小時30分鐘 持續",
       location: "中壢區",
       healthIndex: "良好",
-      severityColor: "#81C784",
+      severityColor: palette.accentLime,
       icon: "car",
       isActive: true,
       isResolved: false,
@@ -91,7 +94,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "已解決",
       location: "大園區",
       confidence: "92.1%",
-      severityColor: "#9E9E9E",
+      severityColor: palette.primaryMid,
       icon: "business",
       isActive: false,
       isResolved: true,
@@ -108,7 +111,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "3小時 持續",
       location: "桃園區",
       healthIndex: "不健康",
-      severityColor: "#EF5350",
+      severityColor: palette.accentYellow,
       icon: "alert-circle",
       isActive: true,
       isResolved: false,
@@ -116,17 +119,24 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   ];
 
   const getFilteredEvents = () => {
-    return allEventData.filter(event => {
+    return allEventData.filter((event) => {
       if (selectedFilter === "活躍事件" && !event.isActive) return false;
       if (selectedFilter === "已解決事件" && !event.isResolved) return false;
       if (selectedFilter === "歷史事件" && event.isActive) return false;
-      
-      if (selectedDistrict !== "所有區域" && event.location !== selectedDistrict) return false;
-      
-      if (selectedSeverity === "高風險" && event.severity !== "高風險") return false;
-      if (selectedSeverity === "中等風險" && event.severity !== "中等風險") return false;
-      if (selectedSeverity === "低風險" && event.severity !== "低風險") return false;
-      
+
+      if (
+        selectedDistrict !== "所有區域" &&
+        event.location !== selectedDistrict
+      )
+        return false;
+
+      if (selectedSeverity === "高風險" && event.severity !== "高風險")
+        return false;
+      if (selectedSeverity === "中等風險" && event.severity !== "中等風險")
+        return false;
+      if (selectedSeverity === "低風險" && event.severity !== "低風險")
+        return false;
+
       return true;
     });
   };
@@ -136,54 +146,122 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const eventImagePlaceholder: ViewStyle = {
     width: "100%",
     aspectRatio: 4 / 3,
-    backgroundColor: "#E8E6D3",
+    backgroundColor: "#FFF1FF",
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
   };
 
   return (
-    <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
+    <LinearGradient colors={gradients.page} style={styles.container}>
       <TopNavigation title="事件庫" subtitle="INCIDENT TRACKING" />
 
-      <ScrollView ref={scrollRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filterScrollView}
           contentContainerStyle={styles.filterContainer}
         >
-          <TouchableOpacity 
-            style={[styles.filterButton, showFilterDropdown === 'events' && styles.activeFilter]}
-            onPress={() => setShowFilterDropdown(showFilterDropdown === 'events' ? null : 'events')}
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              showFilterDropdown === "events" && styles.activeFilter,
+            ]}
+            onPress={() =>
+              setShowFilterDropdown(
+                showFilterDropdown === "events" ? null : "events",
+              )
+            }
           >
-            <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
+            <Text
+              style={[
+                styles.filterText,
+                showFilterDropdown === "events" && styles.activeFilterText,
+              ]}
+            >
               {selectedFilter}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#6A8D73"} />
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={
+                showFilterDropdown === "events"
+                  ? palette.bgCard
+                  : palette.primaryDeep
+              }
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.filterButton, showFilterDropdown === 'districts' && styles.activeFilter]}
-            onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              showFilterDropdown === "districts" && styles.activeFilter,
+            ]}
+            onPress={() =>
+              setShowFilterDropdown(
+                showFilterDropdown === "districts" ? null : "districts",
+              )
+            }
           >
-            <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#6A8D73"} />
+            <Text
+              style={[
+                styles.filterText,
+                showFilterDropdown === "districts" && styles.activeFilterText,
+              ]}
+            >
+              {selectedDistrict}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={
+                showFilterDropdown === "districts"
+                  ? palette.bgCard
+                  : palette.primaryDeep
+              }
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.filterButton, showFilterDropdown === 'severity' && styles.activeFilter]}
-            onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              showFilterDropdown === "severity" && styles.activeFilter,
+            ]}
+            onPress={() =>
+              setShowFilterDropdown(
+                showFilterDropdown === "severity" ? null : "severity",
+              )
+            }
           >
-            <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
-            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#6A8D73"} />
+            <Text
+              style={[
+                styles.filterText,
+                showFilterDropdown === "severity" && styles.activeFilterText,
+              ]}
+            >
+              {selectedSeverity}
+            </Text>
+            <Ionicons
+              name="filter"
+              size={16}
+              color={
+                showFilterDropdown === "severity"
+                  ? palette.bgCard
+                  : palette.primaryDeep
+              }
+            />
           </TouchableOpacity>
         </ScrollView>
 
-        {showFilterDropdown === 'events' && (
+        {showFilterDropdown === "events" && (
           <View style={styles.dropdownContainer}>
-            {filterOptions.events.map(option => (
-              <TouchableOpacity 
+            {filterOptions.events.map((option) => (
+              <TouchableOpacity
                 key={option}
                 style={styles.dropdownItem}
                 onPress={() => {
@@ -197,10 +275,10 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
           </View>
         )}
 
-        {showFilterDropdown === 'districts' && (
+        {showFilterDropdown === "districts" && (
           <View style={styles.dropdownContainer}>
-            {filterOptions.districts.map(option => (
-              <TouchableOpacity 
+            {filterOptions.districts.map((option) => (
+              <TouchableOpacity
                 key={option}
                 style={styles.dropdownItem}
                 onPress={() => {
@@ -214,10 +292,10 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
           </View>
         )}
 
-        {showFilterDropdown === 'severity' && (
+        {showFilterDropdown === "severity" && (
           <View style={styles.dropdownContainer}>
-            {filterOptions.severity.map(option => (
-              <TouchableOpacity 
+            {filterOptions.severity.map((option) => (
+              <TouchableOpacity
                 key={option}
                 style={styles.dropdownItem}
                 onPress={() => {
@@ -238,18 +316,27 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=121.15,24.95,121.35,25.05&layer=mapnik&marker=25.0,121.25`}
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
+                    width: "100%",
+                    height: "100%",
+                    border: "none",
                   }}
                   title={`Map of ${event.location}`}
                 />
                 <View style={styles.topBadges}>
-                  <View style={[styles.severityBadge, { backgroundColor: event.severityColor }]}>
+                  <View
+                    style={[
+                      styles.severityBadge,
+                      { backgroundColor: event.severityColor },
+                    ]}
+                  >
                     <Text style={styles.badgeText}>{event.severity}</Text>
                   </View>
                   <View style={styles.statusBadge}>
-                    <Text style={[styles.badgeText, { color: "#333" }]}>{event.status}</Text>
+                    <Text
+                      style={[styles.badgeText, { color: palette.textMain }]}
+                    >
+                      {event.status}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.bottomInfo}>
@@ -262,17 +349,27 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                 <View style={styles.eventHeader}>
                   <View style={styles.eventTitleContainer}>
                     <Text style={styles.eventTitle}>{event.title}</Text>
-                    <Text style={styles.eventDescription}>{event.description}</Text>
+                    <Text style={styles.eventDescription}>
+                      {event.description}
+                    </Text>
                   </View>
                   <View style={styles.eventIcon}>
-                    <Ionicons name={event.icon as any} size={28} color="#6ABD73" />
+                    <Ionicons
+                      name={event.icon as any}
+                      size={28}
+                      color={palette.primaryDeep}
+                    />
                   </View>
                 </View>
 
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailItem}>
                     <View style={styles.detailIcon}>
-                      <Ionicons name="time" size={20} color="#666" />
+                      <Ionicons
+                        name="time"
+                        size={20}
+                        color={palette.textSecondary}
+                      />
                     </View>
                     <View style={styles.detailContent}>
                       <Text style={styles.detailLabel}>持續時間</Text>
@@ -282,7 +379,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 
                   <View style={styles.detailItem}>
                     <View style={styles.detailIcon}>
-                      <Ionicons name="location" size={20} color="#666" />
+                      <Ionicons
+                        name="location"
+                        size={20}
+                        color={palette.textSecondary}
+                      />
                     </View>
                     <View style={styles.detailContent}>
                       <Text style={styles.detailLabel}>位置</Text>
@@ -293,7 +394,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                   {event.trend && (
                     <View style={styles.detailItem}>
                       <View style={styles.detailIcon}>
-                        <Ionicons name="trending-up" size={20} color="#666" />
+                        <Ionicons
+                          name="trending-up"
+                          size={20}
+                          color={palette.textSecondary}
+                        />
                       </View>
                       <View style={styles.detailContent}>
                         <Text style={styles.detailLabel}>趨勢</Text>
@@ -305,7 +410,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                   {event.exposure && (
                     <View style={styles.detailItem}>
                       <View style={styles.detailIcon}>
-                        <Ionicons name="people" size={20} color="#666" />
+                        <Ionicons
+                          name="people"
+                          size={20}
+                          color={palette.textSecondary}
+                        />
                       </View>
                       <View style={styles.detailContent}>
                         <Text style={styles.detailLabel}>暴露人口</Text>
@@ -323,7 +432,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text
                       style={[
                         styles.confidenceValue,
-                        { color: event.confidence ? "#6ABD73" : "#F59E0B" },
+                        {
+                          color: event.confidence
+                            ? palette.primaryDeep
+                            : palette.accentYellow,
+                        },
                       ]}
                     >
                       {event.confidence || event.healthIndex}
@@ -351,7 +464,9 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Ionicons
                       name={event.confidence ? "analytics" : "trending-up"}
                       size={18}
-                      color={event.confidence ? "white" : "#333"}
+                      color={
+                        event.confidence ? palette.bgCard : palette.textMain
+                      }
                     />
                   </TouchableOpacity>
                 </View>
@@ -376,39 +491,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
+    borderColor: palette.borderSoft,
     gap: 6,
   },
-  filterText: { fontSize: 14, fontWeight: "600", color: "#6A8D73" },
-  activeFilter: { backgroundColor: "#6ABD73" },
-  activeFilterText: { color: "white" },
+  filterText: { fontSize: 14, fontWeight: "600", color: palette.primaryDeep },
+  activeFilter: { backgroundColor: palette.primaryDeep },
+  activeFilterText: { color: palette.bgCard },
   dropdownContainer: {
     marginHorizontal: 20,
     marginBottom: 16,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 16,
-    shadowColor: "#000",
+    shadowColor: palette.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: palette.borderSoft,
   },
   dropdownItem: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+    borderBottomColor: "rgba(95, 83, 104, 0.15)",
   },
-  dropdownText: { fontSize: 16, color: "#333", fontWeight: "500" },
+  dropdownText: { fontSize: 16, color: palette.textMain, fontWeight: "500" },
   eventsContainer: { paddingHorizontal: 20, gap: 24 },
   eventCard: {
     backgroundColor: "rgba(255, 255, 255, 0.4)",
     borderRadius: 32,
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: palette.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 24,
@@ -421,7 +538,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  severityBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  severityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -443,32 +564,45 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#333",
+    color: palette.textMain,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 4,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowColor: "rgba(255, 255, 255, 0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   categoryTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: palette.textMain,
     lineHeight: 28,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowColor: "rgba(255, 255, 255, 0.8)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   eventContent: { padding: 24 },
-  eventHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 20 },
+  eventHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
   eventTitleContainer: { flex: 1, marginRight: 16 },
-  eventTitle: { fontSize: 20, fontWeight: "bold", color: "#333", marginBottom: 8 },
-  eventDescription: { fontSize: 14, color: "#666", lineHeight: 20 },
+  eventTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: palette.textMain,
+    marginBottom: 8,
+  },
+  eventDescription: {
+    fontSize: 14,
+    color: palette.textSecondary,
+    lineHeight: 20,
+  },
   eventIcon: {
     width: 48,
     height: 48,
-    backgroundColor: "rgba(106, 189, 115, 0.1)",
+    backgroundColor: palette.primarySoft,
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -478,7 +612,7 @@ const styles = StyleSheet.create({
   detailIcon: {
     width: 40,
     height: 40,
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    backgroundColor: "rgba(255, 51, 255, 0.1)",
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -487,12 +621,12 @@ const styles = StyleSheet.create({
   detailContent: { flex: 1 },
   detailLabel: {
     fontSize: 12,
-    color: "#999",
+    color: palette.textSecondary,
     fontWeight: "600",
     textTransform: "uppercase",
     marginBottom: 4,
   },
-  detailValue: { fontSize: 16, color: "#333", fontWeight: "600" },
+  detailValue: { fontSize: 16, color: palette.textMain, fontWeight: "600" },
   eventFooter: {
     flexDirection: "row",
     alignItems: "center",
@@ -502,7 +636,7 @@ const styles = StyleSheet.create({
   confidenceContainer: { flex: 1 },
   confidenceLabel: {
     fontSize: 12,
-    color: "#999",
+    color: palette.textSecondary,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -517,7 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     gap: 8,
   },
-  primaryActionButton: { backgroundColor: "#6ABD73" },
+  primaryActionButton: { backgroundColor: palette.primaryDeep },
   secondaryActionButton: {
     backgroundColor: "rgba(0, 0, 0, 0.05)",
     borderWidth: 1,
@@ -525,7 +659,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: { fontSize: 14, fontWeight: "600" },
   primaryActionText: { color: "white" },
-  secondaryActionText: { color: "#333" },
+  secondaryActionText: { color: palette.textMain },
   bottomSpacing: { height: 100 },
 });
 

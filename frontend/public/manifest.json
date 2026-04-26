@@ -1,0 +1,21 @@
+{
+  "name": "桃園空氣監測",
+  "short_name": "桃園空氣",
+  "description": "桃園市空氣品質即時監測系統",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#FFF6F9",
+  "background_color": "#FFF6F9",
+  "icons": [
+    {
+      "src": "/logo-air.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/logo-air.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}

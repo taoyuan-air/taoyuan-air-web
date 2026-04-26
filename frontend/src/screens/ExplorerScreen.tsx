@@ -52,7 +52,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
       region: "中壢區"
     },
@@ -82,7 +82,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "光達",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
       region: "觀音區"
     },
@@ -97,7 +97,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
       region: "大園區"
     },
@@ -127,7 +127,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
       region: "中壢區"
     },
@@ -157,7 +157,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近3天",
       region: "大園區"
     },
@@ -172,7 +172,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "光達",
       version: "v2.3",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近3天",
       region: "大園區"
     },
@@ -202,7 +202,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近7天",
       region: "桃園區"
     },
@@ -217,7 +217,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近7天",
       region: "觀音區"
     },
@@ -247,7 +247,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "微感測",
       version: "v2.0",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近7天",
       region: "中壢區"
     },
@@ -262,7 +262,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近7天",
       region: "桃園區"
     }
@@ -303,7 +303,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const monitoringData = getFilteredData();
 
   return (
-    <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
+    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
       <TopNavigation title="資料檢索" subtitle="QUERY & ANALYSIS" />
       
       <ScrollView
@@ -337,7 +337,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowTimeFilter(!showTimeFilter)}
           >
             <Text style={[styles.filterText, showTimeFilter && styles.activeFilterText]}>{selectedTimeFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showTimeFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showTimeFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -345,7 +345,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowPollutantFilter(!showPollutantFilter)}
           >
             <Text style={[styles.filterText, showPollutantFilter && styles.activeFilterText]}>{selectedPollutantFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showPollutantFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showPollutantFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -353,7 +353,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowRegionFilter(!showRegionFilter)}
           >
             <Text style={[styles.filterText, showRegionFilter && styles.activeFilterText]}>{selectedRegionFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showRegionFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showRegionFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -361,7 +361,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowDataSourceFilter(!showDataSourceFilter)}
           >
             <Text style={[styles.filterText, showDataSourceFilter && styles.activeFilterText]}>資料來源</Text>
-            <Ionicons name="chevron-down" size={16} color={showDataSourceFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showDataSourceFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
         </ScrollView>
 
@@ -427,7 +427,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               >
                 <Text style={styles.dropdownText}>{option}</Text>
                 {selectedDataSources.includes(option) && (
-                  <Ionicons name="checkmark" size={16} color="#6A8D73" />
+                  <Ionicons name="checkmark" size={16} color="#E76595" />
                 )}
               </TouchableOpacity>
             ))}
@@ -449,8 +449,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
                   <Text style={styles.cardTitle}>{item.district}</Text>
                   <Text style={styles.cardSubtitle}>{item.station} • {item.time}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#A8D5A8' : '#FFD4B3' }]}>
-                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#2E7D32' : '#D2691E' }]}>{item.passed ? '通過' : '異常'}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#F8D0DA' : '#FFD4B3' }]}>
+                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#E76595' : '#D2691E' }]}>{item.passed ? '通過' : '異常'}</Text>
                 </View>
               </View>
               
@@ -509,6 +509,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 20,
   },
   scrollView: {
     flex: 1,
@@ -585,12 +586,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeFilter: {
-    backgroundColor: '#6A8D73',
+    backgroundColor: '#E76595',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
   },
   activeFilterText: {
     color: 'white',
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
   feedTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
     letterSpacing: 2,
   },
   statusDots: {
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(106, 141, 115, 0.1)',
+    backgroundColor: 'rgba(231, 101, 149, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
   advisoryContainer: {
     marginHorizontal: 20,
     marginTop: 24,
-    backgroundColor: '#B5C99A',
+    backgroundColor: '#FBA7BC',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',

@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { SettingsScreen } from '../screens/SettingsScreen';
-import { NotificationScreen } from '../screens/NotificationScreen';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Platform,
+  Dimensions,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { SettingsScreen } from "../screens/SettingsScreen";
+import { NotificationScreen } from "../screens/NotificationScreen";
+import { Colors } from "../styles/theme";
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface TopNavigationProps {
   title?: string;
@@ -12,11 +23,16 @@ interface TopNavigationProps {
 }
 
 export const TopNavigation: React.FC<TopNavigationProps> = ({
-  title = "Taoyuan Air",
-  subtitle = "3D PARTICLE FLOW",
+  title = "Map View",
+  subtitle = "REAL-TIME MONITORING",
   onMenuPress,
-  onNotificationPress
+  onNotificationPress,
 }) => {
+  // 只在桌面版網頁時隱藏，手機版網頁仍顯示
+  if (Platform.OS === "web" && screenWidth >= 768) {
+    return null;
+  }
+
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -34,16 +50,19 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     <>
       <View style={styles.container}>
         <TouchableOpacity onPress={handleMenuPress} style={styles.iconButton}>
-          <Feather name="menu" size={24} color="#333" />
+          <Feather name="menu" size={20} color="#666" />
         </TouchableOpacity>
-        
+
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        
-        <TouchableOpacity onPress={handleNotificationPress} style={styles.iconButton}>
-          <Feather name="bell" size={24} color="#333" />
+
+        <TouchableOpacity
+          onPress={handleNotificationPress}
+          style={styles.iconButton}
+        >
+          <Feather name="bell" size={20} color="#666" />
         </TouchableOpacity>
       </View>
 
@@ -66,32 +85,47 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#F4F2E9',
+    paddingTop: 35,
+    paddingBottom: 12,
+    backgroundColor: "#FFF6F9",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(231, 101, 149, 0.1)",
+    shadowColor: "rgba(231, 101, 149, 0.08)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   iconButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(231, 101, 149, 0.1)",
   },
   titleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   subtitle: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: "#666",
     marginTop: 2,
+    letterSpacing: 1,
+    fontWeight: "500",
   },
 });

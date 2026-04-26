@@ -287,7 +287,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
     // 2. 如果是真實數據，使用原本的彩色系統
     let baseColor;
-    if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
+    if (value <= 0.3) baseColor = 'rgba(231, 101, 149'; // 主色系 - 低
     else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
     else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
     else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
@@ -324,7 +324,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
                     backgroundColor: getBarColor(value, isPrediction),
                     marginRight: index < displayData.length - 1 ? barSpacing : 0,
                     borderWidth: isNow ? 1 : 0,
-                    borderColor: isNow ? '#7FAE8A' : 'transparent',
+                    borderColor: isNow ? '#FBA7BC' : 'transparent',
                   },
                 ]}
               />
@@ -422,7 +422,7 @@ const DistrictCard: React.FC<{
           </View>
 
           <View style={styles.stationTypeRow}>
-            <Feather name="map-pin" size={13} color="#7FAE8A" />
+            <Feather name="map-pin" size={13} color="#FBA7BC" />
             <Text style={styles.stationType}>{district.region}</Text>
           </View>
 
@@ -443,14 +443,14 @@ const DistrictCard: React.FC<{
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>AQI</Text>
-              <Text style={[styles.metricValue, { color: "#7FAE8A" }]}>
+              <Text style={[styles.metricValue, { color: "#FBA7BC" }]}>
                 {displayAqi}
               </Text>
             </View>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={[styles.statusBadge, { color: "#7FAE8A" }]}>
+            <Text style={[styles.statusBadge, { color: "#FBA7BC" }]}>
               {district.status}
             </Text>
             <Text style={styles.trendLabel}>PM2.5 Trend</Text>
@@ -593,13 +593,13 @@ export const StationCarousel: React.FC<{
       {/* 定位狀態提示 */}
       {isLoading && (
         <View style={styles.locationStatus}>
-          <Feather name="map-pin" size={14} color="#7FAE8A" />
+          <Feather name="map-pin" size={14} color="#FBA7BC" />
           <Text style={styles.locationStatusText}>正在獲取您的位置...</Text>
         </View>
       )}
       {permission === 'granted' && location && (
         <View style={styles.locationStatus}>
-          <Feather name="check-circle" size={14} color="#7FAE8A" />
+          <Feather name="check-circle" size={14} color="#FBA7BC" />
           <Text style={styles.locationStatusText}>已定位到 {defaultDistrict}</Text>
         </View>
       )}
@@ -738,7 +738,7 @@ export const StationCarousel: React.FC<{
                   {
                     width: dotWidth,
                     opacity: dotOpacity,
-                    backgroundColor: "#7FAE8A",
+                    backgroundColor: "#FBA7BC",
                   },
                 ]}
               />
@@ -767,11 +767,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignSelf: "center",
     borderWidth: 1,
-    borderColor: "rgba(127, 174, 138, 0.2)",
+    borderColor: "rgba(251, 167, 188, 0.2)",
   },
   locationStatusText: {
     fontSize: 12,
-    color: "#7FAE8A",
+    color: "#FBA7BC",
     fontWeight: "500",
   },
   locationStatusTextGray: {
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "rgba(127, 174, 138, 0.38)",
+    backgroundColor: "rgba(251, 167, 188, 0.38)",
     zIndex: 0,
   },
   cardBlob2: {
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(168, 216, 227, 0.35)",
+    backgroundColor: "rgba(248, 208, 218, 0.35)",
     zIndex: 0,
   },
   card: {
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(219, 239, 246, 0.12)",
+    backgroundColor: "rgba(248, 208, 218, 0.12)",
   },
   edgeHighlight: {
     position: "absolute",
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.4,
-    color: "#7FAE8A",
+    color: "#FBA7BC",
   },
   metricsRow: {
     flexDirection: "row",
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   timeLabelNow: {
-    color: "#7FAE8A",
+    color: "#FBA7BC",
     fontWeight: "700",
     fontSize: 10,
   },
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: "#7FAE8A",
+    backgroundColor: "#FBA7BC",
     marginTop: 2,
   },
   pagination: {

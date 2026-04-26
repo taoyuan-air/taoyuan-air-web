@@ -195,7 +195,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const eventData = getFilteredEvents();
 
   return (
-    <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
+    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
       <TopNavigation
         title="事件庫"
         subtitle="INCIDENT TRACKING"
@@ -220,7 +220,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
               {selectedFilter}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#E76595"} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -228,7 +228,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
           >
             <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#E76595"} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -236,7 +236,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
           >
             <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
-            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#6A8D73"} />
+            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#E76595"} />
           </TouchableOpacity>
         </ScrollView>
 
@@ -369,7 +369,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Ionicons
                       name={event.icon as any}
                       size={28}
-                      color="#6ABD73"
+                      color="#E76595"
                     />
                   </View>
                 </View>
@@ -430,7 +430,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text
                       style={[
                         styles.confidenceValue,
-                        { color: event.confidence ? "#6ABD73" : "#F59E0B" },
+                        { color: event.confidence ? "#E76595" : "#F59E0B" },
                       ]}
                     >
                       {event.confidence || event.healthIndex}
@@ -476,6 +476,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 20,
   },
   scrollView: {
     flex: 1,
@@ -499,8 +500,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeFilter: {
-    backgroundColor: "#6ABD73",
-    shadowColor: "#6ABD73",
+    backgroundColor: "#E76595",
+    shadowColor: "#E76595",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6A8D73",
+    color: "#E76595",
   },
   activeFilterText: {
     color: "white",
@@ -719,7 +720,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryActionButton: {
-    backgroundColor: "#6ABD73",
+    backgroundColor: "#E76595",
   },
   secondaryActionButton: {
     backgroundColor: "rgba(0, 0, 0, 0.05)",

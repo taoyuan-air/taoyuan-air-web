@@ -36,28 +36,23 @@ const getGridColor = (value: number) => {
   return `rgba(${r}, ${g}, ${b}, 0.4)`;
 };
 
-let windyInitialized = false;
+let mapInitialized = false;
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress, isVisible = true }) => {
-  // —— 2D (Windy) refs ——
   const mapRef = useRef<any>(null);
-  const windyStoreRef = useRef<any>(null);
   const polygonLayerGroupRef = useRef<any>(null);
-  const LRef = useRef<any>(null);
-
-  // —— Satellite refs ——
   const satMapRef = useRef<any>(null);
   const satLayerGroupRef = useRef<any>(null);
 
-  // ——————————————————————————————————————————
-  // 通用：將 gridCells 畫入指定的 layerGroup
-  // ——————————————————————————————————————————
+  // 渲染多邊形到指定的圖層組
   const renderPolygonsToGroup = (
     cells: GridCell[],
     L: any,
     layerGroup: any,
   ) => {
     if (!L || !layerGroup) return;
+
+    layerGroup.clearLayers();
 
     cells.forEach((grid) => {
       const positions = grid.polygonCoords.map(
@@ -80,9 +75,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
     });
   };
 
-  // ——————————————————————————————————————————
-  // 初始化：Leaflet → Satellite map → Windy map
-  // ——————————————————————————————————————————
   useEffect(() => {
     const loadScript = (src: string, id: string) =>
       new Promise((resolve, reject) => {
@@ -106,24 +98,35 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
         document.head.appendChild(link);
       });
 
-    const initAll = async () => {
-      if (windyInitialized) return;
-      windyInitialized = true;
+    const initMaps = async () => {
+      if (mapInitialized) return;
+      mapInitialized = true;
 
       try {
-        // 1. 載入 Leaflet CSS + JS
+        console.log('開始載入 Leaflet...');
+        
+        // 載入 Leaflet CSS + JS
         await loadLink(
-          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.css',
+          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
           'leaflet-css',
         );
         await loadScript(
-          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.js',
+          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
           'leaflet-js',
         );
 
-        // 2. 初始化 Satellite Leaflet map（在 Windy 之前，共用同一個 L）
+        console.log('Leaflet 載入完成');
+
         const L = (window as any).L;
-        if (L && !satMapRef.current) {
+        if (!L) {
+          console.error('Leaflet 載入失敗');
+          return;
+        }
+
+        // 初始化衛星地圖
+        const satMapContainer = document.getElementById('satellite-map');
+        if (satMapContainer && !satMapRef.current) {
+          console.log('初始化衛星地圖...');
           const satMap = L.map('satellite-map', {
             center: [25.0, 121.25],
             zoom: 11,
@@ -134,132 +137,94 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
           L.tileLayer(
             'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             {
-              attribution:
-                'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+              attribution: 'Tiles &copy; Esri',
               maxZoom: 19,
             },
           ).addTo(satMap);
 
           satMapRef.current = satMap;
           satLayerGroupRef.current = L.layerGroup().addTo(satMap);
-
-          // 初始渲染
-          if (gridCells && gridCells.length > 0) {
-            renderPolygonsToGroup(gridCells, L, satLayerGroupRef.current);
-          }
+          console.log('衛星地圖初始化完成');
         }
 
-        // 3. 載入 Windy SDK
+        // 初始化 Windy 地圖
+        console.log('開始載入 Windy...');
         await loadScript(
           'https://api.windy.com/assets/map-forecast/libBoot.js',
           'windy-sdk',
         );
 
-        // 4. 初始化 Windy
         const apikey = process.env.EXPO_PUBLIC_WINDY_API_KEY;
+        console.log('Windy API Key:', apikey ? '已設置' : '未設置');
+        
+        if (!apikey) {
+          console.error('Windy API Key 未設置');
+          return;
+        }
+
         const options = { key: apikey, lat: 25.0, lon: 121.25, zoom: 11 };
 
         // @ts-ignore
         window.windyInit(options, (windyAPI: any) => {
+          console.log('Windy 初始化回調執行', windyAPI ? '成功' : '失敗');
+          
           if (!windyAPI) {
-            console.error('Windy API 初始化失敗，未回傳物件');
+            console.error('Windy API 初始化失敗');
             return;
           }
 
+          const { map, store } = windyAPI;
           const WL = windyAPI.L || (window as any).L;
-          const { colors, store, map } = windyAPI;
-          if (!WL) {
-            console.error('無法取得 Leaflet (L) 實例');
+          
+          if (!WL || !map) {
+            console.error('Windy 地圖或 Leaflet 實例獲取失敗');
             return;
           }
 
-          // 修改風速圖背景色
-          const targetLayer = colors.wind;
-          if (targetLayer && typeof targetLayer.changeColor === 'function') {
-            try {
-              targetLayer.changeColor([
-                [0,   [128, 128, 128, 255]],
-                [1,   [128, 128, 128, 255]],
-                [3,   [128, 128, 128, 255]],
-                [5,   [128, 128, 128, 255]],
-                [7,   [128, 128, 128, 255]],
-                [9,   [128, 128, 128, 255]],
-                [11,  [128, 128, 128, 255]],
-                [13,  [128, 128, 128, 255]],
-                [15,  [128, 128, 128, 255]],
-                [17,  [128, 128, 128, 255]],
-                [19,  [128, 128, 128, 255]],
-                [21,  [128, 128, 128, 255]],
-                [24,  [128, 128, 128, 255]],
-                [27,  [128, 128, 128, 255]],
-                [29,  [128, 128, 128, 255]],
-                [36,  [128, 128, 128, 255]],
-                [46,  [128, 128, 128, 255]],
-                [51,  [128, 128, 128, 255]],
-                [77,  [128, 128, 128, 255]],
-                [104, [128, 128, 128, 255]],
-              ]);
-              console.log('wind 色階自定義成功');
-            } catch (e) {
-              console.error('執行 changeColor 時出錯:', e);
-            }
-          } else {
-            console.warn(
-              '找不到該圖層的顏色定義，目前的圖層清單：',
-              Object.keys(colors),
-            );
-          }
+          console.log('Windy 地圖初始化成功');
+          
+          // 設置風速圖層
           store.set('overlay', 'wind');
 
           mapRef.current = map;
-          windyStoreRef.current = store;
-          LRef.current = WL;
+          polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
 
-          try {
-            polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
-            console.log('Windy 圖層組建立成功');
-          } catch (e) {
-            console.error('建立 layerGroup 時出錯:', e);
-          }
-
+          // 初始渲染網格
           if (gridCells && gridCells.length > 0) {
             renderPolygonsToGroup(gridCells, WL, polygonLayerGroupRef.current);
           }
         });
+
       } catch (err) {
-        console.error('地圖載入失敗:', err);
+        console.error('地圖初始化失敗:', err);
       }
     };
 
-    initAll();
+    initMaps();
   }, []);
 
-  // ——————————————————————————————————————————
-  // gridCells 更新時，同步重繪兩個地圖的網格
-  // ——————————————————————————————————————————
+  // 當 gridCells 更新時重新渲染
   useEffect(() => {
-    // 更新 Windy (2D) 地圖
-    if (mapRef.current && polygonLayerGroupRef.current && LRef.current) {
-      polygonLayerGroupRef.current.clearLayers();
-      if (gridCells && gridCells.length > 0) {
-        renderPolygonsToGroup(gridCells, LRef.current, polygonLayerGroupRef.current);
+    console.log('GridCells 更新:', gridCells.length, '個網格');
+    
+    // 更新 Windy 地圖
+    if (mapRef.current && polygonLayerGroupRef.current) {
+      const WL = (window as any).L;
+      if (WL) {
+        renderPolygonsToGroup(gridCells, WL, polygonLayerGroupRef.current);
       }
     }
 
-    // 更新 Satellite 地圖
+    // 更新衛星地圖
     if (satMapRef.current && satLayerGroupRef.current) {
       const L = (window as any).L;
-      satLayerGroupRef.current.clearLayers();
-      if (gridCells && gridCells.length > 0) {
+      if (L) {
         renderPolygonsToGroup(gridCells, L, satLayerGroupRef.current);
       }
     }
   }, [gridCells]);
 
-  // ——————————————————————————————————————————
-  // mapMode 切換時，通知 Leaflet invalidateSize
-  // （避免 display:none 後 tile 排版錯亂）
-  // ——————————————————————————————————————————
+  // 當 mapMode 切換時調整地圖大小
   useEffect(() => {
     const delay = setTimeout(() => {
       if (mapMode === '2D' && mapRef.current) {
@@ -268,23 +233,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
       if (mapMode === 'Satellite' && satMapRef.current) {
         satMapRef.current.invalidateSize();
       }
-    }, 50);
+    }, 100);
     return () => clearTimeout(delay);
   }, [mapMode]);
 
-  // isVisible 切換時（從 FORECAST 切回 REALTIME），重新 invalidateSize
-  useEffect(() => {
-    if (!isVisible) return;
-    const delay = setTimeout(() => {
-      if (mapRef.current) mapRef.current.invalidateSize();
-      if (satMapRef.current) satMapRef.current.invalidateSize();
-    }, 80);
-    return () => clearTimeout(delay);
-  }, [isVisible]);
-
-  // ——————————————————————————————————————————
-  // Render
-  // ——————————————————————————————————————————
   return (
     <View style={styles.container}>
       {/* 2D 模式：Windy */}
@@ -294,13 +246,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
           { display: mapMode === 'Satellite' ? 'none' : 'flex' },
         ]}
       >
-        <style dangerouslySetInnerHTML={{ __html: `
-          #windy #ovr-select,
-          #windy #mobile-ovr-select,
-          #windy #logo {
-            display: none !important;
-          }
-        `}} />
         <div id="windy" style={{ width: '100%', height: '100%' }} />
       </View>
 
@@ -323,72 +268,3 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 });
-
-
-/*———————————————————————————————————————————————————————
-   Backup: LeafletMap.web.tsx (Frirst original version)
-—————————————————————————————————————————————————————————
-
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { GridCell } from '../types';
-
-interface LeafletMapProps {
-  gridCells: GridCell[];
-  mapMode: '2D' | 'Satellite';
-  onGridPress?: (grid: GridCell) => void;
-}
-
-const getGridColor = (value: number) => {
-  const opacity = Math.min(0.8, Math.max(0.12, value / 100));
-  return `rgba(106, 141, 115, ${opacity})`;
-};
-
-export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress }) => {
-  const tileUrl = mapMode === 'Satellite'
-    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-  return (
-    <MapContainer
-      center={[25.0, 121.25]}
-      zoom={11}
-      style={{ width: '100%', height: '100%' }}
-      zoomControl={false}
-    >
-      <TileLayer
-        url={tileUrl}
-        attribution='&copy; OpenStreetMap contributors'
-      />
-      
-      {gridCells.map((grid) => {
-        const positions = grid.polygonCoords.map(coord => [coord.latitude, coord.longitude] as [number, number]);
-        
-        return (
-          <Polygon
-            key={grid.gridId}
-            positions={positions}
-            pathOptions={{
-              fillColor: getGridColor(grid.values.value),
-              fillOpacity: 0.6,
-              color: 'rgba(106, 141, 115, 0.3)',
-              weight: 1,
-            }}
-            eventHandlers={{
-              click: () => onGridPress?.(grid),
-            }}
-          />
-        );
-      })}
-    </MapContainer>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: '100%',
-  },
-});*/

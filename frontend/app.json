@@ -4,20 +4,26 @@
     "slug": "taoyuan-air-monitoring",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./public/logo-air.webp",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./public/logo-air.webp"
     },
     "android": {
+      "icon": "./public/logo-air.webp",
       "adaptiveIcon": {
-        "backgroundColor": "#F4F2E9"
+        "foregroundImage": "./public/logo-air.webp",
+        "backgroundColor": "#FFF6F9"
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./public/logo-air.webp",
+      "template": "./public/index.html"
     }
   }
 }
