@@ -250,7 +250,6 @@ const fetchCurrentWeather = async (
     const stations: any[] = json?.records?.Station ?? [];
     if (stations.length === 0) return MOCK_CURRENT;
 
-<<<<<<< HEAD
     const keyword = district.replace('區', '');
     const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
     const obs = st.WeatherElement ?? {};
@@ -261,7 +260,6 @@ const fetchCurrentWeather = async (
       windSpeed:     obs.WindSpeed        ?? MOCK_CURRENT.windSpeed,
       dailyHigh: String(Math.round(parseFloat(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyHigh))),
       dailyLow:  String(Math.round(parseFloat(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature  ?? MOCK_CURRENT.dailyLow))),
-    };
     };
   } catch (err) {
     console.error("[Weather] 現況資料請求失敗：", err);
@@ -316,7 +314,6 @@ const fetchWeatherForecast = async (
       elemMap[el.ElementName] = el.Time ?? [];
     });
 
-<<<<<<< HEAD
     const tempTimes = elemMap['溫度']         ?? [];
     const wxTimes   = elemMap['天氣現象']      ?? [];
     const popTimes  = elemMap['3小時降雨機率'] ?? [];
@@ -413,7 +410,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     setIsLoading,
   } = useStore();
 
-<<<<<<< HEAD
   const [locatedAqi,      setLocatedAqi]      = useState<number>(65);
   const [locatedPm25,     setLocatedPm25]     = useState<number>(12);
   const [locatedO3,       setLocatedO3]       = useState<number>(48);
