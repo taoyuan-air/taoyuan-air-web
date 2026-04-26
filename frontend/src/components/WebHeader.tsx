@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,8 +14,6 @@ import { Colors } from "../styles/theme";
 import { Layout, isWeb } from "../styles/responsive";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { NotificationScreen } from "../screens/NotificationScreen";
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface WebHeaderProps {
   currentRoute?: string;
@@ -36,6 +34,16 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  // 監聽螢幕尺寸變化
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+
+    return () => subscription?.remove();
+  }, []);
 
   if (!isWeb) return null;
 
@@ -128,6 +136,10 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
+    position: "fixed" as any,
+    top: 0,
+    left: 0,
+    right: 0,
     color: "#E76595",
     backgroundColor: "#FFF6F9",
     paddingVertical: 20,

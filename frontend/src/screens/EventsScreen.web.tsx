@@ -6,11 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   ViewStyle,
+  Dimensions,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TopNavigation } from "../navigation/TopNavigation";
 import { gradients, palette } from "../styles/theme";
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768 && screenWidth < 1200;
+const isDesktop = screenWidth >= 1200;
 
 interface EventsScreenProps {
   scrollRef?: (ref: any) => void;
@@ -309,10 +315,22 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
           </View>
         )}
 
-        <View style={styles.eventsContainer}>
+        <View style={[
+          styles.eventsContainer,
+          isDesktop && styles.eventsContainerDesktop,
+          isTablet && styles.eventsContainerTablet
+        ]}>
           {filteredEvents.map((event) => (
-            <View key={event.id} style={styles.eventCard}>
-              <View style={eventImagePlaceholder}>
+            <View key={event.id} style={[
+              styles.eventCard,
+              isDesktop && styles.eventCardDesktop,
+              isTablet && styles.eventCardTablet
+            ]}>
+              <View style={[
+                eventImagePlaceholder,
+                isDesktop && styles.eventImageDesktop,
+                isTablet && styles.eventImageTablet
+              ]}>
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=121.15,24.95,121.35,25.05&layer=mapnik&marker=25.0,121.25`}
                   style={{
@@ -345,29 +363,49 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                 </View>
               </View>
 
-              <View style={styles.eventContent}>
+              <View style={[
+                styles.eventContent,
+                isDesktop && styles.eventContentDesktop,
+                isTablet && styles.eventContentTablet
+              ]}>
                 <View style={styles.eventHeader}>
                   <View style={styles.eventTitleContainer}>
-                    <Text style={styles.eventTitle}>{event.title}</Text>
-                    <Text style={styles.eventDescription}>
+                    <Text style={[
+                      styles.eventTitle,
+                      isDesktop && { fontSize: 18 },
+                      isTablet && { fontSize: 19 }
+                    ]}>{event.title}</Text>
+                    <Text style={[
+                      styles.eventDescription,
+                      isDesktop && { fontSize: 13 },
+                      isTablet && { fontSize: 13 }
+                    ]}>
                       {event.description}
                     </Text>
                   </View>
-                  <View style={styles.eventIcon}>
+                  <View style={[
+                    styles.eventIcon,
+                    isDesktop && { width: 40, height: 40 },
+                    isTablet && { width: 44, height: 44 }
+                  ]}>
                     <Ionicons
                       name={event.icon as any}
-                      size={28}
+                      size={isDesktop ? 24 : isTablet ? 26 : 28}
                       color={palette.primaryDeep}
                     />
                   </View>
                 </View>
 
-                <View style={styles.detailsGrid}>
+                <View style={[
+                  styles.detailsGrid,
+                  isDesktop && { gap: 12 },
+                  isTablet && { gap: 14 }
+                ]}>
                   <View style={styles.detailItem}>
                     <View style={styles.detailIcon}>
                       <Ionicons
                         name="time"
-                        size={20}
+                        size={isDesktop ? 16 : isTablet ? 18 : 20}
                         color={palette.textSecondary}
                       />
                     </View>
@@ -381,7 +419,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <View style={styles.detailIcon}>
                       <Ionicons
                         name="location"
-                        size={20}
+                        size={isDesktop ? 16 : isTablet ? 18 : 20}
                         color={palette.textSecondary}
                       />
                     </View>
@@ -396,7 +434,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                       <View style={styles.detailIcon}>
                         <Ionicons
                           name="trending-up"
-                          size={20}
+                          size={isDesktop ? 16 : isTablet ? 18 : 20}
                           color={palette.textSecondary}
                         />
                       </View>
@@ -412,7 +450,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                       <View style={styles.detailIcon}>
                         <Ionicons
                           name="people"
-                          size={20}
+                          size={isDesktop ? 16 : isTablet ? 18 : 20}
                           color={palette.textSecondary}
                         />
                       </View>
@@ -432,6 +470,8 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text
                       style={[
                         styles.confidenceValue,
+                        isDesktop && { fontSize: 16 },
+                        isTablet && { fontSize: 17 },
                         {
                           color: event.confidence
                             ? palette.primaryDeep
@@ -446,6 +486,8 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
+                      isDesktop && { paddingHorizontal: 16, paddingVertical: 10 },
+                      isTablet && { paddingHorizontal: 18, paddingVertical: 11 },
                       event.confidence
                         ? styles.primaryActionButton
                         : styles.secondaryActionButton,
@@ -454,6 +496,8 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text
                       style={[
                         styles.actionButtonText,
+                        isDesktop && { fontSize: 13 },
+                        isTablet && { fontSize: 13 },
                         event.confidence
                           ? styles.primaryActionText
                           : styles.secondaryActionText,
@@ -463,7 +507,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     </Text>
                     <Ionicons
                       name={event.confidence ? "analytics" : "trending-up"}
-                      size={18}
+                      size={isDesktop ? 16 : isTablet ? 17 : 18}
                       color={
                         event.confidence ? palette.bgCard : palette.textMain
                       }
@@ -520,7 +564,28 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(95, 83, 104, 0.15)",
   },
   dropdownText: { fontSize: 16, color: palette.textMain, fontWeight: "500" },
-  eventsContainer: { paddingHorizontal: 20, gap: 24 },
+  
+  // 事件容器 - 響應式
+  eventsContainer: { 
+    paddingHorizontal: 20, 
+    gap: 24 
+  },
+  eventsContainerTablet: {
+    paddingHorizontal: 40,
+    gap: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  eventsContainerDesktop: {
+    paddingHorizontal: 60,
+    gap: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  
+  // 事件卡片 - 響應式
   eventCard: {
     backgroundColor: "rgba(255, 255, 255, 0.4)",
     borderRadius: 32,
@@ -531,6 +596,27 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 5,
   },
+  eventCardTablet: {
+    width: '48%',
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  eventCardDesktop: {
+    width: '31%',
+    borderRadius: 16,
+    marginBottom: 20,
+    minWidth: 320,
+    maxWidth: 400,
+  },
+  
+  // 事件圖片 - 響應式
+  eventImageDesktop: {
+    aspectRatio: 16 / 9, // 更適合桌面的比例
+  },
+  eventImageTablet: {
+    aspectRatio: 3 / 2,
+  },
+  
   topBadges: {
     position: "absolute",
     top: 16,
@@ -581,7 +667,18 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  eventContent: { padding: 24 },
+  
+  // 事件內容 - 響應式
+  eventContent: { 
+    padding: 24 
+  },
+  eventContentTablet: {
+    padding: 20,
+  },
+  eventContentDesktop: {
+    padding: 16,
+  },
+  
   eventHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
