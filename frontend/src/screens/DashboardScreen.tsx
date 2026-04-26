@@ -185,6 +185,8 @@ interface CurrentWeatherData {
   weather: string;
   humidity: string;
   windSpeed: string;
+  dailyHigh: string;
+  dailyLow: string;
 }
 
 interface ForecastDay {
@@ -195,27 +197,27 @@ interface ForecastDay {
   weather: string;
   precipProb: string;
 }
-
 const MOCK_CURRENT: CurrentWeatherData = {
-  temperature: "24",
-  weather: "晴時多雲",
-  humidity: "68",
-  windSpeed: "2.5",
+  temperature: '24', 
+  weather: '晴時多雲',
+  humidity: '68', 
+  windSpeed: '2.5',
+  dailyHigh: '28', 
+  dailyLow: '19',
 };
 
 const generateMockForecast = (): ForecastDay[] => {
   const DAY_CHARS = ["日", "一", "二", "三", "四", "五", "六"];
   const now = new Date();
-  return [0, 1, 2].map((i) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() + i);
+  return [1, 2, 3].map(i => {
+    const d = new Date(now); d.setDate(d.getDate() + i);
     return {
-      label: ["今天", "明天", "後天"][i],
-      dateLabel: `${d.getMonth() + 1}/${d.getDate()} 週${DAY_CHARS[d.getDay()]}`,
-      maxTemp: String(26 - i),
-      minTemp: String(19 + i),
-      weather: i === 1 ? "多雲陣雨" : "晴時多雲",
-      precipProb: i === 1 ? "60" : "20",
+      label:      `${d.getMonth() + 1}/${d.getDate()}`,
+      dateLabel:  `週${DAY_CHARS[d.getDay()]}`,
+      maxTemp:    String(28 - i),
+      minTemp:    String(19 + i),
+      weather:    i === 2 ? '短暫陣雨' : '晴',
+      precipProb: i === 2 ? '60' : '10',
     };
   });
 };
@@ -248,16 +250,18 @@ const fetchCurrentWeather = async (
     const stations: any[] = json?.records?.Station ?? [];
     if (stations.length === 0) return MOCK_CURRENT;
 
-    const keyword = district.replace("區", "");
-    const st =
-      stations.find((s) => s.GeoInfo?.TownName?.includes(keyword)) ??
-      stations[0];
-    const obs = st.StationObsTimes?.ObsTime?.[0]?.WeatherElements ?? {};
+<<<<<<< HEAD
+    const keyword = district.replace('區', '');
+    const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
+    const obs = st.WeatherElement ?? {};
     return {
-      temperature: obs.AirTemperature ?? MOCK_CURRENT.temperature,
-      weather: obs.Weather ?? MOCK_CURRENT.weather,
-      humidity: obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
-      windSpeed: obs.WindSpeed ?? MOCK_CURRENT.windSpeed,
+      temperature:   String(Math.round(parseFloat(obs.AirTemperature ?? MOCK_CURRENT.temperature))),
+      weather:       obs.Weather          ?? MOCK_CURRENT.weather,
+      humidity:      obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
+      windSpeed:     obs.WindSpeed        ?? MOCK_CURRENT.windSpeed,
+      dailyHigh: String(Math.round(parseFloat(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyHigh))),
+      dailyLow:  String(Math.round(parseFloat(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature  ?? MOCK_CURRENT.dailyLow))),
+    };
     };
   } catch (err) {
     console.error("[Weather] 現況資料請求失敗：", err);
@@ -265,57 +269,103 @@ const fetchCurrentWeather = async (
   }
 };
 
+// ─── 天氣代表性選取輔助 ───────────────────────────────────────────────────────
+const WEATHER_SEVERITY: [string, number][] = [
+  ['雷雨', 6], ['豪雨', 5], ['大雨', 4],
+  ['短暫陣雨或雷雨', 4], ['短暫陣雨', 3], ['陣雨', 3], ['有雨', 3],
+  ['陰', 2], ['多雲', 1], ['晴', 0],
+];
+const pickDayWeather = (wxTimes: any[]): string => {
+  // 白天時段優先（06:00–21:00），取最高嚴重度的天氣描述
+  const daytime = wxTimes.filter(t => {
+    const h = parseInt((t.StartTime ?? '').slice(11, 13), 10);
+    return h >= 6 && h < 21;
+  });
+  const pool = daytime.length ? daytime : wxTimes;
+  let best = pool[0]?.ElementValue?.[0]?.Weather ?? '晴';
+  let bestScore = -1;
+  pool.forEach(t => {
+    const w = t.ElementValue?.[0]?.Weather ?? '';
+    for (const [key, score] of WEATHER_SEVERITY) {
+      if (w.includes(key) && score > bestScore) { bestScore = score; best = w; }
+    }
+  });
+  return best;
+};
+
 const fetchWeatherForecast = async (
-  district: string,
-): Promise<ForecastDay[]> => {
-  if (!CWA_API_KEY || CWA_API_KEY === "YOUR_CWA_API_KEY")
-    return generateMockForecast();
-  const DAY_CHARS = ["日", "一", "二", "三", "四", "五", "六"];
+  district: string
+): Promise<{ days: ForecastDay[]; todayPrecipProb: string }> => {
+  const mock = { days: generateMockForecast(), todayPrecipProb: '10' };
+  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') return mock;
+
+  const DAY_CHARS = ['日', '一', '二', '三', '四', '五', '六'];
   const url =
     `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-005` +
     `?Authorization=${CWA_API_KEY}&LocationsName=桃園市&LocationName=${district}&format=JSON`;
   try {
     const res = await fetch(url);
-    if (!res.ok) {
-      console.warn(`[Forecast] 預報 API 錯誤 HTTP ${res.status}`);
-      return generateMockForecast();
-    }
+    if (!res.ok) { console.warn(`[Forecast] API 錯誤 HTTP ${res.status}`); return mock; }
     const json = await res.json();
     const allLocations: any[] = json?.records?.Locations?.[0]?.Location ?? [];
-    const loc =
-      allLocations.find((l) => l.LocationName === district) ?? allLocations[0];
-    if (!loc) return generateMockForecast();
+    const loc = allLocations.find(l => l.LocationName === district) ?? allLocations[0];
+    if (!loc) return mock;
 
     const elemMap: Record<string, any[]> = {};
     (loc.WeatherElement ?? []).forEach((el: any) => {
       elemMap[el.ElementName] = el.Time ?? [];
     });
 
-    const maxTs = elemMap["Tmax"] ?? elemMap["MaxT"] ?? [];
-    const minTs = elemMap["Tmin"] ?? elemMap["MinT"] ?? [];
-    const wxs = elemMap["Wx"] ?? [];
-    const pops = elemMap["PoP12h"] ?? elemMap["PoP"] ?? [];
+<<<<<<< HEAD
+    const tempTimes = elemMap['溫度']         ?? [];
+    const wxTimes   = elemMap['天氣現象']      ?? [];
+    const popTimes  = elemMap['3小時降雨機率'] ?? [];
 
+    // 輔助：取某日所有 PoP 的最大值（Apple Weather 風格）
+    const dayMaxPop = (dateStr: string) => {
+      const vals = popTimes
+        .filter(t => (t.StartTime ?? '').startsWith(dateStr))
+        .map(t => parseInt(t.ElementValue?.[0]?.ProbabilityOfPrecipitation ?? '0', 10))
+        .filter(v => !isNaN(v));
+      return vals.length ? Math.max(...vals) : null;
+    };
+
+    // 今天的降雨機率
     const now = new Date();
-    return [0, 1, 2].map((i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() + i);
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const todayPrecipProb = String(dayMaxPop(todayStr) ?? 10);
+
+    // 明天起 3 天
+    const days: ForecastDay[] = [1, 2, 3].map(i => {
+      const d = new Date(now); d.setDate(d.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+      // 最高/最低溫：取該日全部逐小時溫度
+      const temps = tempTimes
+        .filter(t => (t.DataTime ?? '').startsWith(dateStr))
+        .map(t => parseFloat(t.ElementValue?.[0]?.Temperature ?? 'NaN'))
+        .filter(v => !isNaN(v));
+      const maxTemp = temps.length ? String(Math.max(...temps)) : String(28 - i);
+      const minTemp = temps.length ? String(Math.min(...temps)) : String(19 + i);
+
+      // 降雨機率：當日最大值
+      const precipProb = String(dayMaxPop(dateStr) ?? (i === 2 ? 60 : 10));
+
+      // 天氣：白天時段最嚴重的天氣描述
+      const dayWx = wxTimes.filter(t => (t.StartTime ?? '').startsWith(dateStr));
+      const weather = pickDayWeather(dayWx);
+
       return {
-        label: ["今天", "明天", "後天"][i],
-        dateLabel: `${d.getMonth() + 1}/${d.getDate()} 週${DAY_CHARS[d.getDay()]}`,
-        maxTemp: maxTs[i]?.ElementValue?.[0]?.MaxTemperature ?? String(26 - i),
-        minTemp: minTs[i]?.ElementValue?.[0]?.MinTemperature ?? String(19 + i),
-        weather:
-          wxs[i * 2]?.ElementValue?.[0]?.Weather ??
-          (i === 1 ? "多雲陣雨" : "晴時多雲"),
-        precipProb:
-          pops[i * 2]?.ElementValue?.[0]?.ProbabilityOfPrecipitation ??
-          (i === 1 ? "60" : "20"),
+        label:      `${d.getMonth()+1}/${d.getDate()}`,
+        dateLabel:  `週${DAY_CHARS[d.getDay()]}`,
+        maxTemp, minTemp, weather, precipProb,
       };
     });
+
+    return { days, todayPrecipProb };
   } catch (err) {
-    console.error("[Forecast] 預報資料請求失敗：", err);
-    return generateMockForecast();
+    console.error('[Forecast] 預報資料請求失敗：', err);
+    return mock;
   }
 };
 
@@ -363,27 +413,29 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     setIsLoading,
   } = useStore();
 
-  const [locatedAqi, setLocatedAqi] = useState<number>(65);
-  const [locatedPm25, setLocatedPm25] = useState<number>(12);
-  const [locatedO3, setLocatedO3] = useState<number>(48);
-  const [currentDistrict, setCurrentDistrict] = useState<string>("中壢區");
-  const [currentWeather, setCurrentWeather] =
-    useState<CurrentWeatherData>(MOCK_CURRENT);
-  const [forecast, setForecast] = useState<ForecastDay[]>(
-    generateMockForecast(),
-  );
-  const [past1hrRain, setPast1hrRain] = useState<string>("0.0");
+<<<<<<< HEAD
+  const [locatedAqi,      setLocatedAqi]      = useState<number>(65);
+  const [locatedPm25,     setLocatedPm25]     = useState<number>(12);
+  const [locatedO3,       setLocatedO3]       = useState<number>(48);
+  const [currentDistrict, setCurrentDistrict] = useState<string>('中壢區');
+  const [currentWeather,  setCurrentWeather]  = useState<CurrentWeatherData>(MOCK_CURRENT);
+  const [forecast,        setForecast]        = useState<ForecastDay[]>(generateMockForecast());
+  const [past1hrRain,     setPast1hrRain]     = useState<string>('0.0');
+  const [todayPrecipProb, setTodayPrecipProb] = useState<string>('--');
 
   useEffect(() => {
     loadData();
   }, [selectedScenario]);
 
   // 天氣 & 雨量：隨定位區域更新
-  useEffect(() => {
-    fetchCurrentWeather(currentDistrict).then(setCurrentWeather);
-    fetchWeatherForecast(currentDistrict).then(setForecast);
-    fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
-  }, [currentDistrict]);
+ useEffect(() => {
+  fetchCurrentWeather(currentDistrict).then(setCurrentWeather);
+  fetchWeatherForecast(currentDistrict).then(({ days, todayPrecipProb }) => {
+    setForecast(days);
+    setTodayPrecipProb(todayPrecipProb);
+  });
+  fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
+}, [currentDistrict]);
 
   // 空氣品質：先以靜態資料同步 Carousel，有 EPA 測站時再以即時值覆蓋
   useEffect(() => {
@@ -684,6 +736,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   {currentWeather.temperature}°
                 </Text>
                 <Text style={styles.weatherDesc}>{currentWeather.weather}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                  <Text style={styles.forecastTempHigh}>{currentWeather.dailyHigh}°</Text>
+                  <Text style={{ fontSize: 12, color: '#bbb' }}>/</Text>
+                  <Text style={styles.forecastTempLow}>{currentWeather.dailyLow}°</Text>
+                </View>
               </View>
               <View style={styles.weatherIconCircle}>
                 <Feather
@@ -697,21 +754,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             {/* Stats row — UV 移除，降水改為過去一小時雨量 */}
             <View style={styles.weatherStatsRow}>
               {[
-                {
-                  icon: "droplet",
-                  val: `${currentWeather.humidity}%`,
-                  label: "濕度",
-                },
-                {
-                  icon: "wind",
-                  val: `${currentWeather.windSpeed}m/s`,
-                  label: "風速",
-                },
-                {
-                  icon: "cloud-rain",
-                  val: `${past1hrRain}mm`,
-                  label: "近1時雨量",
-                },
+                { icon: 'droplet',    val: `${currentWeather.humidity}%`,    label: '濕度' },
+                { icon: 'wind',       val: `${currentWeather.windSpeed}m/s`,  label: '風速' },
+                { icon: 'cloud-rain', val: `${past1hrRain}mm`,                label: '近1時雨量' },
               ].map((item, i, arr) => (
                 <React.Fragment key={i}>
                   <View style={styles.weatherStatItem}>
@@ -732,7 +777,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.dividerLine} />
 
             {/* 3-day forecast */}
-            <Text style={styles.forecastTitle}>3 天預報</Text>
+            <Text style={styles.forecastTitle}>未來 3 天預報</Text>
             <View style={styles.forecastRow}>
               {forecast.map((day, i) => (
                 <View
@@ -1171,6 +1216,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#bbb",
     fontWeight: "600",
+  },
+  weatherHighLow: {
+    fontSize: 12, color: '#999', marginTop: 2,
   },
 
   bottomSpacing: { height: 100 },
