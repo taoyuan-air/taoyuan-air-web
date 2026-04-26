@@ -6,16 +6,5 @@
   "display": "standalone",
   "theme_color": "#FFF6F9",
   "background_color": "#FFF6F9",
-  "icons": [
-    {
-      "src": "https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp",
-      "sizes": "192x192",
-      "type": "image/webp"
-    },
-    {
-      "src": "https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp",
-      "sizes": "512x512",
-      "type": "image/webp"
-    }
-  ]
+  "icons": []
 }
