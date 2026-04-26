@@ -10,10 +10,39 @@ import { Feather } from '@expo/vector-icons';
 import { useStore } from '../store';
 import { TopNavigation } from '../navigation/TopNavigation';
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from '../api';
+import { fetchEpaStations } from '../api/epa';
 import { StationCarousel } from '../components';
 import Svg, { Circle } from 'react-native-svg';
 
 const CWA_API_KEY = process.env.EXPO_PUBLIC_CWA_API_KEY;
+
+// ─── EPA 測站 → 行政區對照 ────────────────────────────────────────────────────
+const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+  '中壢': '中壢區',
+  '桃園': '桃園區',
+  '大園': '大園區',
+  '觀音': '觀音區',
+  '平鎮': '平鎮區',
+  '龍潭': '龍潭區',
+};
+
+// ─── 與 StationCarousel DISTRICTS 完全一致的靜態備援資料 ────────────────────
+// 用途：當某區域無對應 EPA 測站時，確保 Dashboard 與 Carousel 顯示相同數值
+const DISTRICT_STATIC_AQ: Record<string, { pm25: number; o3: number; aqi: number }> = {
+  '桃園區': { pm25: 20, o3: 48, aqi: 75 },
+  '中壢區': { pm25: 18, o3: 42, aqi: 72 },
+  '八德區': { pm25: 16, o3: 40, aqi: 68 },
+  '龜山區': { pm25: 19, o3: 44, aqi: 73 },
+  '蘆竹區': { pm25: 14, o3: 36, aqi: 62 },
+  '大園區': { pm25: 12, o3: 35, aqi: 58 },
+  '大溪區': { pm25: 13, o3: 37, aqi: 60 },
+  '平鎮區': { pm25: 16, o3: 40, aqi: 68 },
+  '楊梅區': { pm25: 17, o3: 41, aqi: 70 },
+  '龍潭區': { pm25: 15, o3: 38, aqi: 65 },
+  '觀音區': { pm25: 22, o3: 45, aqi: 78 },
+  '新屋區': { pm25: 21, o3: 43, aqi: 76 },
+  '復興區': { pm25: 10, o3: 32, aqi: 52 },
+};
 
 // ─── AQI Gauge ────────────────────────────────────────
 const GAUGE_SIZE = 200;
@@ -124,8 +153,6 @@ interface CurrentWeatherData {
   weather: string;
   humidity: string;
   windSpeed: string;
-  uvIndex: string;
-  precipitation: string;
 }
 
 interface ForecastDay {
@@ -135,13 +162,11 @@ interface ForecastDay {
   minTemp: string;
   weather: string;
   precipProb: string;
-  uvIndex: string;
 }
 
 const MOCK_CURRENT: CurrentWeatherData = {
   temperature: '24', weather: '晴時多雲',
   humidity: '68', windSpeed: '2.5',
-  uvIndex: '6', precipitation: '0',
 };
 
 const generateMockForecast = (): ForecastDay[] => {
@@ -156,7 +181,6 @@ const generateMockForecast = (): ForecastDay[] => {
       minTemp: String(19 + i),
       weather: i === 1 ? '多雲陣雨' : '晴時多雲',
       precipProb: i === 1 ? '60' : '20',
-      uvIndex: i === 1 ? '3' : '6',
     };
   });
 };
@@ -171,48 +195,29 @@ const getWeatherIcon = (w: string): React.ComponentProps<typeof Feather>['name']
 };
 
 const fetchCurrentWeather = async (district: string): Promise<CurrentWeatherData> => {
-  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') {
-    console.log('[Weather] API Key 未設定，使用 mock 資料');
-    return MOCK_CURRENT;
-  }
+  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') return MOCK_CURRENT;
   const url =
     `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001` +
     `?Authorization=${CWA_API_KEY}&CountyName=桃園市&format=JSON`;
-  console.log(`[Weather] 正在請求現況資料，目標區域：${district}`);
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.error(`[Weather] 現況 API 回傳錯誤 HTTP ${res.status}`);
+      console.warn(`[Weather] 現況 API 錯誤 HTTP ${res.status}`);
       return MOCK_CURRENT;
     }
     const json = await res.json();
     const stations: any[] = json?.records?.Station ?? [];
-    console.log(`[Weather] 取得氣象站共 ${stations.length} 筆`);
-    if (stations.length === 0) {
-      console.warn('[Weather] 無任何氣象站資料，使用 mock');
-      return MOCK_CURRENT;
-    }
+    if (stations.length === 0) return MOCK_CURRENT;
+
     const keyword = district.replace('區', '');
     const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
-    console.log(`[Weather] 使用氣象站：${st.StationName}（${st.GeoInfo?.TownName ?? '未知鄉鎮'}）`);
     const obs = st.StationObsTimes?.ObsTime?.[0]?.WeatherElements ?? {};
-    const result: CurrentWeatherData = {
-      temperature:   obs.AirTemperature   ?? MOCK_CURRENT.temperature,
-      weather:       obs.Weather          ?? MOCK_CURRENT.weather,
-      humidity:      obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
-      windSpeed:     obs.WindSpeed        ?? MOCK_CURRENT.windSpeed,
-      uvIndex:       obs.UVIndex          ?? MOCK_CURRENT.uvIndex,
-      precipitation: obs.Precipitation    ?? MOCK_CURRENT.precipitation,
+    return {
+      temperature: obs.AirTemperature   ?? MOCK_CURRENT.temperature,
+      weather:     obs.Weather          ?? MOCK_CURRENT.weather,
+      humidity:    obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
+      windSpeed:   obs.WindSpeed        ?? MOCK_CURRENT.windSpeed,
     };
-    console.log('[Weather] 現況資料已取得：', {
-      溫度: result.temperature + '°C',
-      天氣: result.weather,
-      濕度: result.humidity + '%',
-      風速: result.windSpeed + 'm/s',
-      UV:   result.uvIndex,
-      降水: result.precipitation + 'mm',
-    });
-    return result;
   } catch (err) {
     console.error('[Weather] 現況資料請求失敗：', err);
     return MOCK_CURRENT;
@@ -220,66 +225,70 @@ const fetchCurrentWeather = async (district: string): Promise<CurrentWeatherData
 };
 
 const fetchWeatherForecast = async (district: string): Promise<ForecastDay[]> => {
-  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') {
-    console.log('[Forecast] API Key 未設定，使用 mock 資料');
-    return generateMockForecast();
-  }
+  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') return generateMockForecast();
   const DAY_CHARS = ['日', '一', '二', '三', '四', '五', '六'];
   const url =
     `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-005` +
     `?Authorization=${CWA_API_KEY}&LocationsName=桃園市&LocationName=${district}&format=JSON`;
-  console.log(`[Forecast] 正在請求 3 天預報，目標區域：${district}`);
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.error(`[Forecast] 預報 API 回傳錯誤 HTTP ${res.status}`);
+      console.warn(`[Forecast] 預報 API 錯誤 HTTP ${res.status}`);
       return generateMockForecast();
     }
     const json = await res.json();
     const allLocations: any[] = json?.records?.Locations?.[0]?.Location ?? [];
-    console.log(`[Forecast] API 回傳地區數：${allLocations.length}`);
     const loc = allLocations.find(l => l.LocationName === district) ?? allLocations[0];
-    if (!loc) {
-      console.warn(`[Forecast] 找不到「${district}」的預報資料，使用 mock`);
-      return generateMockForecast();
-    }
-    console.log(`[Forecast] 使用地區：${loc.LocationName}`);
+    if (!loc) return generateMockForecast();
 
     const elemMap: Record<string, any[]> = {};
     (loc.WeatherElement ?? []).forEach((el: any) => {
       elemMap[el.ElementName] = el.Time ?? [];
     });
-    console.log('[Forecast] 取得天氣要素：', Object.keys(elemMap).join(', '));
 
     const maxTs = elemMap['Tmax']   ?? elemMap['MaxT']  ?? [];
     const minTs = elemMap['Tmin']   ?? elemMap['MinT']  ?? [];
     const wxs   = elemMap['Wx']     ?? [];
     const pops  = elemMap['PoP12h'] ?? elemMap['PoP']   ?? [];
-    const uvis  = elemMap['UVI']    ?? [];
-
-    if (!maxTs.length) console.warn('[Forecast] 最高溫資料缺失');
-    if (!wxs.length)   console.warn('[Forecast] 天氣描述資料缺失');
-    if (!pops.length)  console.warn('[Forecast] 降雨機率資料缺失');
 
     const now = new Date();
-    const days = [0, 1, 2].map(i => {
+    return [0, 1, 2].map(i => {
       const d = new Date(now); d.setDate(d.getDate() + i);
-      const result = {
+      return {
         label:      ['今天', '明天', '後天'][i],
         dateLabel:  `${d.getMonth() + 1}/${d.getDate()} 週${DAY_CHARS[d.getDay()]}`,
         maxTemp:    maxTs[i]?.ElementValue?.[0]?.MaxTemperature ?? String(26 - i),
         minTemp:    minTs[i]?.ElementValue?.[0]?.MinTemperature ?? String(19 + i),
         weather:    wxs[i * 2]?.ElementValue?.[0]?.Weather      ?? (i === 1 ? '多雲陣雨' : '晴時多雲'),
         precipProb: pops[i * 2]?.ElementValue?.[0]?.ProbabilityOfPrecipitation ?? (i === 1 ? '60' : '20'),
-        uvIndex:    uvis[i]?.ElementValue?.[0]?.UVIndex         ?? (i === 1 ? '3' : '6'),
       };
-      console.log(`[Forecast] ${result.label}（${result.dateLabel}）：${result.weather}，${result.minTemp}–${result.maxTemp}°C，降雨 ${result.precipProb}%`);
-      return result;
     });
-    return days;
   } catch (err) {
     console.error('[Forecast] 預報資料請求失敗：', err);
     return generateMockForecast();
+  }
+};
+
+// ─── 過去一小時雨量 API ───────────────────────────────────────────────────────
+const fetchPast1hrRainfall = async (district: string): Promise<string> => {
+  if (!CWA_API_KEY || CWA_API_KEY === 'YOUR_CWA_API_KEY') return '0.0';
+  const url =
+    `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0002-001` +
+    `?Authorization=${CWA_API_KEY}&format=JSON&RainfallElement=Past1hr`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[Rainfall] API 錯誤 HTTP ${res.status}`);
+      return '0.0';
+    }
+    const json = await res.json();
+    const stations: any[] = json?.records?.Station ?? [];
+    const keyword = district.replace('區', '');
+    const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? null;
+    return st?.RainfallElement?.Past1hr?.Precipitation ?? '0.0';
+  } catch (err) {
+    console.error('[Rainfall] 雨量資料請求失敗：', err);
+    return '0.0';
   }
 };
 
@@ -299,15 +308,44 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   } = useStore();
 
   const [locatedAqi,      setLocatedAqi]      = useState<number>(65);
+  const [locatedPm25,     setLocatedPm25]     = useState<number>(12);
+  const [locatedO3,       setLocatedO3]       = useState<number>(48);
   const [currentDistrict, setCurrentDistrict] = useState<string>('中壢區');
   const [currentWeather,  setCurrentWeather]  = useState<CurrentWeatherData>(MOCK_CURRENT);
   const [forecast,        setForecast]        = useState<ForecastDay[]>(generateMockForecast());
+  const [past1hrRain,     setPast1hrRain]     = useState<string>('0.0');
 
   useEffect(() => { loadData(); }, [selectedScenario]);
 
+  // 天氣 & 雨量：隨定位區域更新
   useEffect(() => {
     fetchCurrentWeather(currentDistrict).then(setCurrentWeather);
     fetchWeatherForecast(currentDistrict).then(setForecast);
+    fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
+  }, [currentDistrict]);
+
+  // 空氣品質：先以靜態資料同步 Carousel，有 EPA 測站時再以即時值覆蓋
+  useEffect(() => {
+    // Step 1：靜態資料 fallback，確保與 Carousel 永遠一致
+    const staticData = DISTRICT_STATIC_AQ[currentDistrict];
+    if (staticData) {
+      setLocatedPm25(staticData.pm25);
+      setLocatedO3(staticData.o3);
+    }
+    // Step 2：若該區有 EPA 測站，以即時值覆蓋
+    fetchEpaStations()
+      .then(stations => {
+        const sitename = Object.entries(EPA_STATION_TO_DISTRICT)
+          .find(([, dist]) => dist === currentDistrict)?.[0];
+        if (!sitename) return; // 無測站 → 保留 Step 1 的靜態值
+        const station = stations.find(s => s.sitename === sitename);
+        if (station) {
+          setLocatedPm25(station.pm25);
+          setLocatedO3(station.o3);
+          // AQI 已由 StationCarousel 的 onAqiResolved 負責更新
+        }
+      })
+      .catch(err => console.warn('[EPA] 資料載入失敗:', err));
   }, [currentDistrict]);
 
   const loadData = async () => {
@@ -327,15 +365,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
     }
   };
 
-  const getPollutantData = () => {
-    if (gridCells.length === 0) return { pm25: 12, o3: 48, no2: 15 };
-    const avgPM25 = Math.round(
-      gridCells.reduce((s, c) => s + c.values.value, 0) / gridCells.length
-    );
-    return { pm25: avgPM25, o3: Math.round(avgPM25 * 0.8), no2: Math.round(avgPM25 * 0.3) };
-  };
+  // 空氣品質數值：優先使用 EPA 測站即時資料
+  const pm25 = locatedPm25;
+  const o3   = locatedO3;
+  const no2  = Math.round(pm25 * 0.3);
 
-  const { pm25, o3, no2 } = getPollutantData();
   const pm25Color    = getPM25Color(pm25);
   const activityInfo = getActivityInfo(pm25);
   const pm25Progress = Math.min((pm25 / 75) * 100, 100);
@@ -517,13 +551,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               </View>
             </View>
 
-            {/* Stats row */}
+            {/* Stats row — UV 移除，降水改為過去一小時雨量 */}
             <View style={styles.weatherStatsRow}>
               {[
-                { icon: 'droplet',   val: `${currentWeather.humidity}%`,    label: '濕度' },
-                { icon: 'wind',      val: `${currentWeather.windSpeed}m/s`,  label: '風速' },
-                { icon: 'cloud-rain',val: `${Number(currentWeather.precipitation) > 0 ? currentWeather.precipitation + 'mm' : '0mm'}`, label: '降水' },
-                { icon: 'sun',       val: `UV ${currentWeather.uvIndex}`,    label: '紫外線' },
+                { icon: 'droplet',    val: `${currentWeather.humidity}%`,   label: '濕度' },
+                { icon: 'wind',       val: `${currentWeather.windSpeed}m/s`, label: '風速' },
+                { icon: 'cloud-rain', val: `${past1hrRain}mm`,              label: '近1時雨量' },
               ].map((item, i, arr) => (
                 <React.Fragment key={i}>
                   <View style={styles.weatherStatItem}>
