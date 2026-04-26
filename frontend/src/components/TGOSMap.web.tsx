@@ -29,19 +29,19 @@ const getGridColor = (value: number) => {
   const r = Math.round(lower[1] + (upper[1] - lower[1]) * ratio);
   const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
   const b = Math.round(lower[3] + (upper[3] - lower[3]) * ratio);
-  // [靽格] fillColor ?孵???hex嚗pacity ?血???fillOptions 閮剖?
+  // [備註] fillColor 使用 hex 格式，opacity 請透過 fillOptions 的 fillopacity 設定
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 };
 
 let tgosInitialized = false;
 
 export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
-  // [靽格] ref ?孵? TGOS.Fill ?拐辣???嚗???feature
+  // [備註] ref 儲存 TGOS.Fill 實例，用來追蹤與清除已繪製的 feature
   const tgosMapRef = useRef<any>(null);
   const fillsRef = useRef<any[]>([]);
 
   const renderPolygons = (cells: GridCell[], TGOS: any, map: any) => {
-    // [靽格] 皜??fills嚗??fill.destory()嚗宏?支?摮??earth.removeFeature()
+    // [備註] 清除舊的 fills，呼叫 fill.destroy()，舊版 API 用 earth.removeFeature()
     fillsRef.current.forEach((fill) => {
       try {
         fill.destory();
@@ -50,21 +50,21 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
     fillsRef.current = [];
 
     cells.forEach((grid) => {
-      // [靽格] 摨扳??寧 TGOS.Point(x, y)嚗宏?支?摮??TGOS.TELonLat
+      // [備註] 建立座標點使用 TGOS.Point(x, y)，舊版 API 用 TGOS.TELonLat
       const points = grid.polygonCoords.map(
         (c) => new TGOS.Point(c.longitude, c.latitude),
       );
 
-      // [靽格] LinearRing ??遣蝡?LineString ??伐?
-      //        ???舐?亙暺?策 TELinearRing
+      // [備註] LinearRing 需要先包裝成 LineString 才能建立
+      //        舊版 API 對應的類別為 TELinearRing
       const lineString = new TGOS.LineString(points);
       const ring = new TGOS.LinearRing(lineString);
 
-      // [靽格] ?寧 TGOS.Polygon嚗宏?支?摮??TGOS.TEPolygon
+      // [備註] 建立 TGOS.Polygon，舊版 API 用 TGOS.TEPolygon
       const polygon = new TGOS.Polygon([ring]);
 
-      // [靽格] ?寧 TGOS.Fill(map, polygon, fillOptions)
-      //        蝘駁銝??函? TEFillStyle + TEFeature
+      // [備註] 建立 TGOS.Fill(map, polygon, fillOptions)
+      //        舊版 API 對應的是 TEFillStyle + TEFeature 的組合
       const fill = new TGOS.Fill(map, polygon, {
         fillColor: getGridColor(grid.values.value),
         fillopacity: 0.5,
@@ -76,8 +76,8 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       fillsRef.current.push(fill);
     });
 
-    // [靽格] TGOS.Fill 銝?渡??click 鈭辣
-    //        ?寧?賢??click嚗?隞?bounding box ?斗暺??賢?芸?gridCell
+    // [備註] TGOS.Fill 不支援直接綁定 click 事件
+    //        改為監聽地圖的 click 事件，再透過 bounding box 判斷點擊到哪個 gridCell
     if (onGridPress) {
       TGOS.Event.addListener(map, "click", (event: any) => {
         const clickedLng = event.coord?.x ?? event.lonlat?.lng;
@@ -123,13 +123,13 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       const apiKey = process.env.EXPO_PUBLIC_TGOS_API_KEY;
 
       const scriptUrl = `https://api.tgos.tw/TGOS_MAP_API_3?APIKEY=${apiKey}`;
-      console.log("皞?頛 script嚗雯???", scriptUrl);
-      console.log("APIKey ?潛:", apiKey); // 蝣箄??????啁憓???
+      // console.log("正在載入 script，網址如下:", scriptUrl);
+      // console.log("APIKey 確認:", apiKey);
 
       try {
         await loadScript(scriptUrl, "tgos-sdk");
       } catch (scriptErr: any) {
-        console.error("Script 頛憭望?:", {
+        console.error("Script 載入失敗:", {
           message: scriptErr?.message,
           type: typeof scriptErr,
           raw: scriptErr,
@@ -140,11 +140,11 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       const TGOS = (window as any).TGOS;
       if (!TGOS) {
         console.error(
-          "TGOS SDK 頛憭望?嚗indow.TGOS ??",
+          "TGOS SDK 載入失敗，window.TGOS 未定義，型別為:",
           typeof (window as any).TGOS,
         );
         console.error(
-          "window 銝???TGOS ?賊? key:",
+          "window 中包含 TGOS 相關的 key:",
           Object.keys(window).filter((k) => k.toLowerCase().includes("tgos")),
         );
         return;
@@ -154,16 +154,16 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       if (!container) return;
 
       try {
-        // [靽格] ?寧 TGOS.OnlineMap(div, epsgCode, opts, callback)
-        //        - 蝘駁銝??函? TGOS.TEOnlineMap
-        //        - mapMode: 3 ??銝雁璅∪?
-        //        - ??????頛舐宏?啁洵????callback嚗?隞??摮??'initialized' 鈭辣嚗?
+        // [備註] 建立 TGOS.OnlineMap(div, epsgCode, opts, callback)
+        //        - 舊版 API 對應的類別為 TGOS.TEOnlineMap
+        //        - mapMode: 3 代表衛星圖模式
+        //        - 舊版 API 沒有 callback 參數，需改為監聽 'initialized' 事件
         const map = new TGOS.OnlineMap(
           container,
           "EPSG4326",
           { mapMode: 3 },
           () => {
-            // [靽格] ?寧 setCenter + setZoom嚗宏?支?摮??flyTo
+            // [備註] 設定中心點與縮放層級使用 setCenter + setZoom，舊版 API 用 flyTo
             map.setCenter(new TGOS.Point(121.25, 25.0));
             map.setZoom(11);
 
@@ -175,7 +175,7 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
 
         tgosMapRef.current = map;
       } catch (err) {
-        console.error("TGOS ?啣?頛憭望?:", err);
+        console.error("TGOS 地圖初始化失敗:", err);
       }
     };
 

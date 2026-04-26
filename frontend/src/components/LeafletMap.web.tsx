@@ -36,7 +36,6 @@ const getGridColor = (value: number) => {
   return `rgba(${r}, ${g}, ${b}, 0.4)`;
 };
 
-let mapInitialized = false;
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGridPress, isVisible = true }) => {
   const mapRef = useRef<any>(null);
@@ -99,19 +98,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ gridCells, mapMode, onGr
       });
 
     const initMaps = async () => {
-      if (mapInitialized) return;
-      mapInitialized = true;
+      if (mapRef.current && satMapRef.current) return;
 
       try {
         console.log('開始載入 Leaflet...');
         
         // 載入 Leaflet CSS + JS
         await loadLink(
-          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.css',
           'leaflet-css',
         );
         await loadScript(
-          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+          'https://unpkg.com/leaflet@1.4.0/dist/leaflet.js',
           'leaflet-js',
         );
 

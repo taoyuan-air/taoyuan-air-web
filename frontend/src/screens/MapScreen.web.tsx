@@ -225,15 +225,7 @@ export const MapScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.windyAttribution}>
-          <Text style={styles.windyAttributionText}>
-            {
-              "Source: Esri, i-cubed, USDA, USGS, AEX, \nGeoEye, nGetmapping, Aerogrid, IGN, IGP, \nUPR-EGP, and the GIS User Community\n｜Powered by Esri"
-            }
-          </Text>
-        </View>
-      )}
+      ) : null}
 
       {/* Legend */}
       <View style={styles.legendPanel}>
