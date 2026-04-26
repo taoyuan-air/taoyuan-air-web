@@ -65,7 +65,7 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
           {/* Logo 區域 */}
           <View style={styles.logoSection}>
             <Image
-              source={{ uri: "/logo-air.webp" }}
+              source={{ uri: "/logo-air.png" }}
               style={styles.logo}
               resizeMode="contain"
             />

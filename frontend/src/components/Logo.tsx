@@ -18,7 +18,7 @@ export const Logo: React.FC<LogoProps> = ({ size = "medium" }) => {
   if (Platform.OS === "web") {
     return (
       <Image
-        source={{ uri: "/logo-air.webp" }}
+        source={{ uri: "/logo-air.png" }}
         style={{
           width: currentSize.width,
           height: currentSize.height,
