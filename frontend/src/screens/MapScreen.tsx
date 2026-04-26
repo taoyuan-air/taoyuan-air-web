@@ -43,6 +43,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
       scrollRef(null); // Pass null since MapView doesn't scroll
     }
   }, [scrollRef]);
+
   const { 
     selectedPollutant,
     setSelectedPollutant,
@@ -108,7 +109,6 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
   };
 
   const getGridColor = (value: number) => {
-    // 定義色階錨點 [數值, r, g, b]
     const stops = [
       [0,   0,   228, 0  ],  // 綠
       [50,  255, 255, 0  ],  // 黃
@@ -117,7 +117,6 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
       [200, 126, 0,   35 ],  // 深紅紫
     ];
 
-    // 找到 value 落在哪兩個錨點之間
     const clamped = Math.max(0, Math.min(200, value));
     let lower = stops[0];
     let upper = stops[stops.length - 1];
@@ -130,10 +129,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
       }
     }
 
-    // 計算該區間內的比例
     const ratio = (clamped - lower[0]) / (upper[0] - lower[0]);
-
-    // 線性插值 RGB
     const r = Math.round(lower[1] + (upper[1] - lower[1]) * ratio);
     const g = Math.round(lower[2] + (upper[2] - lower[2]) * ratio);
     const b = Math.round(lower[3] + (upper[3] - lower[3]) * ratio);
@@ -151,9 +147,25 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
     }
   };
 
+  // 2D 和 Satellite 共用同一套 Polygon 渲染
+  const renderPolygons = () =>
+    gridCells.map((grid) => (
+      <Polygon
+        key={grid.gridId}
+        coordinates={grid.polygonCoords}
+        fillColor={getGridColor(grid.values.value)}
+        strokeColor="rgba(106, 141, 115, 0.3)"
+        strokeWidth={1}
+        onPress={() => handleGridPress(grid)}
+      />
+    ));
+
   return (
     <View style={styles.container}>
-      <TopNavigation title="Map View" subtitle="REAL-TIME MONITORING" />
+      <TopNavigation 
+        title="Map View" 
+        subtitle={mode === 'FORECAST' ? 'FORECAST MODE' : 'REAL-TIME MONITORING'} 
+      />
       
       {/* Top Controls */}
       <View style={styles.topControls}>
@@ -213,19 +225,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
           zoom: 10
         } : undefined}
       >
-        {/* Grid Polygons - Different rendering based on mode */}
-        {mapMode === '2D' && gridCells.map((grid) => (
-          <Polygon
-            key={grid.gridId}
-            coordinates={grid.polygonCoords}
-            fillColor={getGridColor(grid.values.value)}
-            strokeColor="rgba(106, 141, 115, 0.3)"
-            strokeWidth={1}
-            onPress={() => handleGridPress(grid)}
-          />
-        ))}
-        
-        {/* 3D Mode - Hexagonal markers with elevation effect */}
+        {/* 2D 與 Satellite：相同的 Polygon 網格覆蓋 */}
+        {(mapMode === '2D' || mapMode === 'Satellite') && renderPolygons()}
+
+        {/* 3D Mode：Hexagonal markers with elevation effect */}
         {mapMode === '3D' && gridCells.map((grid) => {
           const centerLat = grid.polygonCoords.reduce((sum, coord) => sum + coord.latitude, 0) / grid.polygonCoords.length;
           const centerLng = grid.polygonCoords.reduce((sum, coord) => sum + coord.longitude, 0) / grid.polygonCoords.length;
@@ -241,29 +244,9 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
             </Marker>
           );
         })}
-        
-        {/* Satellite Mode - Circular markers with glow effect */}
-        {mapMode === 'Satellite' && gridCells.map((grid) => {
-          const centerLat = grid.polygonCoords.reduce((sum, coord) => sum + coord.latitude, 0) / grid.polygonCoords.length;
-          const centerLng = grid.polygonCoords.reduce((sum, coord) => sum + coord.longitude, 0) / grid.polygonCoords.length;
-          return (
-            <Marker
-              key={grid.gridId}
-              coordinate={{ latitude: centerLat, longitude: centerLng }}
-              onPress={() => handleGridPress(grid)}
-            >
-              <View style={styles.satelliteMarker}>
-                <View style={[styles.satelliteGlow, { backgroundColor: getGridColor(grid.values.value) }]} />
-                <View style={styles.satelliteCore}>
-                  <Text style={styles.satelliteValue}>{Math.round(grid.values.value)}</Text>
-                </View>
-              </View>
-            </Marker>
-          );
-        })}
-        
-        {/* Selected Grid Highlight - Only for 2D mode */}
-        {mapMode === '2D' && selectedGrid && (
+
+        {/* Selected Grid Highlight：2D 與 Satellite 皆顯示 */}
+        {(mapMode === '2D' || mapMode === 'Satellite') && selectedGrid && (
           <Polygon
             coordinates={selectedGrid.polygonCoords}
             fillColor="rgba(106, 141, 115, 0.9)"
@@ -273,8 +256,20 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
         )}
       </MapView>
 
-      {/* 來源標記 (依地圖模式切換) */}
-      {mapMode === '2D' ? (
+      {/* FORECAST 模式提示 */}
+      {mode === 'FORECAST' && (
+        <View style={styles.forecastBanner}>
+          <Ionicons name="time-outline" size={14} color="#6A8D73" />
+          <Text style={styles.forecastBannerText}>預報模式：顯示未來 24 小時預測數據</Text>
+        </View>
+      )}
+
+      {/* 來源標記 (依 mode + mapMode 切換) */}
+      {mode === 'FORECAST' ? (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>地圖來源：TGOS 國土測繪圖資</Text>
+        </View>
+      ) : mapMode === '2D' ? (
         <View style={styles.windyAttribution}>
           <Text style={styles.windyAttributionText}>Source：</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
@@ -283,7 +278,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
         </View>
       ) : (
         <View style={styles.windyAttribution}>
-          <Text style={styles.windyAttributionText}>© Esri, Maxar, Earthstar Geographics</Text>
+          <Text style={styles.windyAttributionText}>{"Source: Esri, i-cubed, USDA, USGS, AEX, \nGeoEye, nGetmapping, Aerogrid, IGN, IGP, \nUPR-EGP, and the GIS User Community\n｜Powered by Esri"}</Text>
         </View>
       )}
 
@@ -529,7 +524,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
   },
-
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -742,38 +736,24 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  satelliteMarker: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  satelliteGlow: {
+  forecastBanner: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    opacity: 0.3,
-  },
-  satelliteCore: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
+    top: 210,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#6A8D73',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    backgroundColor: 'rgba(181, 201, 154, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
   },
-  satelliteValue: {
-    color: '#6A8D73',
-    fontSize: 10,
-    fontWeight: 'bold',
+  forecastBannerText: {
+    fontSize: 12,
+    color: '#3a5a3a',
+    fontWeight: '500',
   },
   windyAttribution: {
     position: 'absolute',

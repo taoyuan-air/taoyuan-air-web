@@ -7,6 +7,7 @@ import { useStore } from '../store';
 import { LeafletMap } from '../components/LeafletMap.web';
 import { GridCell } from '../types';
 import { Linking } from 'react-native';
+import { TGOSMap } from '../components/TGOSMap.web';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -16,6 +17,7 @@ export const MapScreen = () => {
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(screenHeight)).current;
+  const [satAttribution, setSatAttribution] = useState('Powered by Esri');
 
   const getPollutantLabel = () => {
     switch (selectedPollutant) {
@@ -99,15 +101,33 @@ export const MapScreen = () => {
 
       {/* Map */}
       <View style={styles.mapContainer}>
-        <LeafletMap 
-          gridCells={gridCells} 
-          mapMode={mapMode}
-          onGridPress={handleGridPress}
-        />
+        {/* LeafletMap 永遠保持 mounted，用 display 切換避免重新初始化 */}
+        <View style={[StyleSheet.absoluteFillObject, { display: mode === 'FORECAST' ? 'none' : 'flex' }]}>
+          <LeafletMap
+            gridCells={gridCells}
+            mapMode={mapMode}
+            onGridPress={handleGridPress}
+            isVisible={mode !== 'FORECAST'}
+          />
+        </View>
+        {/* TGOS 3D Map for FORECAST */}
+        <View style={[StyleSheet.absoluteFillObject, { display: mode === 'FORECAST' ? 'flex' : 'none' }]}>
+          <TGOSMap
+            gridCells={gridCells}
+            onGridPress={handleGridPress}
+          />
+        </View>
       </View>
 
-      {/* 來源標記 (依地圖模式切換) */}
-      {mapMode === '2D' ? (
+      {/* 來源標記 (依 mode + mapMode 切換) */}
+      {mode === 'FORECAST' ? (
+        <View style={styles.windyAttribution}>
+          <Text style={styles.windyAttributionText}>地圖來源：</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.tgos.tw')}>
+            <Text style={[styles.windyAttributionText, styles.windyLink]}>TGOS 國土測繪圖資</Text>
+          </TouchableOpacity>
+        </View>
+      ) : mapMode === '2D' ? (
         <View style={styles.windyAttribution}>
           <Text style={styles.windyAttributionText}>Source：</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.windy.com')}>
@@ -116,7 +136,9 @@ export const MapScreen = () => {
         </View>
       ) : (
         <View style={styles.windyAttribution}>
-          <Text style={styles.windyAttributionText}>© Esri, Maxar, Earthstar Geographics</Text>
+          <Text style={styles.windyAttributionText}>
+            {"Source: Esri, i-cubed, USDA, USGS, AEX, \nGeoEye, nGetmapping, Aerogrid, IGN, IGP, \nUPR-EGP, and the GIS User Community\n｜Powered by Esri"}
+          </Text>
         </View>
       )}
 
@@ -176,7 +198,7 @@ export const MapScreen = () => {
                 <>
                   <View style={styles.sheetHeader}>
                     <View style={styles.locationInfo}>
-                      <Text style={styles.districtName}>{(selectedGrid as any) .district|| '桃園市'}</Text>
+                      <Text style={styles.districtName}>{(selectedGrid as any).district || '桃園市'}</Text>
                       {/*這邊.district原本有紅字是還沒實作其他地區(縣市的名字)*/}
                       <Text style={styles.gridId}>GRID ID: {selectedGrid.gridId}</Text>
                     </View>
