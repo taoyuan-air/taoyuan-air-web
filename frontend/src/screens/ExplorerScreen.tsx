@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -20,17 +20,17 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const [searchText, setSearchText] = useState("");
   const [selectedTimeFilter, setSelectedTimeFilter] = useState("近24小時");
   const [selectedPollutantFilter, setSelectedPollutantFilter] = useState("PM2.5");
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState("全部");
-  const [selectedDataSources, setSelectedDataSources] = useState<string[]>(["MOE"]);
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState("全市");
+  const [selectedDataSources, setSelectedDataSources] = useState<string[]>(["EPA"]);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [showPollutantFilter, setShowPollutantFilter] = useState(false);
   const [showRegionFilter, setShowRegionFilter] = useState(false);
   const [showDataSourceFilter, setShowDataSourceFilter] = useState(false);
 
-  const timeOptions = ["近24小時", "近一週", "近一月"];
+  const timeOptions = ["近24小時", "近3天", "近7天"];
   const pollutantOptions = ["PM2.5", "O3", "NOX", "VOCs"];
-  const regionOptions = ["全部", "北區", "桃園市", "新竹縣市", "苗栗縣"];
-  const dataSourceOptions = ["MOE", "微型感測", "光達", "LUV"];
+  const regionOptions = ["全市", "桃園區", "中壢區", "大園區", "觀音區"];
+  const dataSourceOptions = ["EPA", "微感測", "光達", "LUV"];
 
   const toggleDataSource = (source: string) => {
     setSelectedDataSources(prev => 
@@ -43,37 +43,37 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const allMonitoringData = [
     {
       id: 1,
-      district: "桃園市",
+      district: "中壢區",
       station: "Station TY-09",
       time: "14:02 PM",
       passed: true,
       pollutant: "PM2.5",
       value: 12,
       unit: "μg/m³",
-      source: "MOE",
+      source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
-      region: "桃園市"
+      region: "中壢區"
     },
     {
       id: 2,
-      district: "中壢平鎮區",
+      district: "蘆竹工業區",
       station: "Grid Alpha-4",
       time: "13:45 PM",
       passed: false,
       pollutant: "PM2.5",
       value: 48,
       unit: "μg/m³",
-      source: "微型感測",
+      source: "微感測",
       version: "v2.0",
       color: "#FFA868",
       timeCategory: "近24小時",
-      region: "北區"
+      region: "桃園區"
     },
     {
       id: 3,
-      district: "龜山林口區",
+      district: "觀音海岸",
       station: "Sensor TY-42",
       time: "13:20 PM",
       passed: true,
@@ -82,43 +82,43 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "光達",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
-      region: "苗栗縣"
+      region: "觀音區"
     },
     {
       id: 4,
-      district: "新竹市平鎮區",
+      district: "大園工業區",
       station: "Station TY-15",
       time: "12:30 PM",
       passed: true,
       pollutant: "O3",
       value: 35,
       unit: "ppb",
-      source: "MOE",
+      source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
-      region: "新竹縣市"
+      region: "大園區"
     },
     {
       id: 5,
-      district: "北區大同",
+      district: "桃園市區",
       station: "Micro-Sensor B12",
       time: "11:15 AM",
       passed: false,
       pollutant: "NOX",
       value: 85,
       unit: "ppb",
-      source: "微型感測",
+      source: "微感測",
       version: "v1.8",
       color: "#FF6B6B",
       timeCategory: "近24小時",
-      region: "北區"
+      region: "桃園區"
     },
     {
       id: 6,
-      district: "桃園市平鎮",
+      district: "中壢商業區",
       station: "LUV-Station C3",
       time: "10:45 AM",
       passed: true,
@@ -127,43 +127,43 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
+      color: "#E76595",
       timeCategory: "近24小時",
-      region: "桃園市"
+      region: "中壢區"
     },
     {
       id: 7,
-      district: "苗栗縣頭份市",
+      district: "觀音工業區",
       station: "Grid Beta-7",
       time: "昨日 23:30",
       passed: false,
       pollutant: "PM2.5",
       value: 52,
       unit: "μg/m³",
-      source: "微型感測",
+      source: "微感測",
       version: "v2.0",
       color: "#FFA868",
-      timeCategory: "近一週",
-      region: "苗栗縣"
+      timeCategory: "近3天",
+      region: "觀音區"
     },
     {
       id: 8,
-      district: "新竹縣竹北市",
+      district: "大園住宅區",
       station: "Station TY-22",
       time: "昨日 22:15",
       passed: true,
       pollutant: "O3",
       value: 28,
       unit: "ppb",
-      source: "MOE",
+      source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "新竹縣市"
+      color: "#E76595",
+      timeCategory: "近3天",
+      region: "大園區"
     },
     {
       id: 9,
-      district: "北區仁愛路",
+      district: "桃園機場周邊",
       station: "LIDAR-Point A1",
       time: "昨日 20:00",
       passed: true,
@@ -172,28 +172,28 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "光達",
       version: "v2.3",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "新竹縣市"
+      color: "#E76595",
+      timeCategory: "近3天",
+      region: "大園區"
     },
     {
       id: 10,
-      district: "桃園市中壢區",
+      district: "中壢工業區",
       station: "Micro-Array D5",
       time: "昨日 18:45",
       passed: false,
       pollutant: "VOCs",
       value: 78,
       unit: "ppb",
-      source: "微型感測",
+      source: "微感測",
       version: "v1.9",
       color: "#FF6B6B",
-      timeCategory: "近一週",
-      region: "桃園市"
+      timeCategory: "近3天",
+      region: "中壢區"
     },
     {
       id: 11,
-      district: "北區民生路",
+      district: "桃園都會區",
       station: "LUV-Hub M1",
       time: "3天前 16:30",
       passed: true,
@@ -202,28 +202,28 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "北區"
+      color: "#E76595",
+      timeCategory: "近7天",
+      region: "桃園區"
     },
     {
       id: 12,
-      district: "苗栗縣苑裡鎮",
+      district: "觀音沿海",
       station: "Station TY-35",
       time: "4天前 14:20",
       passed: true,
       pollutant: "O3",
       value: 31,
       unit: "ppb",
-      source: "MOE",
+      source: "EPA",
       version: "v2.1",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "苗栗縣"
+      color: "#E76595",
+      timeCategory: "近7天",
+      region: "觀音區"
     },
     {
       id: 13,
-      district: "新竹縣關西鎮",
+      district: "大園農業區",
       station: "LIDAR-Grid F8",
       time: "5天前 12:10",
       passed: false,
@@ -233,27 +233,27 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       source: "光達",
       version: "v2.3",
       color: "#FF6B6B",
-      timeCategory: "近一週",
-      region: "新竹縣市"
+      timeCategory: "近7天",
+      region: "大園區"
     },
     {
       id: 14,
-      district: "桃園市復興區",
+      district: "中壢市中心",
       station: "Micro-Net G2",
       time: "6天前 09:45",
       passed: true,
       pollutant: "VOCs",
       value: 25,
       unit: "ppb",
-      source: "微型感測",
+      source: "微感測",
       version: "v2.0",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "桃園市"
+      color: "#E76595",
+      timeCategory: "近7天",
+      region: "中壢區"
     },
     {
       id: 15,
-      district: "北區大雅",
+      district: "桃園高鐵區",
       station: "LUV-Station H4",
       time: "7天前 15:30",
       passed: true,
@@ -262,15 +262,15 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#4CAF50",
-      timeCategory: "近一週",
-      region: "北區"
+      color: "#E76595",
+      timeCategory: "近7天",
+      region: "桃園區"
     }
   ];
 
   const getFilteredData = () => {
     return allMonitoringData.filter(item => {
-      // 搜尋篩選
+      // 搜尋文字篩選
       if (searchText && !item.district.toLowerCase().includes(searchText.toLowerCase()) && 
           !item.station.toLowerCase().includes(searchText.toLowerCase())) {
         return false;
@@ -286,8 +286,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
         return false;
       }
       
-      // 地區篩選
-      if (selectedRegionFilter !== "全部" && item.region !== selectedRegionFilter) {
+      // 區域篩選
+      if (selectedRegionFilter !== "全市" && item.region !== selectedRegionFilter) {
         return false;
       }
       
@@ -303,8 +303,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const monitoringData = getFilteredData();
 
   return (
-    <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
-      <TopNavigation title="資料探索" subtitle="QUERY & ANALYSIS" />
+    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
+      <TopNavigation title="資料檢索" subtitle="QUERY & ANALYSIS" />
       
       <ScrollView
         ref={scrollRef}
@@ -317,7 +317,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="搜尋地區或測站ID"
+              placeholder="搜尋區域或感測器 ID"
               placeholderTextColor="#999"
               value={searchText}
               onChangeText={setSearchText}
@@ -337,7 +337,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowTimeFilter(!showTimeFilter)}
           >
             <Text style={[styles.filterText, showTimeFilter && styles.activeFilterText]}>{selectedTimeFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showTimeFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showTimeFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -345,7 +345,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowPollutantFilter(!showPollutantFilter)}
           >
             <Text style={[styles.filterText, showPollutantFilter && styles.activeFilterText]}>{selectedPollutantFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showPollutantFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showPollutantFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -353,7 +353,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowRegionFilter(!showRegionFilter)}
           >
             <Text style={[styles.filterText, showRegionFilter && styles.activeFilterText]}>{selectedRegionFilter}</Text>
-            <Ionicons name="chevron-down" size={16} color={showRegionFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showRegionFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -361,7 +361,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
             onPress={() => setShowDataSourceFilter(!showDataSourceFilter)}
           >
             <Text style={[styles.filterText, showDataSourceFilter && styles.activeFilterText]}>資料來源</Text>
-            <Ionicons name="chevron-down" size={16} color={showDataSourceFilter ? "white" : "#6A8D73"} />
+            <Ionicons name="chevron-down" size={16} color={showDataSourceFilter ? "white" : "#E76595"} />
           </TouchableOpacity>
         </ScrollView>
 
@@ -427,7 +427,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               >
                 <Text style={styles.dropdownText}>{option}</Text>
                 {selectedDataSources.includes(option) && (
-                  <Ionicons name="checkmark" size={16} color="#6A8D73" />
+                  <Ionicons name="checkmark" size={16} color="#E76595" />
                 )}
               </TouchableOpacity>
             ))}
@@ -436,7 +436,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 
         {/* Monitoring Feed Header */}
         <View style={styles.feedHeader}>
-          <Text style={styles.feedTitle}>監測資料</Text>
+          <Text style={styles.feedTitle}>監測動態</Text>
         </View>
 
         {/* Monitoring Cards */}
@@ -447,10 +447,10 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <View style={styles.cardHeader}>
                 <View style={styles.cardTitleContainer}>
                   <Text style={styles.cardTitle}>{item.district}</Text>
-                  <Text style={styles.cardSubtitle}>{item.station} · {item.time}</Text>
+                  <Text style={styles.cardSubtitle}>{item.station} • {item.time}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#A8D5A8' : '#FFD4B3' }]}>
-                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#2E7D32' : '#D2691E' }]}>{item.passed ? '通過' : '異常'}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#F8D0DA' : '#FFD4B3' }]}>
+                  <Text style={[styles.statusBadgeText, { color: item.passed ? '#E76595' : '#D2691E' }]}>{item.passed ? '通過' : '異常'}</Text>
                 </View>
               </View>
               
@@ -495,7 +495,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <Ionicons name="sparkles" size={24} color="white" />
             </View>
             <Text style={styles.advisoryText}>
-              北區空氣品質良好，適合戶外活動，請注意防曬。
+              桃園空氣品質保持穩定。今日適合戶外活動。
             </Text>
           </View>
         </View>
@@ -509,6 +509,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 20,
   },
   scrollView: {
     flex: 1,
@@ -585,12 +586,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeFilter: {
-    backgroundColor: '#6A8D73',
+    backgroundColor: '#E76595',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
   },
   activeFilterText: {
     color: 'white',
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
   feedTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6A8D73',
+    color: '#E76595',
     letterSpacing: 2,
   },
   statusDots: {
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(106, 141, 115, 0.1)',
+    backgroundColor: 'rgba(231, 101, 149, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
   advisoryContainer: {
     marginHorizontal: 20,
     marginTop: 24,
-    backgroundColor: '#B5C99A',
+    backgroundColor: '#FBA7BC',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',

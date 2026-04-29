@@ -13,11 +13,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F4F2E9"
+        "backgroundColor": "#FFF6F9"
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "template": "./public/index.html"
     }
   }
 }

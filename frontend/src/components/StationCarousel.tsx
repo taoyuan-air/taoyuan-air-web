@@ -277,23 +277,22 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
   // 根據數值決定顏色
   const getBarColor = (value: number, isPrediction: boolean = false) => {
-    if (!isPrediction) {
-      let baseColor: string;
-      if (value <= 0.3) baseColor = 'rgba(106, 190, 116'; // 綠色 - 低
-      else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
-      else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高 
-      else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
-
-      const opacity = ', 0.8)'; // 非預測使用較不透明的樣式
-      return baseColor + opacity;
+    // 1. 如果是預測數據，使用不同深度的灰色
+    if (isPrediction) {
+      if (value <= 0.3) return 'rgba(224, 224, 224, 0.6)'; // 淺灰 (對應 綠色等級)
+      if (value <= 0.5) return 'rgba(189, 189, 189, 0.6)'; // 次淺灰 (對應 黃色等級)
+      if (value <= 0.7) return 'rgba(117, 117, 117, 0.6)'; // 中深灰 (對應 紅色等級)
+      return 'rgba(66, 66, 66, 0.6)';                   // 深灰 (對應 紫色等級)
     }
 
-    // 預測：灰階（數值越高越黑、越低越白）
-    const gray = Math.round(255 * (1 - value)); // 灰階強度
-    const baseColor = `rgba(${gray},${gray},${gray}`;
+    // 2. 如果是真實數據，使用原本的彩色系統
+    let baseColor;
+    if (value <= 0.3) baseColor = 'rgba(231, 101, 149'; // 主色系 - 低
+    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
+    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
 
-    const opacity = ', 0.5)'; // 預測使用更透明的樣式
-    return baseColor + opacity;
+    return baseColor + ', 0.8)';
   };
 
   const maxHeight = 56;  // 從48增加到56 (+17%)
@@ -325,7 +324,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
                     backgroundColor: getBarColor(value, isPrediction),
                     marginRight: index < displayData.length - 1 ? barSpacing : 0,
                     borderWidth: isNow ? 1 : 0,
-                    borderColor: isNow ? '#7FAE8A' : 'transparent',
+                    borderColor: isNow ? '#FBA7BC' : 'transparent',
                   },
                 ]}
               />
@@ -376,7 +375,8 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 const DistrictCard: React.FC<{
   district: DistrictData;
   moeOverride?: { pm25: number; o3: number; aqi: number };
-}> = ({ district, moeOverride }) => {
+  updateTime?: string;
+}> = ({ district, moeOverride, updateTime }) => {
   const displayPm25 = moeOverride?.pm25 ?? district.pm25;
   const displayO3 = moeOverride?.o3 ?? district.o3;
   const displayAqi = moeOverride?.aqi ?? district.aqi;
@@ -416,11 +416,13 @@ const DistrictCard: React.FC<{
         <View style={styles.cardInner}>
           <View style={styles.cardHeader}>
             <Text style={styles.stationName}>{district.name}</Text>
-            <Text style={styles.updateTime}>Updated 10:37</Text>
+            <Text style={styles.updateTime}>
+              {updateTime ? `Updated ${updateTime}` : 'Updated --:--'}
+            </Text>
           </View>
 
           <View style={styles.stationTypeRow}>
-            <Feather name="map-pin" size={13} color="#7FAE8A" />
+            <Feather name="map-pin" size={13} color="#FBA7BC" />
             <Text style={styles.stationType}>{district.region}</Text>
           </View>
 
@@ -441,17 +443,17 @@ const DistrictCard: React.FC<{
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>AQI</Text>
-              <Text style={[styles.metricValue, { color: "#7FAE8A" }]}>
+              <Text style={[styles.metricValue, { color: "#FBA7BC" }]}>
                 {displayAqi}
               </Text>
             </View>
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={[styles.statusBadge, { color: "#7FAE8A" }]}>
+            <Text style={[styles.statusBadge, { color: "#FBA7BC" }]}>
               {district.status}
             </Text>
-            <Text style={styles.trendLabel}>24hr Trend</Text>
+            <Text style={styles.trendLabel}>PM2.5 Trend</Text>
           </View>
 
           <View style={styles.trendContainer}>
@@ -463,27 +465,34 @@ const DistrictCard: React.FC<{
   );
 };
 
-export const StationCarousel: React.FC = () => {
+export const StationCarousel: React.FC<{
+  onAqiResolved?: (aqi: number) => void;
+  onDistrictResolved?: (district: string) => void;
+}> = ({ onAqiResolved, onDistrictResolved }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
-  const [moeDataMap, setMoeDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number }>>({});
+  const [moeDataMap, setMoeDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }>>({});
 
   useEffect(() => {
-    fetchMoeStations()
-      .then((stations) => {
-        console.log('[MOE] 取得的 stations:', stations);
-        const map: Record<string, { pm25: number; o3: number; aqi: number }> = {};
-        stations.forEach((s) => {
-          const districtName = MOE_STATION_TO_DISTRICT[s.sitename];
-          if (districtName) {
-            map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi };
-          }
-        });
-        console.log('[MOE] 建立的 map:', map);
-        setMoeDataMap(map);
-      })
-      .catch((err) => console.warn('[MOE] 資料載入失敗，使用模擬資料:', err));
+  const fmt = (raw?: string) => {
+    if (!raw) return undefined;
+    const m = raw.match(/(\d{1,2}):(\d{2})/);
+    return m ? `${m[1].padStart(2,'0')}:${m[2]}` : undefined;
+  };
+  fetchMoeStations()
+    .then((stations) => {
+      const map: Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }> = {};
+      stations.forEach((s) => {
+        const districtName = MOE_STATION_TO_DISTRICT[s.sitename];
+        if (districtName) {
+          const rawTime = s.datacreationdate ?? (s as any).time ?? (s as any).publishtime;
+          map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi, updateTime: fmt(rawTime) };
+        }
+      });
+      setMoeDataMap(map);
+    })
+    .catch((err) => console.warn('[MOE] 資料載入失敗:', err));
   }, []);
 
   const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
@@ -512,6 +521,20 @@ export const StationCarousel: React.FC = () => {
       setDefaultDistrict(nearest);
     }
   }, [location, permission]);
+
+  useEffect(() => {
+    // Notify parent of the resolved district name
+    onDistrictResolved?.(defaultDistrict);
+
+    if (!onAqiResolved) return;
+    const entry = moeDataMap[defaultDistrict];
+    if (entry) {
+      onAqiResolved(entry.aqi);
+    } else {
+      const d = DISTRICTS.find(d => d.name === defaultDistrict);
+      if (d) onAqiResolved(d.aqi);
+    }
+  }, [moeDataMap, defaultDistrict, onAqiResolved, onDistrictResolved]);
 
   // 初始化滾動位置
   useEffect(() => {
@@ -570,13 +593,13 @@ export const StationCarousel: React.FC = () => {
       {/* 定位狀態提示 */}
       {isLoading && (
         <View style={styles.locationStatus}>
-          <Feather name="map-pin" size={14} color="#7FAE8A" />
+          <Feather name="map-pin" size={14} color="#FBA7BC" />
           <Text style={styles.locationStatusText}>正在獲取您的位置...</Text>
         </View>
       )}
       {permission === 'granted' && location && (
         <View style={styles.locationStatus}>
-          <Feather name="check-circle" size={14} color="#7FAE8A" />
+          <Feather name="check-circle" size={14} color="#FBA7BC" />
           <Text style={styles.locationStatusText}>已定位到 {defaultDistrict}</Text>
         </View>
       )}
@@ -666,7 +689,11 @@ export const StationCarousel: React.FC = () => {
                 },
               ]}
             >
-              <DistrictCard district={district} moeOverride={moeDataMap[district.name]} />
+              <DistrictCard
+                district={district}
+                moeOverride={moeDataMap[district.name]}
+                updateTime={moeDataMap[district.name]?.updateTime}
+              />
             </Animated.View>
           );
         })}
@@ -711,7 +738,7 @@ export const StationCarousel: React.FC = () => {
                   {
                     width: dotWidth,
                     opacity: dotOpacity,
-                    backgroundColor: "#7FAE8A",
+                    backgroundColor: "#FBA7BC",
                   },
                 ]}
               />
@@ -740,11 +767,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignSelf: "center",
     borderWidth: 1,
-    borderColor: "rgba(127, 174, 138, 0.2)",
+    borderColor: "rgba(251, 167, 188, 0.2)",
   },
   locationStatusText: {
     fontSize: 12,
-    color: "#7FAE8A",
+    color: "#FBA7BC",
     fontWeight: "500",
   },
   locationStatusTextGray: {
@@ -766,7 +793,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "rgba(127, 174, 138, 0.38)",
+    backgroundColor: "rgba(251, 167, 188, 0.38)",
     zIndex: 0,
   },
   cardBlob2: {
@@ -776,7 +803,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(168, 216, 227, 0.35)",
+    backgroundColor: "rgba(248, 208, 218, 0.35)",
     zIndex: 0,
   },
   card: {
@@ -799,7 +826,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(219, 239, 246, 0.12)",
+    backgroundColor: "rgba(248, 208, 218, 0.12)",
   },
   edgeHighlight: {
     position: "absolute",
@@ -858,7 +885,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.4,
-    color: "#7FAE8A",
+    color: "#FBA7BC",
   },
   metricsRow: {
     flexDirection: "row",
@@ -940,7 +967,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   timeLabelNow: {
-    color: "#7FAE8A",
+    color: "#FBA7BC",
     fontWeight: "700",
     fontSize: 10,
   },
@@ -952,7 +979,7 @@ const styles = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: "#7FAE8A",
+    backgroundColor: "#FBA7BC",
     marginTop: 2,
   },
   pagination: {

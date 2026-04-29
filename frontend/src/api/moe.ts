@@ -13,6 +13,7 @@ export interface MoeStationData {
   pm25: number;
   o3: number;
   nox: number;
+  datacreationdate?: string;
 }
 
 // 取得 MOE 目標測站的即時空氣品質資料。
@@ -40,31 +41,30 @@ export const fetchMoeStations = async (): Promise<MoeStationData[]> => {
   try {
     // 針對每個站點發出請求，並同時等待全部完成
     const stationUrls = MOE_TARGET_STATIONS.map(buildUrl);
-    const responses = await Promise.all(
+    const settledResponses = await Promise.allSettled(
       stationUrls.map(url =>
         fetch(url).then(async res => {
           if (!res.ok) {
-            // 把錯誤內容也印出，方便除錯（金鑰錯誤、配額用盡等）
             const errorText = await res.text();
-            throw new Error(
-              `MOE API 錯誤 ${res.status} ${res.statusText}: ${errorText.slice(0, 200)}`
-            );
+            throw new Error(`MOE API 錯誤 ${res.status} ${res.statusText}: ${errorText.slice(0, 200)}`);
           }
           return res.json();
         })
       )
     );
 
-    // 合併所有回應的 records（修正：API 直接回傳陣列，不是 { records: [...] }）
+    // 合併所有回應的 records
     let allRecords: any[] = [];
-    responses.forEach((r, index) => {
-      // 檢查回應是陣列還是物件
+    settledResponses.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.warn(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 請求失敗:`, result.reason);
+        return;
+      }
+      const r = result.value;
       if (Array.isArray(r)) {
         allRecords = allRecords.concat(r);
-        console.log(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 取得 ${r.length} 筆資料`);
       } else if (r && r.records) {
         allRecords = allRecords.concat(r.records);
-        console.log(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 取得 ${r.records.length} 筆資料 (來自 records 欄位)`);
       } else {
         console.warn(`[MOE] 站點 ${MOE_TARGET_STATIONS[index]} 回應格式異常:`, r);
       }
@@ -79,10 +79,10 @@ export const fetchMoeStations = async (): Promise<MoeStationData[]> => {
       pm25: Number(record['pm2.5']) || 0,
       o3: Number(record.o3) || 0,
       nox: Number(record.nox) || 0,
+      datacreationdate: record.publishtime ?? undefined,
     }));
   } catch (err) {
     console.error('[MOE] 拉取資料失敗:', err);
-    // 依照需求決定要拋錯還是回傳空陣列；這裡選擇回傳空陣列以免 UI 因例外而掛掉
     return [];
   }
 };

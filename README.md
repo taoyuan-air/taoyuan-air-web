@@ -1,22 +1,42 @@
 ## 快速開始
 
-### 📋 環境需求
+### 環境需求
 
 - **Node.js 18+**
 - **Docker Desktop** (用於資料庫)
 - **npm** 或 **yarn**
 - **手機** 或 **模擬器**
 
-### 📱 手機準備
+### 手機準備
 
 在手機上安裝 **Expo Go** 應用程式：
 
 - [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
 - [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
 
-### 💻 安裝與運行
+### 安裝與運行
 
-#### 1. 啟動資料庫服務
+#### 1. 環境配置
+
+```bash
+# 複製環境變數檔案
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+編輯環境變數檔案：
+
+```bash
+# .env
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+
+# frontend/.env
+EXPO_PUBLIC_EPA_API_KEY=
+```
+
+#### 2. 啟動資料庫服務
 
 ```bash
 # 啟動 PostgreSQL + PostGIS + Redis
@@ -29,7 +49,7 @@ docker-compose ps
 scripts\check_db.bat
 ```
 
-#### 2. 啟動前端應用
+#### 3. 啟動前端應用
 
 ```bash
 # 進入前端目錄
@@ -49,14 +69,14 @@ npm run web      # 網頁版 (開發測試用)
 
 使用 Expo Go 掃描終端機中的 QR 碼即可在手機上運行。
 
-## 🛠 技術架構
+## 技術架構
 
 ### 主要技術棧
 
 ```json
 {
-  "前端": "React Native + Expo",
-  "語言": "TypeScript",
+  "前端": "React Native + Expo 54",
+  "語言": "TypeScript 5.9",
   "資料庫": "PostgreSQL 15 + PostGIS 3.3",
   "快取": "Redis 7",
   "容器化": "Docker + Docker Compose"
@@ -67,10 +87,10 @@ npm run web      # 網頁版 (開發測試用)
 
 - **PostgreSQL 15** - 主要資料庫
 - **PostGIS 3.3** - 空間資料擴充功能
-- **Redis 7** - 快取層
+- **Redis 7** - 快取層與會話管理
 - **Docker Volume** - 資料持久化
 
-## 🗄️ 資料庫管理
+## 資料庫管理
 
 ### 連線資訊
 
@@ -93,6 +113,9 @@ scripts\restore_db.bat [備份檔案路徑]
 
 # 檢查資料庫狀態
 scripts\check_db.bat
+
+# 設定 EPA 資料庫
+scripts\setup_epa_db.bat
 
 # 停止服務
 docker-compose down
