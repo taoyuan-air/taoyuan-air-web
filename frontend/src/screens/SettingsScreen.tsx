@@ -17,7 +17,7 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   return (
-    <LinearGradient colors={["#F4F2E9", "#E8E6D3"]} style={styles.container}>
+    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
@@ -49,7 +49,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#6A8D73" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#E76595" }]}
                 >
                   <Feather name="shield" size={20} color="white" />
                 </View>
@@ -63,7 +63,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#B5C99A" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#FBA7BC" }]}
                 >
                   <Feather name="user-check" size={20} color="white" />
                 </View>
@@ -77,7 +77,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#6A8D73" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#E76595" }]}
                 >
                   <Feather name="heart" size={20} color="white" />
                 </View>
@@ -93,7 +93,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#B5C99A" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#FBA7BC" }]}
                 >
                   <Feather name="bell" size={20} color="white" />
                 </View>
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -8,
     right: -4,
-    backgroundColor: "#6A8D73",
+    backgroundColor: "#E76595",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   settingSubtitle: {
     fontSize: 12,
-    color: "#6A8D73",
+    color: "#E76595",
     marginTop: 2,
   },
   logoutButton: {

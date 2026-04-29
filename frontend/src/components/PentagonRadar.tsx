@@ -57,19 +57,19 @@ export const PentagonRadar: React.FC<PentagonRadarProps> = ({
         <Polygon
           points={generatePentagon(1)}
           fill="none"
-          stroke="rgba(143,169,111,0.2)"
+          stroke="rgba(231,101,149,0.2)"
           strokeWidth="1"
         />
         <Polygon
           points={generatePentagon(0.7)}
           fill="none"
-          stroke="rgba(143,169,111,0.25)"
+          stroke="rgba(231,101,149,0.25)"
           strokeWidth="1"
         />
         <Polygon
           points={generatePentagon(0.4)}
           fill="none"
-          stroke="rgba(143,169,111,0.3)"
+          stroke="rgba(231,101,149,0.3)"
           strokeWidth="1"
         />
         
@@ -83,7 +83,7 @@ export const PentagonRadar: React.FC<PentagonRadarProps> = ({
               y1={center}
               x2={point.x}
               y2={point.y}
-              stroke="rgba(143,169,111,0.3)"
+              stroke="rgba(231,101,149,0.3)"
               strokeWidth="1"
             />
           );
@@ -92,8 +92,8 @@ export const PentagonRadar: React.FC<PentagonRadarProps> = ({
         {/* 數據多邊形 */}
         <Polygon
           points={generateDataPolygon()}
-          fill="rgba(120,170,140,0.35)"
-          stroke="rgba(120,170,140,0.8)"
+          fill="rgba(251,167,188,0.35)"
+          stroke="rgba(231,101,149,0.8)"
           strokeWidth="2"
         />
         
@@ -102,7 +102,7 @@ export const PentagonRadar: React.FC<PentagonRadarProps> = ({
           cx={center}
           cy={center}
           r="2"
-          fill="#8FA96F"
+          fill="#E76595"
         />
       </Svg>
       
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#555A4F',
+    color: '#7F5A6A',
     textAlign: 'center',
     width: 30,
   },
