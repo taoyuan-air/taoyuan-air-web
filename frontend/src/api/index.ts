@@ -99,7 +99,7 @@ export const getMeta = async (): Promise<Meta> => {
     forecastHorizonHours: 24,
     gridSizeKm: 3,
     lastUpdate: new Date().toISOString(),
-    role: 'epa'
+    role: 'moe'
   };
 };
 

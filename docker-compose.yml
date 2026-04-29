@@ -1,8 +1,7 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgis/postgis:15-3.3
+    platform: linux/amd64
     container_name: taoyuan-air-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

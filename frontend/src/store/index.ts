@@ -37,7 +37,7 @@ interface AppState {
 
 export const useStore = create<AppState>((set) => ({
   // Initial state
-  role: 'epa',
+  role: 'moe',
   mode: 'NOW',
   selectedPollutant: 'PM25',
   selectedTimestamp: new Date().toISOString(),

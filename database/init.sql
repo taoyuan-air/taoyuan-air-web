@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS realtime_air_quality_current PARTITION OF realtime_ai
 
 -- 插入預設資料來源類型
 INSERT INTO data_source_types (source_type_id, source_name, description, measurement_frequency, data_quality_level) VALUES
-('EPA', '環保署空品測站', '環境部空氣品質監測網標準測站', '每小時', 'high'),
+('MOE', '環保署空品測站', '環境部空氣品質監測網標準測站', '每小時', 'high'),
 ('CWA', '中央氣象署測站', '中央氣象署自動氣象站', '每10分鐘', 'high'),
 ('IoT', '微型感測器', '空氣盒子、LASS等微型感測器', '每5分鐘', 'medium'),
 ('Lidar', '光達', '中央大學光達垂直剖面觀測', '每15分鐘', 'high'),

@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { fetchEpaStations, EpaStationData } from '../api/epa';
+import { fetchMoeStations, MoeStationData } from '../api/moe';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -166,7 +166,7 @@ const DISTRICT_COORDINATES: Record<string, { latitude: number; longitude: number
   "新屋區": { latitude: 24.9697, longitude: 121.1063 },
   "復興區": { latitude: 24.8186, longitude: 121.3496 },
 };
-const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+const MOE_STATION_TO_DISTRICT: Record<string, string> = {
   '中壢': '中壢區',
   '桃園': '桃園區',
   '大園': '大園區',
@@ -374,12 +374,12 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
 const DistrictCard: React.FC<{
   district: DistrictData;
-  epaOverride?: { pm25: number; o3: number; aqi: number };
+  moeOverride?: { pm25: number; o3: number; aqi: number };
   updateTime?: string;
-}> = ({ district, epaOverride, updateTime }) => {
-  const displayPm25 = epaOverride?.pm25 ?? district.pm25;
-  const displayO3 = epaOverride?.o3 ?? district.o3;
-  const displayAqi = epaOverride?.aqi ?? district.aqi;
+}> = ({ district, moeOverride, updateTime }) => {
+  const displayPm25 = moeOverride?.pm25 ?? district.pm25;
+  const displayO3 = moeOverride?.o3 ?? district.o3;
+  const displayAqi = moeOverride?.aqi ?? district.aqi;
   return (
     <View style={styles.cardContainer}>
       {/* Blobs inside card for blur effect */}
@@ -472,7 +472,7 @@ export const StationCarousel: React.FC<{
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
-  const [epaDataMap, setEpaDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }>>({});
+  const [moeDataMap, setMoeDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }>>({});
 
   useEffect(() => {
   const fmt = (raw?: string) => {
@@ -480,19 +480,19 @@ export const StationCarousel: React.FC<{
     const m = raw.match(/(\d{1,2}):(\d{2})/);
     return m ? `${m[1].padStart(2,'0')}:${m[2]}` : undefined;
   };
-  fetchEpaStations()
+  fetchMoeStations()
     .then((stations) => {
       const map: Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }> = {};
       stations.forEach((s) => {
-        const districtName = EPA_STATION_TO_DISTRICT[s.sitename];
+        const districtName = MOE_STATION_TO_DISTRICT[s.sitename];
         if (districtName) {
           const rawTime = s.datacreationdate ?? (s as any).time ?? (s as any).publishtime;
           map[districtName] = { pm25: s.pm25, o3: s.o3, aqi: s.aqi, updateTime: fmt(rawTime) };
         }
       });
-      setEpaDataMap(map);
+      setMoeDataMap(map);
     })
-    .catch((err) => console.warn('[EPA] 資料載入失敗:', err));
+    .catch((err) => console.warn('[MOE] 資料載入失敗:', err));
   }, []);
 
   const [defaultDistrict, setDefaultDistrict] = useState("中壢區");
@@ -527,14 +527,14 @@ export const StationCarousel: React.FC<{
     onDistrictResolved?.(defaultDistrict);
 
     if (!onAqiResolved) return;
-    const entry = epaDataMap[defaultDistrict];
+    const entry = moeDataMap[defaultDistrict];
     if (entry) {
       onAqiResolved(entry.aqi);
     } else {
       const d = DISTRICTS.find(d => d.name === defaultDistrict);
       if (d) onAqiResolved(d.aqi);
     }
-  }, [epaDataMap, defaultDistrict, onAqiResolved, onDistrictResolved]);
+  }, [moeDataMap, defaultDistrict, onAqiResolved, onDistrictResolved]);
 
   // 初始化滾動位置
   useEffect(() => {
@@ -691,8 +691,8 @@ export const StationCarousel: React.FC<{
             >
               <DistrictCard
                 district={district}
-                epaOverride={epaDataMap[district.name]}
-                updateTime={epaDataMap[district.name]?.updateTime}
+                moeOverride={moeDataMap[district.name]}
+                updateTime={moeDataMap[district.name]?.updateTime}
               />
             </Animated.View>
           );
