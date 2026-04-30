@@ -395,7 +395,7 @@ interface DashboardScreenProps {
   scrollRef?: (ref: any) => void;
 }
 
-export const DashboardScreen: React.FC<DashboardScreenProps> = ({
+export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   scrollRef,
 }) => {
   const {

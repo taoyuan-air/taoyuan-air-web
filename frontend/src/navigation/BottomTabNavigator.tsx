@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
-import { DashboardScreen } from "../screens/DashboardScreen";
+import { DashboardScreen } from "../screens/DashboardScreen.web";
 import { MapScreen } from "../screens/MapScreen";
 import { ExplorerScreen } from "../screens/ExplorerScreen";
 import { EventsScreen } from "../screens/EventsScreen";
