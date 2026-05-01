@@ -415,7 +415,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   // Only render on web viewports >= 768px; mobile uses DashboardScreenMobile.tsx
   if (windowWidth < Layout.breakpoints.mobile) return <DashboardScreenMobile/>;
 
-  const isDesktop = screenWidth >= Layout.breakpoints.desktop;
+  const isDesktop = windowWidth >= Layout.breakpoints.desktop;
+  const isTablet = windowWidth >= Layout.breakpoints.mobile && windowWidth < Layout.breakpoints.tablet;
 
   const dynStyles = {
     headerWrap:  { paddingHorizontal: isDesktop ? 48 : 28, paddingTop: 28 },
@@ -571,6 +572,30 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 <Text style={S.adviceText}>{activ.advice}</Text>
               </View>
             </View>
+
+            {/* Tablet: Current weather */}
+            {isTablet && (
+              <View style={S.glassCard}>
+                <SecLabel title="當前天氣" sub="Current Weather" />
+                <View style={S.wxHero}>
+                  <View>
+                    <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
+                    <Text style={S.wxDesc}>{currentWeather.weather}</Text>
+                    <Text style={S.wxHL}>H {currentWeather.dailyHigh}° · L {currentWeather.dailyLow}°</Text>
+                  </View>
+                  <View style={S.wxIconCircle}>
+                    <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
+                  </View>
+                </View>
+                <View style={S.wxStats}>
+                  <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
+                  <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
+                  <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
+                </View>
+              </View>
+            )}
+
+            
           </View>
 
           {/* MIDDLE */}
@@ -610,40 +635,52 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 </View>
               </View>
             </View>
-          </View>
-
-          {/* RIGHT */}
-          <View style={[S.rightCol, dynStyles.rightCol]}>
-            {/* Current weather */}
-            <View style={S.glassCard}>
-              <SecLabel title="當前天氣" sub="Current Weather" />
-              <View style={S.wxHero}>
-                <View>
-                  <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
-                  <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                  <Text style={S.wxHL}>H {currentWeather.dailyHigh}° · L {currentWeather.dailyLow}°</Text>
-                </View>
-                <View style={S.wxIconCircle}>
-                  <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
+            {/* Tablet: 3-day forecast */}
+            {isTablet && (
+              <View style={S.glassCard}>
+                <SecLabel title="三日預報" sub="3-Day Forecast" />
+                <View style={S.fcRow}>
+                  {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
                 </View>
               </View>
-              <View style={S.wxStats}>
-                <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
-                <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
-                <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
-              </View>
-            </View>
+            )}
 
-            {/* 3-day forecast */}
-            <View style={S.glassCard}>
-              <SecLabel title="三日預報" sub="3-Day Forecast" />
-              <View style={S.fcRow}>
-                {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
+          </View>
+
+          
+          {/* RIGHT - Hidden on tablet, shown on desktop */}
+          {!isTablet && (
+            <View style={[S.rightCol, dynStyles.rightCol]}>
+              {/* Current weather */}
+              <View style={S.glassCard}>
+                <SecLabel title="當前天氣" sub="Current Weather" />
+                <View style={S.wxHero}>
+                  <View>
+                    <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
+                    <Text style={S.wxDesc}>{currentWeather.weather}</Text>
+                    <Text style={S.wxHL}>H {currentWeather.dailyHigh}° · L {currentWeather.dailyLow}°</Text>
+                  </View>
+                  <View style={S.wxIconCircle}>
+                    <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
+                  </View>
+                </View>
+                <View style={S.wxStats}>
+                  <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
+                  <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
+                  <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
+                </View>
+              </View>
+
+              {/* 3-day forecast */}
+              <View style={S.glassCard}>
+                <SecLabel title="三日預報" sub="3-Day Forecast" />
+                <View style={S.fcRow}>
+                  {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </View>
-
         <View style={{ height: 60 }} />
       </ScrollView>
 
@@ -720,7 +757,7 @@ const S = StyleSheet.create({
     alignItems: "flex-start",
   },
   leftCol:  { width: 260, gap: GAP },
-  midCol:   { flex: 1, gap: GAP, minWidth: 280 },
+  midCol:   { flex: 1, gap: GAP, minWidth: 380 },
   rightCol: { width: 230, gap: GAP },
 
   // Section label
@@ -796,6 +833,6 @@ const S = StyleSheet.create({
   fcWeekday:  { fontSize: 11, fontWeight: "700", color: C.text },
   fcDate:     { fontSize: 10, color: C.hint, marginBottom: 4 },
   fcWeather:  { fontSize: 10, color: C.muted, textAlign: "center" },
-  fcTemps:    { fontSize: 12, fontWeight: "600", color: C.text, marginTop: 3 },
+  fcTemps:    { fontSize: 9, fontWeight: "600", color: C.text, marginTop: 3 },
   fcPop:      { fontSize: 10, color: C.hint, marginTop: 2 },
 });
