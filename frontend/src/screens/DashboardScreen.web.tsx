@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useStore } from "../store";
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from "../api";
-import { fetchEpaStations } from "../api/epa";
+import { fetchMoeStations } from "../api/moe";
 import Svg, {
   Circle,
   Defs,
@@ -472,7 +472,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   useEffect(() => {
     const s = DISTRICT_STATIC_AQ[displayDistrict];
     if (s) { setLocatedPm25(s.pm25); setLocatedO3(s.o3); setLocatedAqi(s.aqi); }
-    fetchEpaStations().then((stations) => {
+    fetchMoeStations().then((stations) => {
       const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === displayDistrict)?.[0];
       if (!sitename) return;
       const st = stations.find((s) => s.sitename === sitename);
