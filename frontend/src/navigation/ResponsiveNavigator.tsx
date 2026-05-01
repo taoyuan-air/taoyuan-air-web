@@ -5,10 +5,10 @@ import { Feather } from '@expo/vector-icons';
 import { Colors } from '../styles/theme';
 import { Layout, isWeb } from '../styles/responsive';
 import { WebHeader } from '../components/WebHeader';
-
-import { DashboardScreen } from '../screens/DashboardScreen';
+import { DashboardScreen } from '../screens/DashboardScreen.web';
 import { ExplorerScreen } from '../screens/ExplorerScreen';
 import { AlertsScreen } from '../screens/AlertsScreen';
+import { DashboardScreenMobile } from '../screens';
 
 // 根據平台和螢幕大小導入不同的組件
 const MapScreen = isWeb 
@@ -59,12 +59,11 @@ export const ResponsiveNavigator: React.FC = () => {
     const MobileMapScreen = getMobileMapScreen();
     
     switch (currentRoute) {
-      case 'Dashboard': return <DashboardScreen />;
+      case 'Dashboard': return useMobileLayout ? <DashboardScreenMobile /> : <DashboardScreen />;
       case 'Map': return useMobileLayout ? <MobileMapScreen /> : <MapScreen />;
       case 'Explorer': return <ExplorerScreen />;
       case 'Events': return <EventsScreen />;
       case 'Alerts': return <AlertsScreen />;
-      default: return <DashboardScreen />;
     }
   };
 
@@ -174,17 +173,15 @@ const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
     backgroundColor: Colors.background,
-    minHeight: '100vh',
+    paddingTop: 10,
   },
   webContent: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingTop: 100, // 為固定導航列留出空間
-    minHeight: 'calc(100vh - 100px)',
+    paddingTop: 100,
   },
   mobileContainer: {
     flex: 1,
     backgroundColor: Colors.background,
-    minHeight: '100vh',
   },
 });

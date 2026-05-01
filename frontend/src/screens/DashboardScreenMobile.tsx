@@ -395,7 +395,7 @@ interface DashboardScreenProps {
   scrollRef?: (ref: any) => void;
 }
 
-export const DashboardScreen: React.FC<DashboardScreenProps> = ({
+export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   scrollRef,
 }) => {
   const {
@@ -830,7 +830,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFF6F9",
-    paddingTop: 20,
   },
   loadingContainer: {
     flex: 1,
