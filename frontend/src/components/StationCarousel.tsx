@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -15,10 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { fetchMoeStations, MoeStationData } from '../api/moe';
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.75;
-const CARD_SPACING = 16;
-const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+
 
 interface DistrictData {
   name: string;
@@ -473,6 +471,11 @@ export const StationCarousel: React.FC<{
   const scrollViewRef = useRef<ScrollView>(null);
   const { location, permission, isLoading } = useUserLocation();
   const [moeDataMap, setMoeDataMap] = useState<Record<string, { pm25: number; o3: number; aqi: number; updateTime?: string }>>({});
+  
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const CARD_WIDTH = SCREEN_WIDTH * 0.75;
+  const CARD_SPACING = 16;
+  const SIDE_SPACING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 
   useEffect(() => {
   const fmt = (raw?: string) => {
@@ -676,7 +679,7 @@ export const StationCarousel: React.FC<{
             <Animated.View
               key={`${district.name}-${index}`}
               style={[
-                styles.cardWrapper,
+                { width: CARD_WIDTH, marginRight: CARD_SPACING },
                 {
                   transform: [{ scale }, { translateY }],
                   opacity,
@@ -778,10 +781,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
     fontWeight: "500",
-  },
-  cardWrapper: {
-    width: CARD_WIDTH,
-    marginRight: CARD_SPACING,
   },
   cardContainer: {
     // No shadow here - only on wrapper
