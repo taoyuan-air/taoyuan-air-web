@@ -10,14 +10,14 @@ import { Feather } from "@expo/vector-icons";
 import { useStore } from "../store";
 import { TopNavigation } from "../navigation/TopNavigation";
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from "../api";
-import { fetchEpaStations } from "../api/epa";
+import { fetchMoeStations } from "../api/moe";
 import { StationCarousel } from "../components";
 import Svg, { Circle } from "react-native-svg";
 
 const CWA_API_KEY = process.env.EXPO_PUBLIC_CWA_API_KEY;
 
-// ─── EPA 測站 → 行政區對照 ────────────────────────────────────────────────────
-const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+// ─── MOE 測站 → 行政區對照 ────────────────────────────────────────────────────
+const MOE_STATION_TO_DISTRICT: Record<string, string> = {
   中壢: "中壢區",
   桃園: "桃園區",
   大園: "大園區",
@@ -433,7 +433,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
 }, [currentDistrict]);
 
-  // 空氣品質：先以靜態資料同步 Carousel，有 EPA 測站時再以即時值覆蓋
+  // 空氣品質：先以靜態資料同步 Carousel，有 MOE 測站時再以即時值覆蓋
   useEffect(() => {
     // Step 1：靜態資料 fallback，確保與 Carousel 永遠一致
     const staticData = DISTRICT_STATIC_AQ[currentDistrict];
@@ -441,10 +441,10 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
       setLocatedPm25(staticData.pm25);
       setLocatedO3(staticData.o3);
     }
-    // Step 2：若該區有 EPA 測站，以即時值覆蓋
-    fetchEpaStations()
+    // Step 2：若該區有 MOE 測站，以即時值覆蓋
+    fetchMoeStations()
       .then((stations) => {
-        const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(
+        const sitename = Object.entries(MOE_STATION_TO_DISTRICT).find(
           ([, dist]) => dist === currentDistrict,
         )?.[0];
         if (!sitename) return; // 無測站 → 保留 Step 1 的靜態值
@@ -455,7 +455,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
           // AQI 已由 StationCarousel 的 onAqiResolved 負責更新
         }
       })
-      .catch((err) => console.warn("[EPA] 資料載入失敗:", err));
+      .catch((err) => console.warn("[MOE] 資料載入失敗:", err));
   }, [currentDistrict]);
 
   const loadData = async () => {

@@ -21,7 +21,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const [selectedTimeFilter, setSelectedTimeFilter] = useState("近24小時");
   const [selectedPollutantFilter, setSelectedPollutantFilter] = useState("PM2.5");
   const [selectedRegionFilter, setSelectedRegionFilter] = useState("全市");
-  const [selectedDataSources, setSelectedDataSources] = useState<string[]>(["EPA"]);
+  const [selectedDataSources, setSelectedDataSources] = useState<string[]>(["MOE"]);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [showPollutantFilter, setShowPollutantFilter] = useState(false);
   const [showRegionFilter, setShowRegionFilter] = useState(false);
@@ -30,7 +30,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const timeOptions = ["近24小時", "近3天", "近7天"];
   const pollutantOptions = ["PM2.5", "O3", "NOX", "VOCs"];
   const regionOptions = ["全市", "桃園區", "中壢區", "大園區", "觀音區"];
-  const dataSourceOptions = ["EPA", "微感測", "光達", "LUV"];
+  const dataSourceOptions = ["MOE", "微感測", "光達", "LUV"];
 
   const toggleDataSource = (source: string) => {
     setSelectedDataSources(prev => 
@@ -50,7 +50,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       pollutant: "PM2.5",
       value: 12,
       unit: "μg/m³",
-      source: "EPA",
+      source: "MOE",
       version: "v2.1",
       color: "#E76595",
       timeCategory: "近24小時",
@@ -95,7 +95,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       pollutant: "O3",
       value: 35,
       unit: "ppb",
-      source: "EPA",
+      source: "MOE",
       version: "v2.1",
       color: "#E76595",
       timeCategory: "近24小時",
@@ -155,7 +155,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       pollutant: "O3",
       value: 28,
       unit: "ppb",
-      source: "EPA",
+      source: "MOE",
       version: "v2.1",
       color: "#E76595",
       timeCategory: "近3天",
@@ -215,7 +215,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       pollutant: "O3",
       value: 31,
       unit: "ppb",
-      source: "EPA",
+      source: "MOE",
       version: "v2.1",
       color: "#E76595",
       timeCategory: "近7天",

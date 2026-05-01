@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-EPA 測站資料匯入腳本
-自動讀取 epa-stations-data 目錄下的 JSON 檔案並匯入資料庫
+MOE 測站資料匯入腳本
+自動讀取 moe-stations-data 目錄下的 JSON 檔案並匯入資料庫
 """
 
 import os
@@ -9,6 +9,7 @@ import json
 import psycopg2
 from psycopg2.extras import execute_batch
 from pathlib import Path
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # 載入環境變數
@@ -33,14 +34,14 @@ DB_CONFIG = {
     'password': os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
 }
 
-# 測站 ID 對應（目前只有 5 個測站）
+# 測站 ID 對應
 STATION_MAPPING = {
     'AQX_P_205': '17',  # 桃園
     'AQX_P_206': '18',  # 大園
     'AQX_P_207': '19',  # 觀音
     'AQX_P_208': '20',  # 平鎮
     'AQX_P_209': '21',  # 龍潭
-    # 'AQX_P_210': '22',  # 中壢（尚未取得資料）
+    'AQX_P_255': '68',  # 中壢
 }
 
 def connect_db():
@@ -53,6 +54,37 @@ def connect_db():
         print(f"[ERROR] 資料庫連線失敗: {e}")
         return None
 
+
+def ensure_moe_hourly_schema(conn):
+    """補齊 moe_hourly_data 的 V2 欄位，避免舊資料庫結構造成匯入失敗。"""
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            ALTER TABLE IF EXISTS public.moe_hourly_data
+            ADD COLUMN IF NOT EXISTS period_start TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS period_end TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'history';
+            """
+        )
+        cursor.execute(
+            """
+            UPDATE public.moe_hourly_data
+            SET source = 'history'
+            WHERE source IS NULL;
+            """
+        )
+        conn.commit()
+        print("[OK] 已確認 moe_hourly_data 欄位相容（period_start/period_end/source）")
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] 資料表結構修復失敗: {e}")
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
 def parse_concentration(value):
     """解析濃度值，處理 'x' 等無效值"""
     if value is None or value == '' or value == 'x':
@@ -61,6 +93,18 @@ def parse_concentration(value):
         return float(value)
     except (ValueError, TypeError):
         return None
+
+
+def parse_monitor_date(value):
+    """將 MOE 時間字串轉為 datetime，支援有/無秒格式。"""
+    if not value:
+        return None
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
 
 def import_json_file(conn, file_path, station_id):
     """匯入單一 JSON 檔案"""
@@ -78,10 +122,16 @@ def import_json_file(conn, file_path, station_id):
         # 準備批次插入資料
         insert_data = []
         invalid_count = 0
+        skipped_count = 0
         
         for record in data:
             concentration = record.get('concentration')
             concentration_numeric = parse_concentration(concentration)
+            monitor_date = parse_monitor_date(record.get('monitordate'))
+
+            if monitor_date is None:
+                skipped_count += 1
+                continue
             
             # 判斷資料品質
             if concentration_numeric is None:
@@ -92,29 +142,43 @@ def import_json_file(conn, file_path, station_id):
             
             insert_data.append((
                 station_id,
-                record.get('monitordate'),
+                monitor_date,
                 record.get('itemid'),
                 record.get('itemname'),
                 record.get('itemengname'),
                 record.get('itemunit'),
                 concentration,
                 concentration_numeric,
-                data_quality
+                data_quality,
+                monitor_date,
+                monitor_date + timedelta(minutes=59),
+                'history'
             ))
         
         if invalid_count > 0:
-            print(f"    [WARNING] 發現 {invalid_count} 筆無效資料（將標記為 invalid）")
+            print(f"    [WARNING] 發現 {invalid_count} 筆濃度無效資料（將標記為 invalid）")
+        if skipped_count > 0:
+            print(f"    [WARNING] 發現 {skipped_count} 筆時間格式錯誤資料（已跳過）")
         
         # 批次插入
         cursor = None
         try:
             cursor = conn.cursor()
             insert_query = """
-                INSERT INTO epa_hourly_data 
+                INSERT INTO moe_hourly_data 
                 (station_id, monitor_date, pollutant_id, pollutant_name, 
-                 pollutant_eng_name, unit, concentration, concentration_numeric, data_quality)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (station_id, monitor_date, pollutant_id) DO NOTHING
+                 pollutant_eng_name, unit, concentration, concentration_numeric, data_quality,
+                 period_start, period_end, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (station_id, monitor_date, pollutant_id)
+                DO UPDATE SET
+                    concentration = EXCLUDED.concentration,
+                    concentration_numeric = EXCLUDED.concentration_numeric,
+                    data_quality = EXCLUDED.data_quality,
+                    period_start = EXCLUDED.period_start,
+                    period_end = EXCLUDED.period_end,
+                    source = EXCLUDED.source
+                WHERE moe_hourly_data.source = 'realtime'
             """
             
             print(f"    開始批次匯入...")
@@ -122,7 +186,10 @@ def import_json_file(conn, file_path, station_id):
             conn.commit()
             
             valid_count = len(insert_data) - invalid_count
-            print(f"    [OK] 成功匯入 {len(insert_data)} 筆資料 (有效: {valid_count}, 無效: {invalid_count})")
+            print(
+                f"    [OK] 成功匯入 {len(insert_data)} 筆資料 "
+                f"(有效: {valid_count}, 無效: {invalid_count}, 跳過: {skipped_count})"
+            )
             return len(insert_data)
             
         except Exception as db_error:
@@ -146,17 +213,20 @@ def import_json_file(conn, file_path, station_id):
 def main():
     """主程式"""
     print("=" * 60)
-    print("EPA 測站資料匯入工具")
+    print("MOE 測站資料匯入工具")
     print("=" * 60)
     
     # 連接資料庫
     conn = connect_db()
     if not conn:
         return
+
+    # 先補齊舊資料庫缺漏欄位，避免批次匯入時出現 column does not exist
+    ensure_moe_hourly_schema(conn)
     
     # 取得專案根目錄
     project_root = Path(__file__).parent.parent
-    data_dir = project_root / 'data' / 'raw' / 'epa-stations'
+    data_dir = project_root / 'data' / 'raw' / 'moe-stations'
     
     if not data_dir.exists():
         print(f"[ERROR] 資料目錄不存在: {data_dir}")
