@@ -412,8 +412,8 @@ interface DashboardScreenProps { scrollRef?: (ref: any) => void; }
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) => {
   const { width: windowWidth } = useWindowDimensions();
 
-  // Only render on web viewports >= 768px; mobile uses DashboardScreen.tsx
-  if (windowWidth < 768) return <DashboardScreenMobile/>;
+  // Only render on web viewports >= 768px; mobile uses DashboardScreenMobile.tsx
+  if (windowWidth < Layout.breakpoints.mobile) return <DashboardScreenMobile/>;
 
   const isDesktop = screenWidth >= Layout.breakpoints.desktop;
 
