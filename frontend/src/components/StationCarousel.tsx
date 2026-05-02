@@ -24,7 +24,7 @@ interface DistrictData {
   pm25: number;
   o3: number;
   aqi: number;
-  status: "GOOD" | "MODERATE" | "UNHEALTHY";
+  status: "良好" | "普通" | "不健康";
   trend: number[];
 }
 
@@ -35,7 +35,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 20,
     o3: 48,
     aqi: 75,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38, 0.55, 0.68, 0.45, 0.52],
   },
   {
@@ -44,7 +44,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 18,
     o3: 42,
     aqi: 72,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.4, 0.5, 0.6, 0.55, 0.7, 0.75, 0.42, 0.38, 0.65, 0.58, 0.48, 0.72, 0.35, 0.62, 0.68],
   },
   {
@@ -53,7 +53,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 16,
     o3: 40,
     aqi: 68,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5, 0.38, 0.32, 0.46, 0.52, 0.44, 0.36, 0.48, 0.42, 0.38],
   },
   {
@@ -62,7 +62,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 19,
     o3: 44,
     aqi: 73,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.42, 0.48, 0.52, 0.58, 0.55, 0.6, 0.45, 0.38, 0.62, 0.48, 0.52, 0.58, 0.44, 0.56, 0.5],
   },
   {
@@ -71,7 +71,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 14,
     o3: 36,
     aqi: 62,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.28, 0.32, 0.35, 0.4, 0.38, 0.42, 0.25, 0.3, 0.45, 0.35, 0.28, 0.38, 0.32, 0.36, 0.3],
   },
   {
@@ -80,7 +80,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 12,
     o3: 35,
     aqi: 58,
-    status: "GOOD",
+    status: "良好",
     trend: [0.25, 0.3, 0.28, 0.32, 0.35, 0.33, 0.22, 0.26, 0.38, 0.3, 0.24, 0.32, 0.28, 0.34, 0.26],
   },
   {
@@ -89,7 +89,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 13,
     o3: 37,
     aqi: 60,
-    status: "GOOD",
+    status: "良好",
     trend: [0.26, 0.31, 0.29, 0.34, 0.36, 0.35, 0.24, 0.28, 0.38, 0.32, 0.26, 0.34, 0.3, 0.36, 0.28],
   },
   {
@@ -98,7 +98,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 16,
     o3: 40,
     aqi: 68,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.35, 0.4, 0.42, 0.45, 0.48, 0.5, 0.32, 0.38, 0.52, 0.44, 0.36, 0.46, 0.4, 0.48, 0.42],
   },
   {
@@ -107,7 +107,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 17,
     o3: 41,
     aqi: 70,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.38, 0.43, 0.45, 0.48, 0.5, 0.52, 0.35, 0.4, 0.55, 0.46, 0.38, 0.48, 0.42, 0.5, 0.44],
   },
   {
@@ -116,7 +116,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 15,
     o3: 38,
     aqi: 65,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.3, 0.35, 0.4, 0.45, 0.5, 0.48, 0.28, 0.32, 0.46, 0.42, 0.34, 0.44, 0.38, 0.46, 0.4],
   },
   {
@@ -125,7 +125,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 22,
     o3: 45,
     aqi: 78,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.5, 0.6, 0.65, 0.7, 0.68, 0.72, 0.48, 0.55, 0.75, 0.62, 0.58, 0.68, 0.52, 0.7, 0.64],
   },
   {
@@ -134,7 +134,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 21,
     o3: 43,
     aqi: 76,
-    status: "MODERATE",
+    status: "普通",
     trend: [0.48, 0.55, 0.62, 0.68, 0.65, 0.7, 0.45, 0.52, 0.72, 0.58, 0.5, 0.65, 0.48, 0.68, 0.6],
   },
   {
@@ -143,7 +143,7 @@ const DISTRICTS: DistrictData[] = [
     pm25: 10,
     o3: 32,
     aqi: 52,
-    status: "GOOD",
+    status: "良好",
     trend: [0.2, 0.25, 0.22, 0.28, 0.3, 0.26, 0.18, 0.24, 0.32, 0.26, 0.22, 0.28, 0.24, 0.3, 0.22],
   },
 ];
@@ -415,7 +415,7 @@ const DistrictCard: React.FC<{
           <View style={styles.cardHeader}>
             <Text style={styles.stationName}>{district.name}</Text>
             <Text style={styles.updateTime}>
-              {updateTime ? `Updated ${updateTime}` : 'Updated --:--'}
+              {updateTime ? `更新時間 ${updateTime}` : '更新時間 --:--'}
             </Text>
           </View>
 
@@ -431,13 +431,17 @@ const DistrictCard: React.FC<{
                 {displayPm25}
               </Text>
             </View>
-            <View style={styles.divider} />
+            
+            {/*
+            <View style={styles.divider}/>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>O3</Text>
               <Text style={[styles.metricValue, { color: "#504E4F" }]}>
                 {displayO3}
               </Text>
             </View>
+            */}
+            
             <View style={styles.divider} />
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>AQI</Text>
@@ -448,10 +452,13 @@ const DistrictCard: React.FC<{
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={[styles.statusBadge, { color: "#FBA7BC" }]}>
-              {district.status}
-            </Text>
-            <Text style={styles.trendLabel}>PM2.5 Trend</Text>
+            <View style={{flexDirection: "row"}}>
+              <Text style={styles.trendLabel}>空氣狀況  </Text>
+              <Text style={[styles.statusBadge, { color: "#FBA7BC" }]}>
+                {district.status}
+              </Text>
+            </View>
+            <Text style={styles.trendLabel}>PM2.5 趨勢</Text>
           </View>
 
           <View style={styles.trendContainer}>
@@ -922,7 +929,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "900",
     letterSpacing: 0.8,
   },
   trendLabel: {

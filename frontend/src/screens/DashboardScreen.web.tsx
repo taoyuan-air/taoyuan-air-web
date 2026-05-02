@@ -323,10 +323,6 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
         </Defs>
         {/* track */}
         <Circle cx={cx} cy={cy} r={GAUGE_R} stroke={C.roseLt} strokeWidth={STROKE_W} fill="none" />
-        {/* glow halo */}
-        <Circle cx={cx} cy={cy} r={GAUGE_R} stroke={C.roseGlow} strokeWidth={STROKE_W + 6} fill="none"
-          strokeDasharray={GAUGE_CIRC} strokeDashoffset={offset}
-          transform={`rotate(-90, ${cx}, ${cy})`} />
         {/* main arc */}
         <Circle cx={cx} cy={cy} r={GAUGE_R} stroke="url(#rg)" strokeWidth={STROKE_W} fill="none"
           strokeDasharray={GAUGE_CIRC} strokeDashoffset={offset}
@@ -365,7 +361,7 @@ const MetricTile: React.FC<{ label: string; value: string; unit: string; color: 
 );
 
 /** Horizontal pollutant bar */
-const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: number; color: string }> = ({ name, nameEn, value, max, color }) => (
+const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: number; color: string; unit: string }> = ({ name, nameEn, value, max, color, unit }) => (
   <View style={S.pollRow}>
     <View style={S.pollNameCol}>
       <Text style={S.pollName}>{nameEn}</Text>
@@ -379,6 +375,7 @@ const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: numb
       />
     </View>
     <Text style={[S.pollVal, { color }]}>{value}</Text>
+    <Text style={S.mtUnit}>{unit}</Text>
   </View>
 );
 
@@ -516,7 +513,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               <View>
                 <Text style={S.eyebrow}>桃園市環境監測系統</Text>
                 <Text style={[S.headerTitle, dynStyles.headerTitle]}>空氣品質儀表板</Text>
-                <Text style={S.headerSub}>Taoyuan Air Quality Dashboard</Text>
               </View>
               <View style={S.headerRight}>
                 <View style={[S.badge, S.badgeRose]}>
@@ -555,7 +551,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
           <View style={[S.leftCol, dynStyles.leftCol]}>
             {/* AQI */}
             <View style={S.glassCard}>
-              <SecLabel title="空氣品質指數" sub="Air Quality Index" />
+              <SecLabel title="空氣品質指數"/>
               <View style={{ alignItems: "center", paddingVertical: 12 }}>
                 <AQIGauge aqi={locatedAqi} />
               </View>
@@ -602,26 +598,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
           <View style={S.midCol}>
             {/* Key metrics */}
             <View style={S.glassCard}>
-              <SecLabel title="關鍵指標" sub={displayDistrict} />
+              <SecLabel title="關鍵指標"/>
               <View style={S.metrics2}>
                 <MetricTile label="PM2.5"  value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)} />
                 <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}    />
                 <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)}  />
-                <MetricTile label="濕度"    value={currentWeather.humidity} unit="%" color={C.amber}  />
               </View>
             </View>
 
             {/* Pollutant bars */}
             <View style={S.glassCard}>
-              <SecLabel title="污染物詳情" sub="Pollutant Details" />
-              <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} />
-              <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}    />
-              <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)}  />
+              <SecLabel title="污染物詳情"/>
+              <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
+              <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)} unit="ppb"/>
+              <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
             </View>
 
             {/* AI insight */}
             <View style={S.glassCard}>
-              <SecLabel title="AI 趨勢分析" sub="Predictive Insights" />
+              <SecLabel title="AI 趨勢分析"/>
               <View style={S.insightRow}>
                 <View style={S.insightIcon}>
                   <Feather name="trending-down" size={15} color={C.rose} />
@@ -638,7 +633,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             {/* Tablet: 3-day forecast */}
             {isTablet && (
               <View style={S.glassCard}>
-                <SecLabel title="三日預報" sub="3-Day Forecast" />
+                <SecLabel title="三日預報"/>
                 <View style={S.fcRow}>
                   {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
                 </View>
@@ -653,12 +648,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             <View style={[S.rightCol, dynStyles.rightCol]}>
               {/* Current weather */}
               <View style={S.glassCard}>
-                <SecLabel title="當前天氣" sub="Current Weather" />
+                <SecLabel title="當前天氣"/>
                 <View style={S.wxHero}>
                   <View>
                     <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
                     <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                    <Text style={S.wxHL}>H {currentWeather.dailyHigh}° · L {currentWeather.dailyLow}°</Text>
+                    <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
                   </View>
                   <View style={S.wxIconCircle}>
                     <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
@@ -673,7 +668,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
               {/* 3-day forecast */}
               <View style={S.glassCard}>
-                <SecLabel title="三日預報" sub="3-Day Forecast" />
+                <SecLabel title="未來三日預報"/>
                 <View style={S.fcRow}>
                   {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
                 </View>
@@ -757,7 +752,7 @@ const S = StyleSheet.create({
     alignItems: "flex-start",
   },
   leftCol:  { width: 260, gap: GAP },
-  midCol:   { flex: 1, gap: GAP, minWidth: 380 },
+  midCol:   { flex: 1, gap: GAP, minWidth: 300 },
   rightCol: { width: 230, gap: GAP },
 
   // Section label
@@ -787,8 +782,8 @@ const S = StyleSheet.create({
   adviceText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 20 },
 
   // Metric tiles 2×2
-  metrics2:  { flexDirection: "row", flexWrap: "wrap", gap: 9 },
-  metricTile: { ...glass2Base, width: "23%", padding: 13 } as any,
+  metrics2:  { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  metricTile: { ...glass2Base, width: "32%", padding: 13 } as any,
   mtLabel:   { fontSize: 10, color: C.hint, letterSpacing: 1, textTransform: "uppercase", fontFamily: "monospace", marginBottom: 4 },
   mtValue:   { fontSize: 24, fontWeight: "700", lineHeight: 26 },
   mtUnit:    { fontSize: 10, color: C.hint, marginTop: 3 },

@@ -62,11 +62,11 @@ const getAQIColor = (aqi: number) => {
 };
 
 const getAQIStatus = (aqi: number) => {
-  if (aqi <= 50) return "Good";
-  if (aqi <= 100) return "Moderate";
-  if (aqi <= 150) return "Sensitive";
-  if (aqi <= 200) return "Unhealthy";
-  return "Hazardous";
+  if (aqi <= 50)  return "良好";
+  if (aqi <= 100) return "普通";
+  if (aqi <= 150) return "敏感族群";
+  if (aqi <= 200) return "不健康";
+  return "危害";
 };
 
 const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
@@ -109,11 +109,13 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
         />
       </Svg>
       <View style={styles.gaugeInnerCircle}>
-        <Text style={styles.gaugeLabel}>CURRENT AQI</Text>
+        <Text style={styles.gaugeLabel}>AQI</Text>
         <Text style={[styles.gaugeValue, { color }]}>{aqi}</Text>
-        <Text style={[styles.gaugeBadgeText, { color }]}>
-          {getAQIStatus(aqi)}
-        </Text>
+        <View style={[styles.gaugePill, { backgroundColor: `${color}1A`, borderColor: `${color}4D` }]}>
+          <Text style={[styles.gaugeBadgeText, { color }]}>
+            {getAQIStatus(aqi)}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -505,7 +507,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
       >
         <TopNavigation 
           title="空氣總覽" 
-          subtitle="AIR QUALITY DASHBOARD"
+          subtitle="TAOYUAN AIR"
         />
 
         {/* AQI Gauge */}
@@ -528,7 +530,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
               </View>
             </View>
             <View style={styles.insightContent}>
-              <Text style={styles.insightTitle}>AI TREND ANALYSIS</Text>
+              <Text style={styles.insightTitle}>AI 趨勢分析</Text>
               <Text style={styles.insightText}>
                 PM2.5 濃度預計在未來3小時內因海風輻合影響下降{" "}
                 <Text style={styles.highlightText}>12%</Text>。
@@ -544,7 +546,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
             <View style={styles.cardHeaderRow}>
               <View style={styles.cardTitleGroup}>
                 <Feather name="wind" size={15} color="#E76595" />
-                <Text style={styles.cardSectionTitle}>AIR QUALITY</Text>
+                <Text style={styles.cardSectionTitle}>空氣品質</Text>
               </View>
               {/* AQI mini badge */}
               <View
@@ -642,7 +644,10 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                   color={activityInfo.iconColor}
                 />
               </View>
-              <Text style={styles.adviceText}>{activityInfo.advice}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.insightTitle}>活動建議</Text>
+                <Text style={[styles.adviceText]}>{activityInfo.advice}</Text>
+              </View>
             </View>
 
             {/* Divider */}
@@ -717,7 +722,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                   size={15}
                   color="#E76595"
                 />
-                <Text style={styles.cardSectionTitle}>WEATHER</Text>
+                <Text style={styles.cardSectionTitle}>天氣</Text>
               </View>
               <View style={styles.districtBadge}>
                 <Feather name="map-pin" size={10} color="#FBA7BC" />
@@ -847,6 +852,7 @@ const styles = StyleSheet.create({
   // ── Gauge ──
   gaugeSection: {
     alignItems: "center",
+    paddingTop: 35,
     paddingVertical: 20,
     paddingBottom: 8,
   },
@@ -874,7 +880,15 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: "bold",
     lineHeight: 48,
+    marginTop: 4,
     marginBottom: 4,
+  },
+  gaugePill: { 
+    marginTop: 5, 
+    paddingHorizontal: 10, 
+    paddingVertical: 3, 
+    borderRadius: 999, 
+    borderWidth: 1, 
   },
   gaugeBadgeText: {
     fontSize: 14,
