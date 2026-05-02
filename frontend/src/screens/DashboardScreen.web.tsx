@@ -226,28 +226,39 @@ const generateMockForecast = (): ForecastDay[] => {
 };
 
 // ─── API functions (unchanged from original) ──────────────────────────
-const fetchCurrentWeather = async (district: string): Promise<CurrentWeatherData> => {
+const fetchCurrentWeather = async (
+  district: string,
+): Promise<CurrentWeatherData> => {
   if (!CWA_API_KEY || CWA_API_KEY === "YOUR_CWA_API_KEY") return MOCK_CURRENT;
-  const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=${CWA_API_KEY}&CountyName=桃園市&format=JSON`;
+  const url =
+    `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001` +
+    `?Authorization=${CWA_API_KEY}&CountyName=桃園市&format=JSON`;
   try {
-    const res = await fetch(url); if (!res.ok) return MOCK_CURRENT;
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[Weather] 現況 API 錯誤 HTTP ${res.status}`);
+      return MOCK_CURRENT;
+    }
     const json = await res.json();
     const stations: any[] = json?.records?.Station ?? [];
-    if (!stations.length) return MOCK_CURRENT;
-    const keyword = district.replace("區", "");
-    const st = stations.find((s) => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
+    if (stations.length === 0) return MOCK_CURRENT;
+
+    const keyword = district.replace('區', '');
+    const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
     const obs = st.WeatherElement ?? {};
     return {
-      temperature: String(Math.round(parseFloat(obs.AirTemperature ?? MOCK_CURRENT.temperature))),
-      weather:     obs.Weather ?? MOCK_CURRENT.weather,
-      humidity:    obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
-      windSpeed:   obs.WindSpeed ?? MOCK_CURRENT.windSpeed,
-      dailyHigh:   String(Math.round(parseFloat(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyHigh))),
-      dailyLow:    String(Math.round(parseFloat(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyLow))),
+      temperature:   String(Math.round(parseFloat(obs.AirTemperature ?? MOCK_CURRENT.temperature))),
+      weather:       obs.Weather          ?? MOCK_CURRENT.weather,
+      humidity:      obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
+      windSpeed:     obs.WindSpeed        ?? MOCK_CURRENT.windSpeed,
+      dailyHigh: String(Math.round(parseFloat(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyHigh))),
+      dailyLow:  String(Math.round(parseFloat(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature  ?? MOCK_CURRENT.dailyLow))),
     };
-  } catch { return MOCK_CURRENT; }
+  } catch (err) {
+    console.error("[Weather] 現況資料請求失敗：", err);
+    return MOCK_CURRENT;
+  }
 };
-
 const WEATHER_SEVERITY: [string, number][] = [
   ["雷雨", 6], ["豪雨", 5], ["大雨", 4], ["短暫陣雨或雷雨", 4],
   ["短暫陣雨", 3], ["陣雨", 3], ["有雨", 3], ["陰", 2], ["多雲", 1], ["晴", 0],
@@ -572,12 +583,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             {/* Tablet: Current weather */}
             {isTablet && (
               <View style={S.glassCard}>
-                <SecLabel title="當前天氣" sub="Current Weather" />
+                <SecLabel title="當前天氣"/>
                 <View style={S.wxHero}>
                   <View>
                     <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
                     <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                    <Text style={S.wxHL}>H {currentWeather.dailyHigh}° · L {currentWeather.dailyLow}°</Text>
+                    <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
                   </View>
                   <View style={S.wxIconCircle}>
                     <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
