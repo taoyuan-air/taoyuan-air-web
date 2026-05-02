@@ -607,24 +607,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
           {/* MIDDLE */}
           <View style={S.midCol}>
-            {/* Key metrics */}
-            <View style={S.glassCard}>
-              <SecLabel title="關鍵指標"/>
-              <View style={S.metrics2}>
-                <MetricTile label="PM2.5"  value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)} />
-                <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}    />
-                <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)}  />
-              </View>
-            </View>
-
-            {/* Pollutant bars */}
-            <View style={S.glassCard}>
-              <SecLabel title="污染物詳情"/>
-              <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
-              <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)} unit="ppb"/>
-              <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
-            </View>
-
             {/* AI insight */}
             <View style={S.glassCard}>
               <SecLabel title="AI 趨勢分析"/>
@@ -641,6 +623,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 </View>
               </View>
             </View>
+
+          {/* Key Metrics + Pollutant bars */}
+          <View style={S.glassCard}>
+            <SecLabel title="污染物詳情"/>
+            {/* Compact metric tiles row */}
+            <View style={S.metrics2}>
+              <MetricTile label="PM2.5"  value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)} />
+              <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}    />
+              <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)}  />
+            </View>
+            {/* Divider */}
+            <View style={S.divider} />
+            {/* Bars */}
+            <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
+            <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}   unit="ppb"/>
+            <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
+          </View>
+
             {/* Tablet: 3-day forecast */}
             {isTablet && (
               <View style={S.glassCard}>
@@ -762,9 +762,9 @@ const S = StyleSheet.create({
     gap: GAP,
     alignItems: "flex-start",
   },
-  leftCol:  { width: 260, gap: GAP },
+  leftCol:  { flexShrink: 0, width: 260, gap: GAP },
   midCol:   { flex: 1, gap: GAP, minWidth: 300 },
-  rightCol: { width: 230, gap: GAP },
+  rightCol: { flexShrink: 0, width: 230, gap: GAP },
 
   // Section label
   secLabel: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
@@ -798,6 +798,9 @@ const S = StyleSheet.create({
   mtLabel:   { fontSize: 10, color: C.hint, letterSpacing: 1, textTransform: "uppercase", fontFamily: "monospace", marginBottom: 4 },
   mtValue:   { fontSize: 24, fontWeight: "700", lineHeight: 26 },
   mtUnit:    { fontSize: 10, color: C.hint, marginTop: 3 },
+
+  // Divider
+  divider:   { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 14 },
 
   // Pollutant bars
   pollRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
