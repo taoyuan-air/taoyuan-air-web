@@ -24,6 +24,129 @@ import { LinearGradient } from "expo-linear-gradient";
 import { DashboardScreenMobile } from "./DashboardScreenMobile";
 import { Layout, screenWidth } from '../styles/responsive';
 
+// ─── pm2.5 trend bars ──────────────────────────────────────────────
+const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
+  // 獲取當前時間並生成時間標籤
+  const getCurrentTimeLabels = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const labels = [];
+    const times = [];
+    
+    // 生成過去5個整點時間（歷史數據）
+    for (let i = 5; i >= 1; i--) {
+      const pastHour = currentHour - i;
+      const hour = pastHour < 0 ? pastHour + 24 : pastHour;
+      times.push(hour);
+      labels.push(`${hour.toString().padStart(2, '0')}:00`);
+    }
+    
+    // 當前時間
+    times.push(currentHour);
+    labels.push(`${currentHour.toString().padStart(2, '0')}:00`);
+    
+    // 生成未來5個整點時間（預測數據）
+    for (let i = 1; i <= 5; i++) {
+      const futureHour = (currentHour + i) % 24;
+      times.push(futureHour);
+      labels.push(`${futureHour.toString().padStart(2, '0')}:00`);
+    }
+    
+    return { labels, times };
+  };
+
+  // 根據數值決定顏色
+  const getBarColor = (value: number, isPrediction: boolean = false) => {
+    // 1. 如果是預測數據，使用不同深度的灰色
+    if (isPrediction) {
+      if (value <= 0.3) return 'rgba(224, 224, 224, 0.6)'; // 淺灰 (對應 綠色等級)
+      if (value <= 0.5) return 'rgba(189, 189, 189, 0.6)'; // 次淺灰 (對應 黃色等級)
+      if (value <= 0.7) return 'rgba(117, 117, 117, 0.6)'; // 中深灰 (對應 紅色等級)
+      return 'rgba(66, 66, 66, 0.6)';                   // 深灰 (對應 紫色等級)
+    }
+
+    // 2. 如果是真實數據，使用原本的彩色系統
+    let baseColor;
+    if (value <= 0.3) baseColor = 'rgba(231, 101, 149'; // 主色系 - 低
+    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
+    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
+    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
+
+    return baseColor + ', 0.8)';
+  };
+
+  const maxHeight = 56;  // 從48增加到56 (+17%)
+  const barWidth = 12;   // 從10增加到12 (+20%)
+  const barSpacing = 6;  // 從5增加到6 (+20%)
+  const { labels } = getCurrentTimeLabels();
+  
+  // 使用前11個數據點（5個歷史 + 1個當前 + 5個預測）
+  const displayData = trend.slice(0, 11);
+  const totalWidth = displayData.length * (barWidth + barSpacing) - barSpacing;
+
+  return (
+    <View style={styles.trendBarsWrapper}>
+      {/* 柱狀圖 */}
+      <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
+        {displayData.map((value, index) => {
+          const barHeight = Math.max(5, value * maxHeight); // 最小高度從4增加到5
+          const isPrediction = index > 5; // 索引大於5的是預測數據
+          const isNow = index === 5; // 索引5是當前時間
+          
+          return (
+            <View key={index} style={styles.barWrapper}>
+              <View
+                style={[
+                  styles.trendBar,
+                  {
+                    height: barHeight,
+                    width: barWidth,
+                    backgroundColor: getBarColor(value, isPrediction),
+                    marginRight: index < displayData.length - 1 ? barSpacing : 0,
+                    borderWidth: isNow ? 1 : 0,
+                    borderColor: isNow ? '#FBA7BC' : 'transparent',
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+      
+      {/* 時間標籤 */}
+      <View style={styles.timeLabelsContainer}>
+        {labels.slice(0, 11).map((label, index) => {
+          const isNow = index === 5;
+          const isPrediction = index > 5;
+          
+          return (
+            <View 
+              key={index} 
+              style={[
+                styles.timeLabelWrapper,
+                { 
+                  width: barWidth,
+                  marginRight: index < displayData.length - 1 ? barSpacing : 0
+                }
+              ]}
+            >
+              <Text 
+                style={[
+                  styles.timeLabel,
+                  isNow && styles.timeLabelNow,
+                  isPrediction && styles.timeLabelPrediction
+                ]}
+              >
+                {label.replace(':00', '')}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
 const CWA_API_KEY = process.env.EXPO_PUBLIC_CWA_API_KEY;
 
 // ─── EPA / district maps ──────────────────────────────────────────────
@@ -430,8 +553,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
     headerWrap:  { paddingHorizontal: isDesktop ? 48 : 28, paddingTop: 28 },
     chipsContent:{ paddingHorizontal: isDesktop ? 48 : 28, gap: 8 },
     grid:        { paddingHorizontal: isDesktop ? 48 : 28 },
-    leftCol:     { width: isDesktop ? 260 : 230 },
-    rightCol:    { width: isDesktop ? 260 : 230 },
+    leftCol:     { width: isDesktop ? 380 : 280 },
+    rightCol:    { width: isDesktop ? 350 : 280 },
     headerTitle: { fontSize: isDesktop ? 26 : 20 },
   };
 
@@ -639,6 +762,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
             <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}   unit="ppb"/>
             <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
+
+            {/* Divider */}
+            <View style={S.divider} />
+            {/* PM2.5 趨勢圖 */}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <Text style={S.secTitle}>PM2.5 趨勢</Text>
+              <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
+            </View>
+            <View style={{ alignItems: "center" }}>
+              <TrendBars trend={[0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+            </View>
           </View>
 
             {/* Tablet: 3-day forecast */}
@@ -762,9 +896,9 @@ const S = StyleSheet.create({
     gap: GAP,
     alignItems: "flex-start",
   },
-  leftCol:  { flexShrink: 0, width: 260, gap: GAP },
-  midCol:   { flex: 1, gap: GAP, minWidth: 300 },
-  rightCol: { flexShrink: 0, width: 230, gap: GAP },
+  leftCol:  { width: 300, gap: GAP },
+  midCol:   { flex: 1, gap: GAP, minWidth: 380 },
+  rightCol: { width: 280, gap: GAP },
 
   // Section label
   secLabel: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
@@ -793,8 +927,8 @@ const S = StyleSheet.create({
   adviceText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 20 },
 
   // Metric tiles 2×2
-  metrics2:  { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  metricTile: { ...glass2Base, width: "32%", padding: 13 } as any,
+  metrics2:  { flexDirection: "row", gap: 7 },
+  metricTile: { ...glass2Base, flex: 1, padding: 13, alignItems: "center" } as any,
   mtLabel:   { fontSize: 10, color: C.hint, letterSpacing: 1, textTransform: "uppercase", fontFamily: "monospace", marginBottom: 4 },
   mtValue:   { fontSize: 24, fontWeight: "700", lineHeight: 26 },
   mtUnit:    { fontSize: 10, color: C.hint, marginTop: 3 },
@@ -844,4 +978,17 @@ const S = StyleSheet.create({
   fcWeather:  { fontSize: 10, color: C.muted, textAlign: "center" },
   fcTemps:    { fontSize: 9, fontWeight: "600", color: C.text, marginTop: 3 },
   fcPop:      { fontSize: 10, color: C.hint, marginTop: 2 },
+});
+
+const styles = StyleSheet.create({
+  trendBarsWrapper:    { alignItems: "center" },
+  trendBarsContainer:  { flexDirection: "row", alignItems: "flex-end", height: 56, marginBottom: 10 },
+  trendBar:            { borderRadius: 2 },
+  barWrapper:          { alignItems: "center" },
+  timeLabelsContainer: { flexDirection: "row", alignItems: "center", height: 20, width: "100%" },
+  timeLabelWrapper:    { alignItems: "center", justifyContent: "center" },
+  timeLabel:           { fontSize: 9, color: "rgba(93,115,137,0.6)", fontWeight: "400", textAlign: "center" },
+  timeLabelNow:        { color: C.rose, fontWeight: "700", fontSize: 10 },
+  timeLabelPrediction: { color: "rgba(93,115,137,0.4)", fontStyle: "italic" },
+  nowIndicator:        { width: 2, height: 2, borderRadius: 1, backgroundColor: C.rose, marginTop: 2 },
 });
