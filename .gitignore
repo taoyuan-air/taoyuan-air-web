@@ -37,15 +37,18 @@ yarn-error.*
 *.tsbuildinfo
 
 # Data files (keep structure, ignore large data files)
-data/raw/**/*.json
-data/raw/**/*.txt
+data/raw/**/*
 data/processed/**/*
 data/exports/**/*
 !data/raw/**/.gitkeep
-!data/raw/**/hash.txt
 !data/processed/.gitkeep
 !data/exports/.gitkeep
 !data/README.md
+
+# CWA stations - keep folder structure, ignore files inside
+data/raw/cwa-stations/*
+!data/raw/cwa-stations/
+!data/raw/cwa-stations/*/
 
 # Database
 *.sql.backup

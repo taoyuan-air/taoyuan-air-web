@@ -2,7 +2,6 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { View, StyleSheet } from "react-native";
-
 import { ResponsiveNavigator } from "./src/navigation/ResponsiveNavigator";
 import { palette } from "./src/styles/theme";
 

@@ -6,14 +6,12 @@ import {
   StyleSheet,
   Modal,
   Platform,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { NotificationScreen } from "../screens/NotificationScreen";
 import { Colors } from "../styles/theme";
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface TopNavigationProps {
   title?: string;
@@ -28,13 +26,16 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   onMenuPress,
   onNotificationPress,
 }) => {
-  // 只在桌面版網頁時隱藏，手機版網頁仍顯示
-  if (Platform.OS === "web" && screenWidth >= 768) {
-    return null;
-  }
-
+  // 1. Hook 必須放在元件最頂層
+  const { width } = useWindowDimensions();
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // 2. 判斷是否為桌面版網頁（寬度大於等於 768）
+  // 如果是 Web 且寬螢幕，則直接不渲染
+  if (Platform.OS === "web" && width >= 768) {
+    return null;
+  }
 
   const handleMenuPress = () => {
     setShowSettings(true);
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 35,
+    paddingTop: 65,
     paddingBottom: 12,
     backgroundColor: "#FFF6F9",
     borderBottomWidth: 1,
