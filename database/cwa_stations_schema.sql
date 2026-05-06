@@ -189,7 +189,8 @@ SELECT
     MAX(CASE WHEN h.observation_id = 'PP01' THEN h.concentration_numeric END) AS precipitation,
     MAX(CASE WHEN h.observation_id = 'WD01' THEN h.concentration_numeric END) AS wind_speed,
     MAX(CASE WHEN h.observation_id = 'WD02' THEN h.concentration_numeric END) AS wind_direction,
-    MAX(CASE WHEN h.observation_id = 'PS01' THEN h.concentration_numeric END) AS barometric_pressure
+    MAX(CASE WHEN h.observation_id = 'PS01' THEN h.concentration_numeric END) AS barometric_pressure,
+    MAX(CASE WHEN h.observation_id = 'GR01' THEN h.concentration_numeric END) AS solar_radiation
 FROM cwa_stations s
 JOIN cwa_hourly_data h ON s.station_id = h.station_id
 WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
@@ -230,7 +231,8 @@ INSERT INTO cwa_observations (observation_id, observation_name, unit, aggregatio
 ('RH01',  '相對溼度',     '%',    '1min_inst'),
 ('TX01',  '氣溫',         '℃',     '1min_inst'),
 ('WD01',  '平均風風速',   'm/s',   '10min_mean'),
-('WD02',  '平均風風向',     '360 degree',    '10min_mean')
+('WD02',  '平均風風向',     '360 degree',    '10min_mean'),
+('GR01', '全天空日射量', 'MJ/m²', 'hourly_acc')
 ON CONFLICT (observation_id) DO UPDATE SET
     observation_name = EXCLUDED.observation_name,
     unit             = EXCLUDED.unit,

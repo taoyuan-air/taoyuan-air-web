@@ -57,7 +57,7 @@ TAOYUAN_STATION_IDS = {
     "C2C590", 
     # 依實際需求繼續補充 ...
 }
-REQUIRED_OBS_IDS = {"PP01", "PS01", "RH01", "TX01", "WD01", "WD02"}
+REQUIRED_OBS_IDS = {"PP01", "PS01", "RH01", "TX01", "WD01", "WD02", "GR01"}
 
 # 無效值定義
 INVALID_FLOAT_VALUES = {
@@ -65,7 +65,7 @@ INVALID_FLOAT_VALUES = {
     -9.6, -999.6, -9996, # 資料累計於後
     -9.5, -99.5, -999.5, -9995, -9999.5, # 故障
     -9.7, -99.7, -999.7, -9997, -9999.7, # 不明原因
-    -9999 # 未觀測
+    -9999, # 未觀測
     -9.8, -9998 # 雨跡 (Trace)
 }
 INVALID_STR_VALUES = {"NONE", "X", "x", "", "NULL"}
@@ -209,8 +209,8 @@ def unpivot_record(record: dict) -> list[tuple]:
             continue
         conc_str, conc_num, quality = clean_value(raw_val)
 
-        # 1. 降水量 PP01：時間往前推 1 小時，區間為該小時初到 59 分
-        if obs_id_upper == 'PP01':
+        # 1. 降水量 PP01, 全天空日射量 GR01：時間往前推 1 小時，區間為該小時初到 59 分
+        if obs_id_upper in ['PP01', 'GR01']:
             monitor_date = raw_dt - timedelta(hours=1)
             p_start = monitor_date
             p_end = monitor_date + timedelta(minutes=59)
