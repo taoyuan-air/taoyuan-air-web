@@ -66,7 +66,7 @@ INVALID_FLOAT_VALUES = {
     -9.5, -99.5, -999.5, -9995, -9999.5, # 故障
     -9.7, -99.7, -999.7, -9997, -9999.7, # 不明原因
     -9999 # 未觀測
-    # -9.8, -9998 # 雨跡 (Trace)
+    -9.8, -9998 # 雨跡 (Trace)
 }
 INVALID_STR_VALUES = {"NONE", "X", "x", "", "NULL"}
 
@@ -110,10 +110,7 @@ def clean_value(raw: Any) -> tuple[str | None, float | None, str]:
         return (raw_str if raw_str else None, None, "invalid")
     try:
         numeric = float(raw_str)
-        # 處理雨跡 (Trace)，目前先存為 0.0，並標記品質為 'trace'
-        if numeric in [-9.8, -9998.0]:
-            return (raw_str, 0.0, "trace")
-        # 處理其他無效數值代碼
+        # 處理無效數值代碼
         if numeric in INVALID_FLOAT_VALUES:
             return (raw_str, None, "invalid")
         
