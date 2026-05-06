@@ -922,9 +922,9 @@ const S = StyleSheet.create({
   aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 4 },
 
   // Activity advice
-  adviceRow:  { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  adviceRow:  { flexDirection: "row", gap: 12, alignItems: "center" },
   adviceIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder, justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  adviceText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 20 },
+  adviceText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 20, justifyContent: "center" },
 
   // Metric tiles 2×2
   metrics2:  { flexDirection: "row", gap: 7 },
