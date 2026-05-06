@@ -20,6 +20,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: palette.bgBase,
-    minHeight: '100vh',
+    minHeight: '100%',
   },
 });
