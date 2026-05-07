@@ -10,7 +10,7 @@ import {
 import MapView, { Polygon, Marker, Region } from 'react-native-maps';
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { TopNavigation } from "../navigation/TopNavigation";
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar";
 import { useStore } from "../store";
 
 interface EventsScreenProps {
@@ -196,7 +196,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 
   return (
     <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
-      <TopNavigation
+      <MobileTopAppbar
         title="事件庫"
         subtitle="INCIDENT TRACKING"
       />
@@ -476,12 +476,12 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
   },
   scrollView: {
     flex: 1,
   },
   filterScrollView: {
+    paddingTop: 20,
     paddingBottom: 20,
   },
   filterContainer: {
