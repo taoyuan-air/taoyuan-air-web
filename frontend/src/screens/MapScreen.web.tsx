@@ -111,7 +111,7 @@ export const MapScreen = () => {
       )}
 
       {/* Top Controls */}
-      <View style={styles.topControls}>
+      <View style={[styles.topControls, { top: isMobile ? 160 : 20 }]}>
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[
@@ -358,7 +358,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.bgBase },
   topControls: {
     position: "absolute",
-    top: 140,
     left: 20,
     right: 20,
     zIndex: 10,
