@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useStore } from "../store";
-import { TopNavigation } from "../navigation/TopNavigation";
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar";
 import { getMeta, getGrid, getAlerts, getEvents, setScenario } from "../api";
 import { fetchMoeStations } from "../api/moe";
 import { StationCarousel } from "../components";
@@ -505,10 +505,10 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <TopNavigation 
+        <MobileTopAppbar 
           title="空氣總覽" 
           subtitle="TAOYUAN AIR"
-        />
+        />  
 
         {/* AQI Gauge */}
         <View style={styles.gaugeSection}>

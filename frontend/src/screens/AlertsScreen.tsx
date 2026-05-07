@@ -5,26 +5,24 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
-import { TopNavigation } from "../navigation/TopNavigation";
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar";
 import { useStore } from "../store";
 import { getAlerts, setScenario } from "../api";
-import { AlertKind } from "../types";
 import { PentagonRadar } from "../components/PentagonRadar";
 import { CustomSwitch } from "../components/CustomSwitch";
+import { Layout } from "../styles/responsive";
 
 interface AlertsScreenProps {
   scrollRef?: (ref: any) => void;
 }
 
 export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
-  const { alerts, setAlerts, selectedScenario, isLoading, setIsLoading } =
-    useStore();
-
+  const { alerts, setAlerts, selectedScenario, isLoading, setIsLoading } = useStore();
   const [activeTab, setActiveTab] = useState<"HEALTH" | "GOV">("HEALTH");
   const [healthGuardEnabled, setHealthGuardEnabled] = useState(true);
   const [thresholds, setThresholds] = useState({
@@ -32,6 +30,8 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
     activity: 80,
     urgency: 20,
   });
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < Layout.breakpoints.mobile;
 
   useEffect(() => {
     loadAlerts();
@@ -65,8 +65,10 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
 
   return (
     <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
-      <TopNavigation title="警報與 AI" subtitle="ALERTS & AI" />
-
+      { isMobile && (
+        <MobileTopAppbar title="警報與 AI" subtitle="ALERTS & AI" />
+      )}
+      
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
@@ -436,7 +438,6 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
   },
   scrollView: {
     flex: 1,

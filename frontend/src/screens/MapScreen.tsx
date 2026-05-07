@@ -18,7 +18,7 @@ import { useStore } from '../store';
 import { GlassCard } from '../components/GlassCard';
 import { Logo } from '../components/Logo';
 import { HealthBadge } from '../components/HealthBadge';
-import { TopNavigation } from '../navigation/TopNavigation';
+import { MobileTopAppbar } from '../navigation/MobileTopAppbar';
 import { getGrid, getVerticalProfile, setScenario } from '../api';
 import { GridCell, VerticalProfile } from '../types';
 import { Linking } from 'react-native';
@@ -162,7 +162,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
 
   return (
     <View style={styles.container}>
-      <TopNavigation 
+      <MobileTopAppbar 
         title="監測地圖" 
         subtitle={mode === 'FORECAST' ? 'FORECAST MODE' : 'REAL-TIME MONITORING'} 
       />
@@ -433,7 +433,6 @@ export const MapScreen: React.FC<MapScreenProps> = ({ scrollRef }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
   },
   topControls: {
     position: 'absolute',
@@ -444,6 +443,7 @@ const styles = StyleSheet.create({
   },
   modeToggle: {
     flexDirection: 'row',
+    marginTop: 35,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 25,
     padding: 4,

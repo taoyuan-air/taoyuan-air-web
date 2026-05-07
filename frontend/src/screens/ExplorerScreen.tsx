@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from "expo-linear-gradient";
-import { TopNavigation } from "../navigation/TopNavigation";
-import { useStore } from "../store";
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar";
+import { Layout } from '../styles/responsive';
 
 interface ExplorerScreenProps {
   scrollRef?: (ref: any) => void;
@@ -31,6 +32,9 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const pollutantOptions = ["PM2.5", "O3", "NOX", "VOCs"];
   const regionOptions = ["全市", "桃園區", "中壢區", "大園區", "觀音區"];
   const dataSourceOptions = ["MOE", "微感測", "光達", "LUV"];
+
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < Layout.breakpoints.mobile;
 
   const toggleDataSource = (source: string) => {
     setSelectedDataSources(prev => 
@@ -304,7 +308,11 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 
   return (
     <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
-      <TopNavigation title="資料檢索" subtitle="QUERY & ANALYSIS" />
+
+      { isMobile && (
+        <MobileTopAppbar title="資料檢索" subtitle="QUERY & ANALYSIS" />
+      )}
+      
       
       <ScrollView
         ref={scrollRef}
@@ -509,7 +517,6 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
   },
   scrollView: {
     flex: 1,

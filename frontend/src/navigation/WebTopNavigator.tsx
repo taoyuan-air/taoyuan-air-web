@@ -28,7 +28,7 @@ const navigationItems = [
   { key: "Alerts", label: "警報通知", icon: "bell" },
 ];
 
-export const WebHeader: React.FC<WebHeaderProps> = ({
+export const WebTopNavigator: React.FC<WebHeaderProps> = ({
   currentRoute = "Dashboard",
   onNavigate,
 }) => {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     color: "#E76595",
     backgroundColor: "#FFF6F9",
     paddingVertical: 20,
-    transition: "all 0.5s",
+    // transition: "all 0.5s",
     zIndex: 997,
   },
   headerTablet: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: "rgba(255, 255, 255, 0.92)",
-    backdropFilter: "blur(8px)",
+    //backdropFilter: "blur(8px)",
     borderRadius: 50,
     paddingVertical: 5,
     paddingHorizontal: 25,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
       web: '"Noto Sans", sans-serif',
       default: "System",
     }),
-    transition: "color 0.3s ease",
+    //transition: "color 0.3s ease",
   },
   navTextTablet: {
     fontSize: 14,
@@ -245,6 +245,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     borderWidth: 1,
     borderColor: "rgba(231, 101, 149, 0.1)",
-    transition: "all 0.3s ease",
+    //transition: "all 0.3s ease",
   },
 });

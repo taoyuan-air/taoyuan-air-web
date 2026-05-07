@@ -6,9 +6,11 @@ export const palette = {
   primaryDeep: "#E76595",
   
   // 特別標籤色系
-  accentYellow: "#E6DE30", // CMYK 10 13 81 0
+  accentRed: "#E94C78", // CMYK 10 13 81 0
+  accentYellow: "#d7ae29", // CMYK 10 13 81 0
   accentBlue: "#8AB3FF",   // CMYK 46 0 70 0
-  accentGreen: "#8FFF5E",  // CMYK 44 0 63 0
+  accentGreen: "#79b360",  // CMYK 44 0 63 0
+
 
   // 基礎色彩
   bgBase: "#FFF6F9",
@@ -33,7 +35,7 @@ export const semantic = {
   success: palette.accentGreen,
   warning: palette.accentYellow,
   info: palette.accentBlue,
-  danger: "#E94C78",
+  danger: palette.accentRed,
 } as const;
 
 // 為了相容性，導出 Colors 物件

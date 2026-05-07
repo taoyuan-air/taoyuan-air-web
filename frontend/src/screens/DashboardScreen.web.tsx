@@ -22,7 +22,7 @@ import Svg, {
 } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { DashboardScreenMobile } from "./DashboardScreenMobile";
-import { Layout, screenWidth } from '../styles/responsive';
+import { Layout } from '../styles/responsive';
 
 // ─── pm2.5 trend bars ──────────────────────────────────────────────
 const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
@@ -640,29 +640,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   return (
   
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        {/* ── Header ── */}
-        <View style={[S.headerWrap, dynStyles.headerWrap]}>
-          <View style={S.glassCard}>
-            <View style={S.headerInner}>
-              <View>
-                <Text style={S.eyebrow}>桃園市環境監測系統</Text>
-                <Text style={[S.headerTitle, dynStyles.headerTitle]}>空氣品質儀表板</Text>
-              </View>
-              <View style={S.headerRight}>
-                <View style={[S.badge, S.badgeRose]}>
-                  <Feather name="clock" size={11} color={C.rose} />
-                  <Text style={[S.badgeText, { color: C.rose }]}>
-                    {new Date().toLocaleDateString("zh-TW", { weekday: "short", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </Text>
-                </View>
-                <View style={S.badge}>
-                  <Feather name="map-pin" size={11} color={C.muted} />
-                  <Text style={S.badgeText}>{displayDistrict}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
 
         {/* ── District chips ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={S.chipsScroll} contentContainerStyle={[S.chipsContent, dynStyles.chipsContent]}>
