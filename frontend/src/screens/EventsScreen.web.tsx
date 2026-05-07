@@ -6,17 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   ViewStyle,
-  Dimensions,
-  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { TopNavigation } from "../navigation/TopNavigation";
 import { gradients, palette } from "../styles/theme";
-
-const { width: screenWidth } = Dimensions.get('window');
-const isTablet = screenWidth >= 768 && screenWidth < 1200;
-const isDesktop = screenWidth >= 1200;
+import { Layout } from '../styles/responsive';
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar"
 
 interface EventsScreenProps {
   scrollRef?: (ref: any) => void;
@@ -29,6 +25,11 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const [showFilterDropdown, setShowFilterDropdown] = useState<string | null>(
     null,
   );
+
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < Layout.breakpoints.mobile;
+  const isDesktop = windowWidth >= Layout.breakpoints.desktop;
+  const isTablet = windowWidth >= Layout.breakpoints.mobile && windowWidth < Layout.breakpoints.desktop;
 
   const filterOptions = {
     events: ["活躍事件", "歷史事件", "已解決事件"],
@@ -49,7 +50,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "45分鐘 持續",
       location: "觀音區",
       healthIndex: "敏感警告",
-      severityColor: palette.accentMint,
+      severityColor: palette.accentYellow,
       icon: "business",
       isActive: true,
       isResolved: false,
@@ -66,7 +67,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "2小時15分鐘 活躍",
       location: "蘆竹區",
       confidence: "98.4%",
-      severityColor: palette.accentYellow,
+      severityColor: palette.accentRed,
       icon: "warning",
       isActive: true,
       isResolved: false,
@@ -83,7 +84,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "1小時30分鐘 持續",
       location: "中壢區",
       healthIndex: "良好",
-      severityColor: palette.accentLime,
+      severityColor: palette.accentGreen,
       icon: "car",
       isActive: true,
       isResolved: false,
@@ -117,7 +118,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "3小時 持續",
       location: "桃園區",
       healthIndex: "不健康",
-      severityColor: palette.accentYellow,
+      severityColor: palette.accentRed,
       icon: "alert-circle",
       isActive: true,
       isResolved: false,
@@ -160,7 +161,10 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
 
   return (
     <LinearGradient colors={gradients.page} style={styles.container}>
-      <TopNavigation title="事件庫" subtitle="INCIDENT TRACKING" />
+      {isMobile && (
+        <MobileTopAppbar title="事件紀錄" subtitle="EVENT" />
+      )}
+      
 
       <ScrollView
         ref={scrollRef}
@@ -173,6 +177,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
           style={styles.filterScrollView}
           contentContainerStyle={styles.filterContainer}
         >
+
           <TouchableOpacity
             style={[
               styles.filterButton,
@@ -475,7 +480,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                         {
                           color: event.confidence
                             ? palette.primaryDeep
-                            : palette.accentYellow,
+                            : palette.accentRed,
                         },
                       ]}
                     >
@@ -529,7 +534,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   filterScrollView: { paddingBottom: 20 },
-  filterContainer: { paddingHorizontal: 20, gap: 12 },
+  filterContainer: { paddingHorizontal: 20, gap: 12, paddingTop: 20 },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",

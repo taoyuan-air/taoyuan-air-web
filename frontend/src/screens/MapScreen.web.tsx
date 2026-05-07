@@ -9,10 +9,10 @@ import {
   Animated,
   Dimensions,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { TopNavigation } from "../navigation/TopNavigation";
 import { useStore } from "../store";
 import { LeafletMap } from "../components/LeafletMap.web";
 import { GridCell } from "../types";
@@ -20,8 +20,8 @@ import { Linking } from "react-native";
 import { TGOSMap } from "../components/TGOSMap.web";
 import { palette, semantic } from "../styles/theme";
 import { getGrid, setScenario } from "../api";
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+import { MobileTopAppbar } from "../navigation/MobileTopAppbar"
+import { Layout } from "../styles/responsive";
 
 export const MapScreen = () => {
   const {
@@ -39,8 +39,10 @@ export const MapScreen = () => {
   const [mapMode, setMapMode] = useState<"2D" | "Satellite">("2D");
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const { width: windowWidth, height: screenHeight } = useWindowDimensions();
+
   const slideAnim = React.useRef(new Animated.Value(screenHeight)).current;
-  const [satAttribution, setSatAttribution] = useState("Powered by Esri");
+  const isMobile = windowWidth < Layout.breakpoints.mobile;
 
   // 載入網格數據
   useEffect(() => {
@@ -60,8 +62,6 @@ export const MapScreen = () => {
     }
   };
 
-  // 判斷是否為手機版網頁
-  const isMobileWeb = Platform.OS === "web" && screenWidth < 768;
 
   const getPollutantLabel = () => {
     switch (selectedPollutant) {
@@ -105,13 +105,13 @@ export const MapScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 手機版網頁顯示 TopNavigation */}
-      {isMobileWeb && (
-        <TopNavigation title="監測地圖" subtitle="REAL-TIME MONITORING" />
+
+      {isMobile && (
+        <MobileTopAppbar title="監測地圖" subtitle="REAL-TIME MONITORING"/>
       )}
 
       {/* Top Controls */}
-      <View style={styles.topControls}>
+      <View style={[styles.topControls, { top: isMobile ? 160 : 20 }]}>
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[
@@ -358,7 +358,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.bgBase },
   topControls: {
     position: "absolute",
-    top: Platform.OS === "web" && screenWidth < 768 ? 100 : 20,
     left: 20,
     right: 20,
     zIndex: 10,
