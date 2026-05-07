@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "../styles/theme";
-import { Layout, isWeb } from "../styles/responsive";
+import { isWeb } from "../styles/responsive";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { NotificationScreen } from "../screens/NotificationScreen";
 

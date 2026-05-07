@@ -8,7 +8,7 @@ import { palette } from "./src/styles/theme";
 export default function App() {
   return (
     <View style={styles.container}>
-      <NavigationContainer>
+      <NavigationContainer documentTitle={{enabled: false,}}>
         <StatusBar style="dark" backgroundColor={palette.bgBase} />
         <ResponsiveNavigator />
       </NavigationContainer>
