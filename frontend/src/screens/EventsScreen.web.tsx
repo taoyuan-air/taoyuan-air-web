@@ -29,7 +29,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < Layout.breakpoints.mobile;
   const isDesktop = windowWidth >= Layout.breakpoints.desktop;
-  const isTablet = windowWidth >= Layout.breakpoints.mobile && windowWidth < Layout.breakpoints.tablet;
+  const isTablet = windowWidth >= Layout.breakpoints.mobile && windowWidth < Layout.breakpoints.desktop;
 
   const filterOptions = {
     events: ["活躍事件", "歷史事件", "已解決事件"],
