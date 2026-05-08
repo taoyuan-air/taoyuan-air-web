@@ -297,6 +297,17 @@ const getAQIStatus = (aqi: number) => {
   return "危害";
 };
 
+// 污染物進度條粉紅色系：比例越高越深，越低越淺（獨立粉紅色系，確保可讀）
+const getPollutantPinkColor = (value: number, max: number): string => {
+  const ratio = Math.min(Math.max(value / max, 0), 1);
+  // 從淺粉（低）到深粉紅（高），使用 rgba 控制深淺
+  if (ratio <= 0.2)  return 'rgba(255, 182, 210, 0.85)';  // 極淺粉
+  if (ratio <= 0.4)  return 'rgba(255, 140, 180, 0.90)';  // 淺粉
+  if (ratio <= 0.6)  return 'rgba(230, 90, 145, 0.95)';   // 中粉
+  if (ratio <= 0.8)  return 'rgba(210, 60, 115, 1.0)';    // 深粉
+  return 'rgba(180, 30, 90, 1.0)';                        // 極深粉（高污染）
+};
+
 const getPM25Color  = (v: number) => v <= 12 ? C.rose  : v <= 35 ? C.amber : C.roseMid;
 const getO3Color    = (v: number) => v <= 54 ? C.mint  : C.amber;
 const getNO2Color   = (v: number) => v <= 53 ? C.sky   : C.amber;
@@ -495,23 +506,26 @@ const MetricTile: React.FC<{ label: string; value: string; unit: string; color: 
 );
 
 /** Horizontal pollutant bar */
-const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: number; color: string; unit: string }> = ({ name, nameEn, value, max, color, unit }) => (
-  <View style={S.pollRow}>
-    <View style={S.pollNameCol}>
-      <Text style={S.pollName}>{nameEn}</Text>
-      <Text style={S.pollNameSub}>{name}</Text>
+const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: number; color: string; unit: string }> = ({ name, nameEn, value, max, color, unit }) => {
+  const pinkColor = getPollutantPinkColor(value, max);
+  return (
+    <View style={S.pollRow}>
+      <View style={S.pollNameCol}>
+        <Text style={[S.pollName, { color: pinkColor }]}>{nameEn}</Text>
+        <Text style={[S.pollNameSub, { color: pinkColor }]}>{name}</Text>
+      </View>
+      <View style={S.pollTrack}>
+        <LinearGradient
+          colors={[`${pinkColor.replace('1.0)', '0.5)').replace('0.95)', '0.5)').replace('0.90)', '0.5)').replace('0.85)', '0.4)')}`, pinkColor]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={[S.pollFill, { width: `${Math.min((value / max) * 100, 100)}%` }]}
+        />
+      </View>
+      <Text style={[S.pollVal, { color: pinkColor }]}>{value}</Text>
+      <Text style={S.mtUnit}>{unit}</Text>
     </View>
-    <View style={S.pollTrack}>
-      <LinearGradient
-        colors={[`${color}aa`, color]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={[S.pollFill, { width: `${Math.min((value / max) * 100, 100)}%` }]}
-      />
-    </View>
-    <Text style={[S.pollVal, { color }]}>{value}</Text>
-    <Text style={S.mtUnit}>{unit}</Text>
-  </View>
-);
+  );
+};
 
 /** Frosted weather stat tile */
 const WxStat: React.FC<{ icon: keyof typeof Feather.glyphMap; label: string; value: string; color: string }> = ({ icon, label, value, color }) => (
@@ -669,7 +683,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
             </View>
 
-            {/* Activity advice */}
+            {/* Activity advice + AI insight */}
             <View style={S.glassCard}>
               <SecLabel title="活動建議" />
               <View style={S.adviceRow}>
@@ -678,8 +692,82 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 </View>
                 <Text style={S.adviceText}>{activ.advice}</Text>
               </View>
-            </View>
+              
+              <View style={S.divider} />
 
+              <SecLabel title="AI 趨勢分析" />
+              <View style={S.insightRow}>
+                <View style={S.insightIcon}>
+                  <Feather name="trending-down" size={15} color={C.rose} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
+                  <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
+                </View>
+                <View style={S.insightChip}>
+                  <Text style={S.insightChipText}>−12%</Text>
+                </View>
+              </View>
+
+              <View style={S.insightRow}>
+                <View style={S.insightIcon}>
+                  <Feather name="trending-up" size={15} color={C.rose} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.insightMain}>O₃ 臭氧濃度偏高</Text>
+                  <Text style={S.insightSub}>午後日照強烈，預計 14:00 前後達到日高峰</Text>
+                </View>
+                <View style={S.insightChip}>
+                  <Text style={S.insightChipText}>+18%</Text>
+                </View>
+              </View>
+
+              <View style={S.insightRow}>
+                <View style={S.insightIcon}>
+                  <Feather name="wind" size={15} color={C.rose} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.insightMain}>空氣品質持續改善中</Text>
+                  <Text style={S.insightSub}>東北季風增強，污染物擴散條件良好</Text>
+                </View>
+                <View style={S.insightChip}>
+                  <Text style={S.insightChipText}>良好</Text>
+                </View>
+              </View>
+            </View>  
+          </View>
+
+          {/* MIDDLE */}
+          <View style={S.midCol}>
+          {/* Key Metrics + Pollutant bars */}
+          <View style={S.glassCard}>
+            <SecLabel title="污染物詳情"/>
+           {/* Compact metric tiles row */}
+          <View style={S.metrics2}>
+            <MetricTile label="PM2.5"   value={String(pm25)} unit="μg/m³" color={getPollutantPinkColor(pm25, 75)}  />
+            <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getPollutantPinkColor(o3, 100)}  />
+            <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getPollutantPinkColor(no2, 100)} />
+          </View>
+            {/* Divider */}
+            <View style={S.divider} />
+            {/* Bars */}
+            <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
+            <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}   unit="ppb"/>
+            <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
+
+            {/* Divider */}
+            <View style={S.divider} />
+            {/* PM2.5 趨勢圖 */}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <Text style={S.secTitle}>PM2.5 趨勢</Text>
+              <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
+            </View>
+            <View style={{ alignItems: "center" }}>
+              <TrendBars trend={[0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+            </View>
+          </View>
+
+          
             {/* Tablet: Current weather */}
             {isTablet && (
               <View style={S.glassCard}>
@@ -702,60 +790,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               </View>
             )}
 
-            
-          </View>
-
-          {/* MIDDLE */}
-          <View style={S.midCol}>
-            {/* AI insight */}
-            <View style={S.glassCard}>
-              <SecLabel title="AI 趨勢分析"/>
-              <View style={S.insightRow}>
-                <View style={S.insightIcon}>
-                  <Feather name="trending-down" size={15} color={C.rose} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
-                  <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
-                </View>
-                <View style={S.insightChip}>
-                  <Text style={S.insightChipText}>−12%</Text>
-                </View>
-              </View>
-            </View>
-
-          {/* Key Metrics + Pollutant bars */}
-          <View style={S.glassCard}>
-            <SecLabel title="污染物詳情"/>
-            {/* Compact metric tiles row */}
-            <View style={S.metrics2}>
-              <MetricTile label="PM2.5"  value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)} />
-              <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}    />
-              <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)}  />
-            </View>
-            {/* Divider */}
-            <View style={S.divider} />
-            {/* Bars */}
-            <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
-            <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}   unit="ppb"/>
-            <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
-
-            {/* Divider */}
-            <View style={S.divider} />
-            {/* PM2.5 趨勢圖 */}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <Text style={S.secTitle}>PM2.5 趨勢</Text>
-              <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <TrendBars trend={[0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38]} />
-            </View>
-          </View>
-
             {/* Tablet: 3-day forecast */}
             {isTablet && (
               <View style={S.glassCard}>
-                <SecLabel title="三日預報"/>
+                <SecLabel title="未來三日天氣預報"/>
                 <View style={S.fcRow}>
                   {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
                 </View>
@@ -923,7 +961,7 @@ const S = StyleSheet.create({
   pollVal:    { width: 28, textAlign: "right", fontSize: 12, fontWeight: "700" },
 
   // AI insight
-  insightRow:     { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder },
+  insightRow:     { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder, marginBottom: 10, },
   insightIcon:    { width: 34, height: 34, borderRadius: 8, backgroundColor: "rgba(212,86,122,0.16)", justifyContent: "center", alignItems: "center", flexShrink: 0 },
   insightMain:    { fontSize: 12, fontWeight: "700", color: C.rose },
   insightSub:     { fontSize: 10, color: C.muted, marginTop: 2 },
