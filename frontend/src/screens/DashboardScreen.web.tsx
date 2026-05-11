@@ -23,6 +23,7 @@ import Svg, {
 import { LinearGradient } from "expo-linear-gradient";
 import { DashboardScreenMobile } from "./DashboardScreenMobile";
 import { Layout } from '../styles/responsive';
+import { TaoyuanMapView } from './TaoyuanMapView.web';
 
 // ─── pm2.5 trend bars ──────────────────────────────────────────────
 const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
@@ -672,25 +673,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
 
-        {/* ── District chips ── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={S.chipsScroll} contentContainerStyle={[S.chipsContent, dynStyles.chipsContent]}>
-          {districts.map((d) => {
-            const on = selectedDistrict === d;
-            return (
-              <TouchableOpacity key={d} onPress={() => setSelectedDistrict(on ? null : d)} activeOpacity={0.75}>
-                <View style={[S.chip, on && S.chipOn]}>
-                  <Text style={[S.chipText, on && S.chipTextOn]}>{d}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
         {/* ── 3-column grid ── */}
         <View style={[S.grid, dynStyles.grid]}>
 
           {/* LEFT */}
           <View style={[S.leftCol, dynStyles.leftCol]}>
+
+             {/* ── 桃園地圖 ── */}
+            <View style={[S.glassCard, { padding: 12 }]}>
+              <SecLabel title="監測區域" />
+              <View style={{ height: 340, borderRadius: 10, overflow: 'hidden' }}>
+                <TaoyuanMapView
+                  selectedDistrict={selectedDistrict}
+                  onSelectDistrict={(d) => setSelectedDistrict(d)}
+                />
+              </View>
+            </View>
+
             {/* AQI */}
             <View style={S.glassCard}>
               <SecLabel title="空氣品質指數"/>
