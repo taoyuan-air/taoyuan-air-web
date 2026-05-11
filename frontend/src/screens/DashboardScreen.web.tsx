@@ -67,12 +67,12 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
     // 2. 如果是真實數據，使用原本的彩色系統
     let baseColor;
-    if (value <= 0.3) baseColor = 'rgba(231, 101, 149'; // 主色系 - 低
-    else if (value <= 0.5) baseColor = 'rgba(255, 193, 7'; // 黃色 - 一般
-    else if (value <= 0.7) baseColor = 'rgba(255, 87, 34'; // 紅色 - 高
-    else baseColor = 'rgba(156, 39, 176'; // 紫色 - 很高
+    if (value <= 0.3) baseColor = COLORS.GOOD; // 主色系 - 低
+    else if (value <= 0.5) baseColor = COLORS.MODERATE; // 黃色 - 一般
+    else if (value <= 0.7) baseColor = COLORS.UNHEALTHY; // 紅色 - 高
+    else baseColor = COLORS.VERY_UNHEALTHY; // 紫色 - 很高
 
-    return baseColor + ', 0.8)';
+    return baseColor + 'CC';
   };
 
   const maxHeight = 56;  // 從48增加到56 (+17%)
@@ -277,16 +277,29 @@ const C = {
   hint:    "#b0a0b8",
 };
 
-// Page background gradient stops
-const BG_COLORS: [string, string, string, string] = [
-  "#fce8f0", "#f0eafc", "#e8f0fc", "#e8f5ef",
-];
+const COLORS = {
+  GOOD: "#76c476",          // 良好 (綠)
+  MODERATE: "#f5c518",      // 普通 (黃)
+  UNHEALTHY_SENSITIVE: "#ff8c00", // 對敏感族群不健康 (橘)
+  UNHEALTHY: "#e53935",     // 不健康 (紅)
+  VERY_UNHEALTHY: "#9c27b0",// 非常不健康 (紫)
+  HAZARDOUS: "#7e0023"      // 有害 (褐紫)
+};
 
 // ─── Gauge dimensions (desktop baseline) ──────────────────────────────
 const GAUGE_SIZE   = 200;
 const STROKE_W     = 11;
 const GAUGE_R      = (GAUGE_SIZE - STROKE_W) / 2;
 const GAUGE_CIRC   = 2 * Math.PI * GAUGE_R;
+
+// ─── Helper: AQI color ───────────────────────────────────────
+const getAQIColor = (aqi: number) => {
+  if (aqi <= 50) return "#E76595";
+  if (aqi <= 100) return COLORS.MODERATE;
+  if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
+  if (aqi <= 200) return COLORS.UNHEALTHY;
+  return COLORS.VERY_UNHEALTHY;
+};
 
 // ─── Helper: AQI → status label ───────────────────────────────────────
 const getAQIStatus = (aqi: number) => {
@@ -297,20 +310,29 @@ const getAQIStatus = (aqi: number) => {
   return "危害";
 };
 
-// 污染物進度條粉紅色系：比例越高越深，越低越淺（獨立粉紅色系，確保可讀）
-const getPollutantPinkColor = (value: number, max: number): string => {
-  const ratio = Math.min(Math.max(value / max, 0), 1);
-  // 從淺粉（低）到深粉紅（高），使用 rgba 控制深淺
-  if (ratio <= 0.2)  return 'rgba(255, 182, 210, 0.85)';  // 極淺粉
-  if (ratio <= 0.4)  return 'rgba(255, 140, 180, 0.90)';  // 淺粉
-  if (ratio <= 0.6)  return 'rgba(230, 90, 145, 0.95)';   // 中粉
-  if (ratio <= 0.8)  return 'rgba(210, 60, 115, 1.0)';    // 深粉
-  return 'rgba(180, 30, 90, 1.0)';                        // 極深粉（高污染）
+// ─── Air Quality Helpers ──────────────────────────────────────────────────────
+
+const getPM25Color = (v: number) => {
+  if (v <= 12.0) return "#E76595";
+  if (v <= 35.4) return COLORS.MODERATE;
+  if (v <= 55.4) return COLORS.UNHEALTHY_SENSITIVE;
+  if (v <= 150.4) return COLORS.UNHEALTHY;
+  return COLORS.VERY_UNHEALTHY;
 };
 
-const getPM25Color  = (v: number) => v <= 12 ? C.rose  : v <= 35 ? C.amber : C.roseMid;
-const getO3Color    = (v: number) => v <= 54 ? C.mint  : C.amber;
-const getNO2Color   = (v: number) => v <= 53 ? C.sky   : C.amber;
+const getO3Color = (v: number) => {
+  if (v <= 54) return "#E76595";
+  if (v <= 70) return COLORS.MODERATE;
+  if (v <= 85) return COLORS.UNHEALTHY_SENSITIVE;
+  return COLORS.UNHEALTHY;
+};
+
+const getNO2Color = (v: number) => {
+  if (v <= 53) return "#E76595";
+  if (v <= 100) return COLORS.MODERATE;
+  if (v <= 360) return COLORS.UNHEALTHY_SENSITIVE;
+  return COLORS.UNHEALTHY;
+};
 
 const getActivityInfo = (pm25: number) => {
   if (pm25 <= 12) return { icon: "activity" as const, advice: "空氣清新，非常適合戶外運動，盡情享受戶外活動！" };
@@ -453,32 +475,49 @@ const fetchPast1hrRainfall = async (district: string): Promise<string> => {
 
 /** Frosted glass AQI ring */
 const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
-  const pct     = Math.min(Math.max(aqi / 200, 0), 1);
-  const offset  = GAUGE_CIRC * (1 - pct);
+  const pct    = Math.min(Math.max(aqi / 200, 0), 1);
+  const offset = GAUGE_CIRC * (1 - pct);
   const cx = GAUGE_SIZE / 2;
   const cy = GAUGE_SIZE / 2;
+
+  const color     = getAQIColor(aqi);
+  const gradId    = `rg-${aqi}`;          // 避免多個 gauge 共用同一個 id
+
+  // 漸層起始色：把主色調淡（透明度低一點的同色）
+  const colorLight = color + "99";        // 60% opacity hex
+
   return (
     <View style={{ width: GAUGE_SIZE, height: GAUGE_SIZE, justifyContent: "center", alignItems: "center" }}>
       <Svg width={GAUGE_SIZE} height={GAUGE_SIZE} style={{ position: "absolute" }}>
         <Defs>
-          <SvgLinearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor="#F48FB1" stopOpacity="1" />
-            <Stop offset="100%" stopColor={C.rose}  stopOpacity="1" />
+          <SvgLinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <Stop offset="0%" stopColor={colorLight} stopOpacity="1" />
+            <Stop offset="100%" stopColor={color}     stopOpacity="1" />
           </SvgLinearGradient>
         </Defs>
+
         {/* track */}
         <Circle cx={cx} cy={cy} r={GAUGE_R} stroke={C.roseLt} strokeWidth={STROKE_W} fill="none" />
+
         {/* main arc */}
-        <Circle cx={cx} cy={cy} r={GAUGE_R} stroke="url(#rg)" strokeWidth={STROKE_W} fill="none"
-          strokeDasharray={GAUGE_CIRC} strokeDashoffset={offset}
-          strokeLinecap="round" transform={`rotate(-90, ${cx}, ${cy})`} />
+        <Circle
+          cx={cx} cy={cy} r={GAUGE_R}
+          stroke={`url(#${gradId})`}
+          strokeWidth={STROKE_W}
+          fill="none"
+          strokeDasharray={GAUGE_CIRC}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90, ${cx}, ${cy})`}
+        />
       </Svg>
+
       {/* inner frosted circle */}
       <View style={S.gaugeInner}>
         <Text style={S.gaugeLabel}>AQI</Text>
-        <Text style={S.gaugeValue}>{aqi}</Text>
-        <View style={S.gaugePill}>
-          <Text style={S.gaugePillText}>{getAQIStatus(aqi)}</Text>
+        <Text style={[S.gaugeValue, { color }]}>{aqi}</Text>
+        <View style={[S.gaugePill, { backgroundColor: getAQIColor(aqi)+"33", borderColor: getAQIColor(aqi)+"55" }]}>
+          <Text style={[S.gaugePillText, { color: getAQIColor(aqi) }]}>{getAQIStatus(aqi)}</Text>
         </View>
       </View>
     </View>
@@ -504,28 +543,6 @@ const MetricTile: React.FC<{ label: string; value: string; unit: string; color: 
     <Text style={S.mtUnit}>{unit}</Text>
   </View>
 );
-
-/** Horizontal pollutant bar */
-const PollBar: React.FC<{ name: string; nameEn: string; value: number; max: number; color: string; unit: string }> = ({ name, nameEn, value, max, color, unit }) => {
-  const pinkColor = getPollutantPinkColor(value, max);
-  return (
-    <View style={S.pollRow}>
-      <View style={S.pollNameCol}>
-        <Text style={[S.pollName, { color: pinkColor }]}>{nameEn}</Text>
-        <Text style={[S.pollNameSub, { color: pinkColor }]}>{name}</Text>
-      </View>
-      <View style={S.pollTrack}>
-        <LinearGradient
-          colors={[`${pinkColor.replace('1.0)', '0.5)').replace('0.95)', '0.5)').replace('0.90)', '0.5)').replace('0.85)', '0.4)')}`, pinkColor]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={[S.pollFill, { width: `${Math.min((value / max) * 100, 100)}%` }]}
-        />
-      </View>
-      <Text style={[S.pollVal, { color: pinkColor }]}>{value}</Text>
-      <Text style={S.mtUnit}>{unit}</Text>
-    </View>
-  );
-};
 
 /** Frosted weather stat tile */
 const WxStat: React.FC<{ icon: keyof typeof Feather.glyphMap; label: string; value: string; color: string }> = ({ icon, label, value, color }) => (
@@ -744,16 +761,60 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             <SecLabel title="污染物詳情"/>
            {/* Compact metric tiles row */}
           <View style={S.metrics2}>
-            <MetricTile label="PM2.5"   value={String(pm25)} unit="μg/m³" color={getPollutantPinkColor(pm25, 75)}  />
-            <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getPollutantPinkColor(o3, 100)}  />
-            <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getPollutantPinkColor(no2, 100)} />
+            <MetricTile label="PM2.5"   value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)}  />
+            <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}  />
+            <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)} />
           </View>
             {/* Divider */}
             <View style={S.divider} />
             {/* Bars */}
-            <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75}  color={getPM25Color(pm25)} unit="μg/m³"/>
-            <PollBar name="臭氧"      nameEn="O₃"    value={o3}   max={100} color={getO3Color(o3)}   unit="ppb"/>
-            <PollBar name="二氧化氮"  nameEn="NO₂"   value={no2}  max={100} color={getNO2Color(no2)} unit="ppb"/>
+            <View style={[S.miniPollutRow]}>
+              <View style={S.miniPollutLeft}>
+                <Text style={S.miniPollutName}>PM2.5</Text>
+                <Text style={S.miniPollutSub}>細懸浮微粒</Text>
+              </View>
+              <View style={S.miniPollutBar}>
+                <View style={S.miniBarTrack}>
+                  <View style={[S.miniBarFill, { width: `${Math.min((pm25 / 75) * 100, 100)}%`, backgroundColor: getPM25Color(pm25) }]} />
+                </View>
+              </View>
+              <View style={S.miniPollutRight}>
+                <Text style={[S.miniPollutVal, { color: getPM25Color(pm25) }]}>{pm25}</Text>
+                <Text style={S.miniPollutUnit}>μg/m³</Text>
+              </View>
+            </View>
+
+            <View style={[S.miniPollutRow]}>
+              <View style={S.miniPollutLeft}>
+                <Text style={S.miniPollutName}>O₃</Text>
+                <Text style={S.miniPollutSub}>臭氧</Text>
+              </View>
+              <View style={S.miniPollutBar}>
+                <View style={S.miniBarTrack}>
+                  <View style={[S.miniBarFill, { width: `${Math.min((o3 / 100) * 100, 100)}%`, backgroundColor: getO3Color(o3) }]} />
+                </View>
+              </View>
+              <View style={S.miniPollutRight}>
+                <Text style={[S.miniPollutVal, { color: getO3Color(o3) }]}>{o3}</Text>
+                <Text style={S.miniPollutUnit}>ppb</Text>
+              </View>
+            </View>
+
+            <View style={[S.miniPollutRow, { marginBottom: 0 }]}>
+              <View style={S.miniPollutLeft}>
+                <Text style={S.miniPollutName}>NO₂</Text>
+                <Text style={S.miniPollutSub}>二氧化氮</Text>
+              </View>
+              <View style={S.miniPollutBar}>
+                <View style={S.miniBarTrack}>
+                  <View style={[S.miniBarFill, { width: `${Math.min((no2 / 100) * 100, 100)}%`, backgroundColor: getNO2Color(no2) }]} />
+                </View>
+              </View>
+              <View style={S.miniPollutRight}>
+                <Text style={[S.miniPollutVal, { color: getNO2Color(no2) }]}>{no2}</Text>
+                <Text style={S.miniPollutUnit}>ppb</Text>
+              </View>
+            </View>
 
             {/* Divider */}
             <View style={S.divider} />
@@ -763,7 +824,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
             </View>
             <View style={{ alignItems: "center" }}>
-              <TrendBars trend={[0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+              <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
             </View>
           </View>
 
@@ -932,8 +993,8 @@ const S = StyleSheet.create({
   },
   gaugeLabel:    { fontSize: 9, color: C.hint, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "monospace" },
   gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.rose, lineHeight: 44 },
-  gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder },
-  gaugePillText: { fontSize: 11, fontWeight: "700", color: C.rose },
+  gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.roseLt, borderWidth: 1.2 },
+  gaugePillText: { fontSize: 11, fontWeight: "700" },
   aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 4 },
 
   // Activity advice
@@ -993,6 +1054,18 @@ const S = StyleSheet.create({
   fcWeather:  { fontSize: 10, color: C.muted, textAlign: "center" },
   fcTemps:    { fontSize: 9, fontWeight: "600", color: C.text, marginTop: 3 },
   fcPop:      { fontSize: 10, color: C.hint, marginTop: 2 },
+
+  // ── Mini pollutant rows (pm2.5, O3, NO2) ──
+  miniPollutRow:    { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 10 },
+  miniPollutLeft:   { width: 50 },
+  miniPollutName:   { fontSize: 13, fontWeight: "700", color: "#444" },
+  miniPollutSub:    { fontSize: 10, color: "#aaa", marginTop: 1 },
+  miniPollutBar:    { flex: 1 },
+  miniBarTrack:     { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" },
+  miniBarFill:      { height: "100%", borderRadius: 3 },
+  miniPollutRight:  { flexDirection: "row", alignItems: "baseline", gap: 3, width: 52, justifyContent: "flex-end" },
+  miniPollutVal:    { fontSize: 15, fontWeight: "700" },
+  miniPollutUnit:   { fontSize: 10, color: "#aaa" },
 });
 
 const styles = StyleSheet.create({
