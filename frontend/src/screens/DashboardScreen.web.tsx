@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   useWindowDimensions,
+  Image,
   TouchableOpacity,
   Alert,
 } from "react-native";
@@ -24,6 +25,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { DashboardScreenMobile } from "./DashboardScreenMobile";
 import { Layout } from '../styles/responsive';
 import { TaoyuanMapView } from './TaoyuanMapView.web';
+import { palette } from "../styles/theme";
 
 // ─── pm2.5 trend bars ──────────────────────────────────────────────
 const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
@@ -536,15 +538,6 @@ const SecLabel: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => 
   </View>
 );
 
-/** Glass metric tile (2×2 grid) */
-const MetricTile: React.FC<{ label: string; value: string; unit: string; color: string }> = ({ label, value, unit, color }) => (
-  <View style={S.metricTile}>
-    <Text style={S.mtLabel}>{label}</Text>
-    <Text style={[S.mtValue, { color }]}>{value}</Text>
-    <Text style={S.mtUnit}>{unit}</Text>
-  </View>
-);
-
 /** Frosted weather stat tile */
 const WxStat: React.FC<{ icon: keyof typeof Feather.glyphMap; label: string; value: string; color: string }> = ({ icon, label, value, color }) => (
   <View style={S.wxStat}>
@@ -573,7 +566,7 @@ const FcCard: React.FC<{ day: ForecastDay; highlight?: boolean }> = ({ day, high
 interface DashboardScreenProps { scrollRef?: (ref: any) => void; }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) => {
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Only render on web viewports >= 768px; mobile uses DashboardScreenMobile.tsx
   if (windowWidth < Layout.breakpoints.mobile) return <DashboardScreenMobile/>;
@@ -662,7 +655,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
         <View style={{  flex: 1,
                         justifyContent: "center",
                         alignItems: "center",
-                        backgroundColor: '#FFF6F9' }}>
+                        backgroundColor: palette.bgBase }}>
             <ActivityIndicator size="large" color={C.rose} />
             <Text style={S.loadingText}>載入中...</Text>
         </View>
@@ -671,234 +664,215 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
   return (
   
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+      
+        <View style={{ flexDirection: 'row' }}>
 
-        {/* ── 3-column grid ── */}
-        <View style={[S.grid, dynStyles.grid]}>
+          {/* 左半部：地圖 */}
+          <View style={{ width: '45%' }}>
+            {/* ── 桃園地圖 ── */}
+              <View style={[{ padding: 40, paddingTop: 70 }]}>
+                <View style={{ height: 650}}>
+                  <TaoyuanMapView
+                    selectedDistrict={selectedDistrict}
+                    onSelectDistrict={(d) => setSelectedDistrict(d)}
+                  />
+                </View>
 
-          {/* LEFT */}
-          <View style={[S.leftCol, dynStyles.leftCol]}>
-
-             {/* ── 桃園地圖 ── */}
-            <View style={[S.glassCard, { padding: 12 }]}>
-              <SecLabel title="監測區域" />
-              <View style={{ height: 340, borderRadius: 10, overflow: 'hidden' }}>
-                <TaoyuanMapView
-                  selectedDistrict={selectedDistrict}
-                  onSelectDistrict={(d) => setSelectedDistrict(d)}
-                />
-              </View>
-            </View>
-
-            {/* AQI */}
-            <View style={S.glassCard}>
-              <SecLabel title="空氣品質指數"/>
-              <View style={{ alignItems: "center", paddingVertical: 12 }}>
-                <AQIGauge aqi={locatedAqi} />
-              </View>
-              <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
-            </View>
-
-            {/* Activity advice + AI insight */}
-            <View style={S.glassCard}>
-              <SecLabel title="活動建議" />
-              <View style={S.adviceRow}>
-                <View style={S.adviceIcon}>
-                  <Feather name={activ.icon} size={18} color={C.rose} />
-                </View>
-                <Text style={S.adviceText}>{activ.advice}</Text>
-              </View>
-              
-              <View style={S.divider} />
-
-              <SecLabel title="AI 趨勢分析" />
-              <View style={S.insightRow}>
-                <View style={S.insightIcon}>
-                  <Feather name="trending-down" size={15} color={C.rose} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
-                  <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
-                </View>
-                <View style={S.insightChip}>
-                  <Text style={S.insightChipText}>−12%</Text>
-                </View>
-              </View>
-
-              <View style={S.insightRow}>
-                <View style={S.insightIcon}>
-                  <Feather name="trending-up" size={15} color={C.rose} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={S.insightMain}>O₃ 臭氧濃度偏高</Text>
-                  <Text style={S.insightSub}>午後日照強烈，預計 14:00 前後達到日高峰</Text>
-                </View>
-                <View style={S.insightChip}>
-                  <Text style={S.insightChipText}>+18%</Text>
-                </View>
-              </View>
-
-              <View style={S.insightRow}>
-                <View style={S.insightIcon}>
-                  <Feather name="wind" size={15} color={C.rose} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={S.insightMain}>空氣品質持續改善中</Text>
-                  <Text style={S.insightSub}>東北季風增強，污染物擴散條件良好</Text>
-                </View>
-                <View style={S.insightChip}>
-                  <Text style={S.insightChipText}>良好</Text>
-                </View>
-              </View>
-            </View>  
+                {/* 左下角詳情按鈕 */}
+                
+                  <TouchableOpacity
+                    style={{
+                      position: 'absolute',
+                      bottom: 50,
+                      left: 100,
+                      backgroundColor: '#f7e9ec',
+                      borderWidth: 1,
+                      borderColor: '#d4567a',
+                      paddingHorizontal: 18,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      alignItems: 'center',
+                     
+                    }}>
+                    <Text style={{ color: '#d4567a', fontWeight: '700', fontSize: 15 }}>
+                      點選查看區域詳情　<Feather name="map-pin" size={15} color="#d4567a" /> {selectedDistrict}
+                    </Text>
+                  </TouchableOpacity>
+                
+              </View>    
           </View>
 
-          {/* MIDDLE */}
-          <View style={S.midCol}>
-          {/* Key Metrics + Pollutant bars */}
-          <View style={S.glassCard}>
-            <SecLabel title="污染物詳情"/>
-           {/* Compact metric tiles row */}
-          <View style={S.metrics2}>
-            <MetricTile label="PM2.5"   value={String(pm25)} unit="μg/m³" color={getPM25Color(pm25)}  />
-            <MetricTile label="O₃ 臭氧" value={String(o3)}   unit="ppb"   color={getO3Color(o3)}  />
-            <MetricTile label="NO₂"    value={String(no2)}  unit="ppb"   color={getNO2Color(no2)} />
+          {/* 右半部：所有資訊 */}
+          <View style={{
+            width: '51%',
+            backgroundColor: 'rgb(255, 255, 255)',  
+            //backdropFilter: 'blur(16px)',   // web 毛玻璃效果
+            borderWidth: 1,
+            borderColor: 'rgb(228, 140, 181)',
+            borderRadius: 20,
+            paddingVertical: 14,
+            paddingHorizontal: 28,
+            margin: 20,
+          }}>
+            <ScrollView>
+              <View style={[S.grid]}>
+
+                  {/* Choosen District Name */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Feather name="map-pin" size={30} color="#d4567a" style={{marginRight: 10 ,marginTop: 5}} />
+                    <Text style={S.districtName}>{selectedDistrict}</Text>
+                  </View>
+                  
+                  <View style={S.divider}/>
+
+                  {/* FIRST ROW */}
+                  <View style={S.firstRow}>
+                    
+                    {/* AQI */}
+                    <View style={{ flex: 1.2 }}>
+                      <SecLabel title="AQI 空氣品質指標" />
+                      <View style={{ alignItems: "center", marginTop: 12 }}>
+                        <AQIGauge aqi={locatedAqi} />
+                        <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
+                      </View>
+                    </View>
+                    
+                    {/* 活動建議 + AI 趨勢分析 */}
+                    <View style={{ flex: 1.5, gap: 10 }}>
+                      
+                      {/* 活動建議卡片 */}
+                      <View style={{ marginBottom: 4 }}>
+                        <SecLabel title="活動建議" />
+                        <View style={S.adviceRow}>
+                          <View style={S.adviceIcon}>
+                            <Feather name={activ.icon} size={18} color={C.rose} />
+                          </View>
+                          <Text style={S.adviceText} numberOfLines={2}>{activ.advice}</Text>
+                        </View>
+                      </View> 
+                      <View style={S.divider} />
+                      {/* AI 趨勢分析區塊 */}
+                      <View>
+                        <SecLabel title="AI 趨勢分析" />
+                        <View style={S.insightRow}>
+                          <View style={S.insightIcon}>
+                            <Feather name="trending-down" size={15} color={C.rose} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
+                            <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
+                          </View>
+                          <View style={S.insightChip}>
+                            <Text style={S.insightChipText}>−12%</Text>
+                          </View>
+                        </View>
+                      </View>    
+
+                    </View>
+
+                  </View>
+
+                  {/* SECOND ROW */}
+                  <SecLabel title="污染物詳情"/>
+                  <View style={S.secondRow}>
+                      
+                      {/* Pollutant Bars */}
+                      <View style={{ flex: 1 }}>
+                        <View style={[S.miniPollutRow]}>
+                          <View style={S.miniPollutLeft}>
+                            <Text style={S.miniPollutName}>PM2.5</Text>
+                            <Text style={S.miniPollutSub}>細懸浮微粒</Text>
+                          </View>
+                          <View style={S.miniPollutBar}>
+                            <View style={S.miniBarTrack}>
+                              <View style={[S.miniBarFill, { width: `${Math.min((pm25 / 75) * 100, 100)}%`, backgroundColor: getPM25Color(pm25) }]} />
+                            </View>
+                          </View>
+                          <View style={S.miniPollutRight}>
+                            <Text style={[S.miniPollutVal, { color: getPM25Color(pm25) }]}>{pm25}</Text>
+                            <Text style={S.miniPollutUnit}>μg/m³</Text>
+                          </View>
+                        </View>
+                        <View style={[S.miniPollutRow]}>
+                          <View style={S.miniPollutLeft}>
+                            <Text style={S.miniPollutName}>O₃</Text>
+                            <Text style={S.miniPollutSub}>臭氧</Text>
+                          </View>
+                          <View style={S.miniPollutBar}>
+                            <View style={S.miniBarTrack}>
+                              <View style={[S.miniBarFill, { width: `${Math.min((o3 / 100) * 100, 100)}%`, backgroundColor: getO3Color(o3) }]} />
+                            </View>
+                          </View>
+                          <View style={S.miniPollutRight}>
+                            <Text style={[S.miniPollutVal, { color: getO3Color(o3) }]}>{o3}</Text>
+                            <Text style={S.miniPollutUnit}>ppb</Text>
+                          </View>
+                        </View>
+                        <View style={[S.miniPollutRow, { marginBottom: 0 }]}>
+                          <View style={S.miniPollutLeft}>
+                            <Text style={S.miniPollutName}>NO₂</Text>
+                            <Text style={S.miniPollutSub}>二氧化氮</Text>
+                          </View>
+                          <View style={S.miniPollutBar}>
+                            <View style={S.miniBarTrack}>
+                              <View style={[S.miniBarFill, { width: `${Math.min((no2 / 100) * 100, 100)}%`, backgroundColor: getNO2Color(no2) }]} />
+                            </View>
+                          </View>
+                          <View style={S.miniPollutRight}>
+                            <Text style={[S.miniPollutVal, { color: getNO2Color(no2) }]}>{no2}</Text>
+                            <Text style={S.miniPollutUnit}>ppb</Text>
+                          </View>
+                        </View>
+                      </View>
+                      
+                      {/* PM2.5 趨勢圖 */}           
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <Text style={S.secTitle}>PM2.5 趨勢</Text>
+                          <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
+                        </View>
+                        <View style={{ alignItems: "center" }}>
+                          <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+                        </View>
+                      </View>
+                  </View>
+                  
+                  {/* THIRD ROW */}
+                  <View style={S.thirdRow}>
+                    {/* Current weather */}
+                    <View style={{flex: 1}}>
+                      <SecLabel title="當前天氣"/>
+                      <View style={S.wxHero}>
+                        <View>
+                          <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
+                          <Text style={S.wxDesc}>{currentWeather.weather}</Text>
+                          <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
+                        </View>
+                        <View style={S.wxIconCircle}>
+                          <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
+                        </View>
+                      </View>
+                      <View style={S.wxStats}>
+                        <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
+                        <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
+                        <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
+                      </View>
+                    </View>
+                    {/* 3-day forecast */}
+                    <View style={{flex: 1}}>
+                      <SecLabel title="未來三日預報"/>
+                      <View style={S.fcRow}>
+                        {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
+                      </View>
+                    </View>
+                  </View>
+
+              </View>
+            </ScrollView>
           </View>
-            {/* Divider */}
-            <View style={S.divider} />
-            {/* Bars */}
-            <View style={[S.miniPollutRow]}>
-              <View style={S.miniPollutLeft}>
-                <Text style={S.miniPollutName}>PM2.5</Text>
-                <Text style={S.miniPollutSub}>細懸浮微粒</Text>
-              </View>
-              <View style={S.miniPollutBar}>
-                <View style={S.miniBarTrack}>
-                  <View style={[S.miniBarFill, { width: `${Math.min((pm25 / 75) * 100, 100)}%`, backgroundColor: getPM25Color(pm25) }]} />
-                </View>
-              </View>
-              <View style={S.miniPollutRight}>
-                <Text style={[S.miniPollutVal, { color: getPM25Color(pm25) }]}>{pm25}</Text>
-                <Text style={S.miniPollutUnit}>μg/m³</Text>
-              </View>
-            </View>
 
-            <View style={[S.miniPollutRow]}>
-              <View style={S.miniPollutLeft}>
-                <Text style={S.miniPollutName}>O₃</Text>
-                <Text style={S.miniPollutSub}>臭氧</Text>
-              </View>
-              <View style={S.miniPollutBar}>
-                <View style={S.miniBarTrack}>
-                  <View style={[S.miniBarFill, { width: `${Math.min((o3 / 100) * 100, 100)}%`, backgroundColor: getO3Color(o3) }]} />
-                </View>
-              </View>
-              <View style={S.miniPollutRight}>
-                <Text style={[S.miniPollutVal, { color: getO3Color(o3) }]}>{o3}</Text>
-                <Text style={S.miniPollutUnit}>ppb</Text>
-              </View>
-            </View>
-
-            <View style={[S.miniPollutRow, { marginBottom: 0 }]}>
-              <View style={S.miniPollutLeft}>
-                <Text style={S.miniPollutName}>NO₂</Text>
-                <Text style={S.miniPollutSub}>二氧化氮</Text>
-              </View>
-              <View style={S.miniPollutBar}>
-                <View style={S.miniBarTrack}>
-                  <View style={[S.miniBarFill, { width: `${Math.min((no2 / 100) * 100, 100)}%`, backgroundColor: getNO2Color(no2) }]} />
-                </View>
-              </View>
-              <View style={S.miniPollutRight}>
-                <Text style={[S.miniPollutVal, { color: getNO2Color(no2) }]}>{no2}</Text>
-                <Text style={S.miniPollutUnit}>ppb</Text>
-              </View>
-            </View>
-
-            {/* Divider */}
-            <View style={S.divider} />
-            {/* PM2.5 趨勢圖 */}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <Text style={S.secTitle}>PM2.5 趨勢</Text>
-              <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-              <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
-            </View>
-          </View>
-
-          
-            {/* Tablet: Current weather */}
-            {isTablet && (
-              <View style={S.glassCard}>
-                <SecLabel title="當前天氣"/>
-                <View style={S.wxHero}>
-                  <View>
-                    <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
-                    <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                    <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
-                  </View>
-                  <View style={S.wxIconCircle}>
-                    <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
-                  </View>
-                </View>
-                <View style={S.wxStats}>
-                  <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
-                  <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
-                  <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
-                </View>
-              </View>
-            )}
-
-            {/* Tablet: 3-day forecast */}
-            {isTablet && (
-              <View style={S.glassCard}>
-                <SecLabel title="未來三日天氣預報"/>
-                <View style={S.fcRow}>
-                  {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
-                </View>
-              </View>
-            )}
-
-          </View>
-
-          
-          {/* RIGHT - Hidden on tablet, shown on desktop */}
-          {!isTablet && (
-            <View style={[S.rightCol, dynStyles.rightCol]}>
-              {/* Current weather */}
-              <View style={S.glassCard}>
-                <SecLabel title="當前天氣"/>
-                <View style={S.wxHero}>
-                  <View>
-                    <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
-                    <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                    <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
-                  </View>
-                  <View style={S.wxIconCircle}>
-                    <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
-                  </View>
-                </View>
-                <View style={S.wxStats}>
-                  <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
-                  <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
-                  <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
-                </View>
-              </View>
-
-              {/* 3-day forecast */}
-              <View style={S.glassCard}>
-                <SecLabel title="未來三日預報"/>
-                <View style={S.fcRow}>
-                  {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
-                </View>
-              </View>
-            </View>
-          )}
         </View>
-        <View style={{ height: 60 }} />
-      </ScrollView>
-
+      
   );
 };
 
@@ -952,28 +926,25 @@ const S = StyleSheet.create({
   badgeRose:    { backgroundColor: "rgba(212,86,122,0.10)", borderColor: C.roseBorder },
   badgeText:    { fontSize: 11, color: C.muted, fontWeight: "600" },
 
-  // District chips
-  chipsScroll:   { marginTop: 14 },
-  chipsContent:  { paddingHorizontal: 28, gap: 8 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: C.glass2, borderWidth: 1, borderColor: C.glassBorder2,
-  },
-  chipOn:     { backgroundColor: C.roseLt, borderColor: C.roseBorder, shadowColor: C.roseGlow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 },
-  chipText:   { fontSize: 12, color: C.muted, fontWeight: "500" },
-  chipTextOn: { color: C.rose, fontWeight: "700" },
+  // District name
+  districtName: { fontSize: 30, fontWeight: "800", color: "#d4567a", letterSpacing: -0.5 },
 
   // Grid
   grid: {
-    flexDirection: "row",
-    paddingHorizontal: 28,
-    paddingTop: 14,
-    gap: GAP,
-    alignItems: "flex-start",
+    flexDirection: "column",
+    paddingHorizontal: 12,  // 28 → 12
+    paddingTop: 10,         // 14 → 10
+    gap: 10,                // GAP(14) → 10
+    alignItems: "stretch",  // "flex-start" → "stretch"（讓卡片撐滿寬度）
   },
-  leftCol:  { width: 300, gap: GAP },
-  midCol:   { flex: 1, gap: GAP, minWidth: 380 },
-  rightCol: { width: 280, gap: GAP },
+
+  // Rows 
+  firstRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", paddingBottom: 30 },
+  secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between',gap: 40, width: "100%" },
+  thirdRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 40 },
+
+  // Divider
+  divider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 8 },
 
   // Section label
   secLabel: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
@@ -994,7 +965,7 @@ const S = StyleSheet.create({
   gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.rose, lineHeight: 44 },
   gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.roseLt, borderWidth: 1.2 },
   gaugePillText: { fontSize: 11, fontWeight: "700" },
-  aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 4 },
+  aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 15 },
 
   // Activity advice
   adviceRow:  { flexDirection: "row", gap: 12, alignItems: "center" },
@@ -1008,8 +979,7 @@ const S = StyleSheet.create({
   mtValue:   { fontSize: 24, fontWeight: "700", lineHeight: 26 },
   mtUnit:    { fontSize: 10, color: C.hint, marginTop: 3 },
 
-  // Divider
-  divider:   { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 14 },
+ 
 
   // Pollutant bars
   pollRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },

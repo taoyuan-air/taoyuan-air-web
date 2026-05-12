@@ -1,30 +1,30 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import { StyleSheet } from 'react-native';
 
 const DISTRICT_COLOR_MAP: Record<string, string> = {
   "#A3D457": "新屋區",
   "#FECD36": "觀音區",
   "#9DD13A": "楊梅區",
-  "#F8BF31": "蘆竹區",
-  "#39BDA8": "平鎮區",
+  "#F8BF31": "大園區",
+  "#39BDA8": "龍潭區",
   "#FADC23": "中壢區",
-  "#9CCB3F": "龍潭區",
-  "#F27D82": "大園區",
-  "#FDE55B": "桃園區",
-  "#FA9F90": "八德區",
-  "#3086E3": "龜山區",
-  "#F68C5D": "大溪區",
+  "#9CCB3F": "平鎮區",
+  "#F27D82": "蘆竹區",
+  "#FDE55B": "八德區",
+  "#FA9F90": "桃園區",
+  "#3086E3": "大溪區",
+  "#F68C5D": "龜山區",
   "#13478B": "復興區",
 };
 
 const DISTRICT_LABEL_POS: Record<string, {x:number;y:number}> = {
-  "新屋區": {x:115,y:430}, "觀音區": {x:240,y:210},
-  "楊梅區": {x:380,y:630}, "蘆竹區": {x:430,y:115},
-  "平鎮區": {x:480,y:625}, "中壢區": {x:545,y:455},
-  "龍潭區": {x:545,y:595}, "大園區": {x:690,y:70},
-  "桃園區": {x:715,y:495}, "八德區": {x:740,y:275},
-  "龜山區": {x:800,y:520}, "大溪區": {x:880,y:175},
-  "復興區": {x:940,y:730},
+  "新屋區": {x:210,y:360}, "觀音區": {x:330,y:240},
+  "楊梅區": {x:355,y:510}, "蘆竹區": {x:740,y:130},
+  "平鎮區": {x:565,y:525}, "中壢區": {x:550,y:355},
+  "龍潭區": {x:550,y:685}, "大園區": {x:530,y:150},
+  "桃園區": {x:747,y:300}, "八德區": {x:735,y:440},
+  "龜山區": {x:890,y:260}, "大溪區": {x:760,y:625},
+  "復興區": {x:920,y:950},
 };
 
 // 你的 SVG path data，每個 district 對應的 d="..." 字串
@@ -264,33 +264,7 @@ z`,
 	C639.555054,612.724731 633.618042,612.792358 626.244995,605.267273 
 	C622.665833,601.614258 618.551147,598.485901 614.336060,595.075867 
 z`,
-  "#F27D82": `M625.785217,49.987637 
-	C625.793274,47.624485 625.801331,45.261333 625.880737,42.105255 
-	C627.078796,38.589245 628.205444,35.866161 629.332092,33.143074 
-	C638.086548,25.050594 648.809082,26.087877 659.172424,27.462006 
-	C676.621521,29.775665 692.058350,36.366039 704.016235,50.135731 
-	C710.786194,57.931412 719.901794,62.362076 730.272827,63.113762 
-	C747.822327,64.385735 762.561401,72.521530 777.484558,80.825211 
-	C791.401978,88.569321 805.836365,95.419106 820.271118,102.175812 
-	C824.221069,104.024757 829.005798,104.054832 833.379456,105.043549 
-	C838.171875,106.126938 842.332214,108.426285 843.742676,113.394348 
-	C845.264526,118.754616 844.034607,123.645271 838.707886,127.527580 
-	C831.496399,129.076431 825.406982,131.856308 821.562378,137.271957 
-	C817.188232,143.433685 813.481445,150.189484 810.326416,157.072922 
-	C802.167419,174.873749 783.179382,189.633392 761.573853,182.570663 
-	C754.717651,180.329422 748.344055,182.638885 743.038818,188.220596 
-	C740.455994,190.938095 736.631165,193.435608 733.030579,194.049118 
-	C721.178406,196.068649 713.520996,202.692368 708.903259,213.392441 
-	C700.253357,233.435623 677.529114,237.217377 661.694458,228.751190 
-	C655.597168,225.491180 650.486633,220.001999 645.667969,214.836838 
-	C640.337952,209.123688 634.743774,204.205795 627.208008,201.736099 
-	C623.152893,200.407120 621.132812,197.497253 620.840942,193.148361 
-	C620.174927,183.223801 624.488953,175.117722 633.445557,170.692230 
-	C638.205322,168.340393 643.332275,166.731491 648.091553,164.378815 
-	C660.763916,158.114441 666.668823,146.101624 664.454346,132.166351 
-	C661.823242,115.609627 654.344299,101.192947 644.364929,88.128212 
-	C635.544495,76.580734 628.193359,64.549660 625.785217,49.987637 
-z`,
+  "#F27D82": `M625.786 49.9876C625.794 47.6245 625.802 45.2613 625.881 42.1052C627.079 38.5892 628.206 35.8662 629.333 33.1431C638.087 25.0506 648.81 26.0879 659.173 27.462C676.622 29.7757 692.059 36.366 704.017 50.1357C710.787 57.9314 719.902 62.3621 730.273 63.1138C747.823 64.3857 762.562 72.5215 777.485 80.8252C791.403 88.5693 805.837 95.4191 820.272 102.176C824.222 104.025 829.006 104.055 833.38 105.044C838.173 106.127 842.333 108.426 843.743 113.394C845.265 118.755 844.035 123.645 838.709 127.528C831.497 129.076 825.408 131.856 821.563 137.272C817.189 143.434 813.482 150.189 810.327 157.073C802.168 174.874 783.18 189.633 761.575 182.571C754.718 180.329 748.345 182.639 743.039 188.221C740.457 190.938 736.632 193.436 733.031 194.049C721.179 196.069 713.522 202.692 708.904 213.392C706.714 218.467 692.78 224.224 687.5 242C682.711 258.12 688.5 277 681.5 290C672.91 305.952 641.636 306.379 633.445 302C627.348 298.74 622.238 293.251 617.419 288.086C612.089 282.372 598 233.5 604 221C610 208.5 622.5 206.76 622.5 194.049C622.5 182.571 624.49 175.118 633.446 170.692C638.206 168.34 643.333 166.731 648.092 164.379C660.765 158.114 666.669 146.102 664.455 132.166C661.824 115.61 654.345 101.193 644.366 88.1282C635.545 76.5807 628.194 64.5497 625.786 49.9876Z`,
   "#FDE55B": `M795.520996,454.354248 
 	C792.860413,457.788300 790.317444,460.818726 788.082642,464.061523 
 	C784.597656,469.118378 781.765869,474.687195 777.872009,479.388641 
@@ -317,30 +291,7 @@ z`,
 	C797.830383,436.442200 794.424316,442.334503 796.912537,449.915131 
 	C797.283691,451.045898 796.191711,452.656952 795.520996,454.354248 
 z`,
-  "#FA9F90": `M680.737671,239.791946 
-	C697.208923,238.345383 708.447083,230.322464 715.126160,215.620911 
-	C718.143433,208.979507 722.191345,203.336792 730.268372,201.722900 
-	C735.525879,200.672409 739.535522,202.307312 741.798279,206.465744 
-	C747.915955,217.708405 758.267090,222.748047 769.386230,227.338577 
-	C788.546936,235.249054 802.548767,248.316681 807.572876,269.153778 
-	C810.811646,282.586182 809.024658,296.081482 805.631592,309.156342 
-	C802.927368,319.576691 798.603760,329.569611 795.169800,339.809509 
-	C791.070374,352.033844 781.844604,355.883026 769.949280,355.946228 
-	C766.169617,355.966278 762.277222,356.362427 758.642639,357.347565 
-	C752.162781,359.103943 747.437744,363.484924 745.044800,369.650818 
-	C738.558044,386.365540 718.959900,384.598907 710.635742,373.659302 
-	C708.126953,370.362305 705.468201,367.047516 702.328125,364.391052 
-	C696.344116,359.328705 689.089355,357.199005 681.346252,358.112396 
-	C661.296692,360.477448 654.737000,346.592407 655.049255,331.949524 
-	C655.244995,322.772400 652.885254,314.824066 646.003418,308.571869 
-	C644.055115,306.801819 641.906067,304.798981 639.495300,304.065063 
-	C623.045837,299.057465 615.597961,285.961823 610.735779,271.249359 
-	C606.736328,259.147736 603.931030,246.600937 601.355469,234.095123 
-	C599.259338,223.917435 606.459595,211.274994 616.055969,207.575790 
-	C618.541138,206.617844 622.016479,207.101242 624.691162,207.977814 
-	C632.176514,210.430984 637.995789,215.370102 642.792603,221.575912 
-	C652.270691,233.838058 664.594604,240.299667 680.737671,239.791946 
-z`,
+  "#FA9F90": `M715.126 215.621C708.447 230.322 700.5 225.5 695 244.5C695 244.5 692 248 692 262C692 276 692.653 278 692 280.5C689.617 289.632 686.5 295.654 685 297.5C683.5 299.346 678.524 305.139 670.5 307C661.368 309.118 654.003 307.072 651 312.5C647.997 317.928 655.245 322.772 655.049 331.95C654.737 346.592 661.297 360.477 681.346 358.112C689.09 357.199 696.344 359.329 702.328 364.391C705.468 367.048 708.127 370.362 710.636 373.659C718.96 384.599 738.558 386.366 745.045 369.651C747.438 363.485 752.163 359.104 758.643 357.348C762.277 356.362 766.17 355.966 769.949 355.946C781.845 355.883 791.071 352.034 795.17 339.809C798.604 329.57 802.928 319.577 805.632 309.156C809.025 296.081 810.812 282.586 807.573 269.154C802.549 248.317 788.547 235.249 769.386 227.339C758.267 222.748 747.916 217.708 741.798 206.466C739.536 202.307 735.526 200.672 730.269 201.723C722.192 203.337 718.144 208.979 715.126 215.621Z`,
   "#3086E3": `M798.008850,460.039246 
 	C800.060730,461.297943 802.985596,462.086121 803.973083,463.918457 
 	C805.742981,467.202789 806.524658,471.073364 807.398071,474.774750 
@@ -482,104 +433,98 @@ interface Props {
 export const TaoyuanMapView: React.FC<Props> = ({ selectedDistrict, onSelectDistrict }) => {
   const webViewRef = useRef<HTMLIFrameElement>(null);
 
-  // 當 selectedDistrict 從外部改變時，通知 WebView 更新高亮
-  useEffect(() => {
-   webViewRef.current?.contentWindow?.postMessage(
-	{ type: 'setSelected', district: selectedDistrict },
-	'*'
-	);
+  // 用 useMemo，讓 htmlContent 只產生一次，不隨 state 變動
+  const htmlContent = useMemo(() => `<!DOCTYPE html>
+    <html>
+    <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; background:transparent; overflow:hidden; }
+    svg { width:100%; height:100%; }
+    .dp { cursor:pointer; transition:all 0.2s; }
+    .dp:hover { stroke-width:3.5; fill:#F8D0DA; }
+    .dp.sel { stroke:#D4567A; stroke-width:4; fill:#F8D0DA; }
+    .dl { font:700 36px sans-serif; fill:#7F5A6A; pointer-events:none;
+      text-anchor:middle; dominant-baseline:middle; }
+    .dl.sel { fill:#D4567A; }
+    </style>
+    </head>
+    <body>
+    <svg viewBox="0 0 1182 1330" xmlns="http://www.w3.org/2000/svg">
+    ${Object.entries(DISTRICT_COLOR_MAP).map(([color, name]) => `
+    <path class="dp" id="dp-${name}" data-district="${name}"
+        fill="#f7e9ec" d="${DISTRICT_PATHS[color] ?? ''}" />
+    `).join('')}
+    ${Object.entries(DISTRICT_LABEL_POS).map(([name, pos]) => `
+    <text class="dl" id="dl-${name}" x="${pos.x}" y="${pos.y}">${name}</text>
+    `).join('')}
+    </svg>
+    <script>
+
+    // 移除 selectedDistrict 的嵌入，改由 postMessage 控制初始值
+    let currentSelected = null;
+
+    function setSelected(name) {
+      currentSelected = name;
+      document.querySelectorAll('.dp').forEach(el => {
+        el.classList.toggle('sel', el.dataset.district === name);
+      });
+      document.querySelectorAll('.dl').forEach(el => {
+        el.classList.toggle('sel', el.id === 'dl-' + name);
+      });
+    }
+
+    document.querySelectorAll('.dp').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.dataset.district;
+        setSelected(name);
+        window.parent.postMessage({ type: 'selectDistrict', district: name }, '*');
+      });
+    });
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'setSelected') setSelected(e.data.district);
+    });
+    </script>
+    </body>
+    </html>`, []); // 空依賴，永遠不重建
+
+  //  iframe 載入完成後，才 postMessage 送初始選取狀態
+  const handleLoad = useCallback(() => {
+    if (selectedDistrict) {
+      webViewRef.current?.contentWindow?.postMessage(
+        { type: 'setSelected', district: selectedDistrict },
+        '*'
+      );
+    }
   }, [selectedDistrict]);
 
+  // 外部 selectedDistrict 改變時，用 postMessage 通知 iframe（不重載）
   useEffect(() => {
-	const handler = (event: MessageEvent) => {
-		const data = event.data;
-		if (data?.type === 'selectDistrict') {
-		onSelectDistrict(data.district);
-		}
-	};
-	window.addEventListener('message', handler);
-	return () => window.removeEventListener('message', handler);
+    webViewRef.current?.contentWindow?.postMessage(
+      { type: 'setSelected', district: selectedDistrict },
+      '*'
+    );
+  }, [selectedDistrict]);
+
+  // 監聽 iframe 傳回的點擊事件
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'selectDistrict') {
+        onSelectDistrict(event.data.district);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, [onSelectDistrict]);
 
-  const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:100%; height:100%; background:transparent; overflow:hidden; }
-  svg { width:100%; height:100%; }
-  .dp { cursor:pointer; stroke:#ffffff; stroke-width:2; transition:all 0.15s; }
-  .dp:hover { stroke-width:3.5; filter:brightness(1.12); }
-  .dp.sel { stroke:#D4567A; stroke-width:5;
-    filter:brightness(1.08) drop-shadow(0 0 8px rgba(212,86,122,0.55)); }
-  .dl { font:700 28px sans-serif; fill:#333; pointer-events:none;
-    text-anchor:middle; dominant-baseline:middle; }
-  .dl.sel { fill:#D4567A; }
-</style>
-</head>
-<body>
-<svg viewBox="0 0 1182 1330" xmlns="http://www.w3.org/2000/svg">
-  <!-- background (台灣輪廓，line 3 的 FEFEFE path) -->
-  <path fill="#F0F4F8" d="..." />  <!-- 台灣整體輪廓路徑 -->
-
-  <!-- district paths with data-district attribute -->
-  ${Object.entries(DISTRICT_COLOR_MAP).map(([color, name]) => `
-  <path class="dp" id="dp-${name}" data-district="${name}"
-        fill="${color}" d="${DISTRICT_PATHS[color] ?? ''}" />
-  `).join('')}
-
-  <!-- district labels -->
-  ${Object.entries(DISTRICT_LABEL_POS).map(([name, pos]) => `
-  <text class="dl" id="dl-${name}" x="${pos.x}" y="${pos.y}">${name.replace('區','')}</text>
-  `).join('')}
-</svg>
-
-<script>
-  const colorMap = ${JSON.stringify(DISTRICT_COLOR_MAP)};
-  let currentSelected = ${JSON.stringify(selectedDistrict)};
-
-  function setSelected(name) {
-    currentSelected = name;
-    document.querySelectorAll('.dp').forEach(el => {
-      el.classList.toggle('sel', el.dataset.district === name);
-    });
-    document.querySelectorAll('.dl').forEach(el => {
-      el.classList.toggle('sel', el.id === 'dl-' + name);
-    });
-  }
-
-  // 初始化時設定選中狀態
-  setSelected(currentSelected);
-
-  // 點擊事件
-  document.querySelectorAll('.dp').forEach(el => {
-    el.addEventListener('click', () => {
-      const name = el.dataset.district;
-      setSelected(name);
-      // 傳訊息給 React Native
-      window.parent.postMessage({ type: 'selectDistrict', district: name }, '*');
-    });
-  });
-
-  // 供外部 injectJavaScript 呼叫
-  window.setSelected = setSelected;
-
-  window.addEventListener('message', (e) => {
-	if (e.data?.type === 'setSelected') setSelected(e.data.district);
-  });
-</script>
-</body>
-</html>`;
-
   return (
-   <iframe
-		ref={webViewRef}
-		srcDoc={htmlContent}
-		style={{ flex: 1, border: 'none', background: 'transparent' }}
-		onLoad={() => {
-			// iframe 載入後可在這裡做初始化 postMessage（若需要）
-		}}
+    <iframe
+      ref={webViewRef}
+      srcDoc={htmlContent}
+      style={{ flex: 1, border: 'none', background: 'transparent' }}
+      onLoad={handleLoad}
     />
   );
 };
