@@ -92,6 +92,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 3,
+    ...Platform.select({
+      web: {
+        paddingTop: 30, // Web 上調小
+      },
+    }),
   },
   iconButton: {
     width: 40,
