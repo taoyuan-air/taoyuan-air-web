@@ -1,0 +1,46 @@
+[
+  {
+    "station_id": "0604616A0002",
+    "station_name": "新興國小",
+    "district": "蘆竹區",
+    "raw_name": "(局)新興國小",
+    "source": "TYDEP",
+    "data_start": "2019-03",
+    "data_end": "2026-03",
+    "total_months": 85,
+    "total_records": 62112
+  },
+  {
+    "station_id": "0604316A0003",
+    "station_name": "內壢",
+    "district": "中壢區",
+    "raw_name": "(局)內壢",
+    "source": "TYDEP",
+    "data_start": "2019-03",
+    "data_end": "2026-03",
+    "total_months": 84,
+    "total_records": 61440
+  },
+  {
+    "station_id": "0604816I0005",
+    "station_name": "華亞",
+    "district": "龜山區",
+    "raw_name": "(局)華亞",
+    "source": "TYDEP",
+    "data_start": "2019-03",
+    "data_end": "2026-03",
+    "total_months": 84,
+    "total_records": 61440
+  },
+  {
+    "station_id": "0605316I0004",
+    "station_name": "觀音_S",
+    "district": "觀音區",
+    "raw_name": "(局)觀音",
+    "source": "TYDEP",
+    "data_start": "2019-03",
+    "data_end": "2026-03",
+    "total_months": 84,
+    "total_records": 61440
+  }
+]
