@@ -47,6 +47,16 @@ const DISTRICT_STATIC_AQ: Record<
   復興區: { pm25: 10, o3: 32, aqi: 52 },
 };
 
+// ─── COLOR HELPER ─────────────────────────────────────
+const COLORS = {
+  GOOD: "#76c476",          // 良好 (綠)
+  MODERATE: "#edbb05",      // 普通 (黃)
+  UNHEALTHY_SENSITIVE: "#ff9800", // 對敏感族群不健康 (橘)
+  UNHEALTHY: "#f44336",     // 不健康 (紅)
+  VERY_UNHEALTHY: "#9c27b0",// 非常不健康 (紫)
+  HAZARDOUS: "#7b241c"      // 有害 (褐紫)
+};
+
 // ─── AQI Gauge ────────────────────────────────────────
 const GAUGE_SIZE = 200;
 const STROKE_WIDTH = 14;
@@ -55,10 +65,11 @@ const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
 const getAQIColor = (aqi: number) => {
   if (aqi <= 50) return "#E76595";
-  if (aqi <= 100) return "#f5c518";
-  if (aqi <= 150) return "#ff8c00";
-  if (aqi <= 200) return "#e53935";
-  return "#9c27b0";
+  if (aqi <= 100) return COLORS.MODERATE;
+  if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
+  if (aqi <= 200) return COLORS.UNHEALTHY;
+  if (aqi <= 300) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;
 };
 
 const getAQIStatus = (aqi: number) => {
@@ -66,6 +77,7 @@ const getAQIStatus = (aqi: number) => {
   if (aqi <= 100) return "普通";
   if (aqi <= 150) return "敏感族群";
   if (aqi <= 200) return "不健康";
+  if (aqi <= 300) return "非常不健康";
   return "危害";
 };
 
@@ -122,12 +134,6 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
 };
 
 // ─── Air Quality Helpers ──────────────────────────────────────────────────────
-const getPM25Color = (v: number) => {
-  if (v <= 12) return "#E76595";
-  if (v <= 35) return "#f5c518";
-  if (v <= 55) return "#ff8c00";
-  return "#e53935";
-};
 
 const getPM25StatusLabel = (v: number) => {
   if (v <= 12) return "良好";
@@ -136,48 +142,78 @@ const getPM25StatusLabel = (v: number) => {
   return "不健康";
 };
 
+const getPM25Color = (v: number) => {
+  if (v <= 12.0) return "#E76595";
+  if (v <= 35.4) return COLORS.MODERATE;
+  if (v <= 55.4) return COLORS.UNHEALTHY_SENSITIVE;
+  if (v <= 150.4) return COLORS.UNHEALTHY;
+  return COLORS.VERY_UNHEALTHY;
+};
+
 const getO3Color = (v: number) => {
   if (v <= 54) return "#E76595";
-  if (v <= 70) return "#f5c518";
-  return "#ff8c00";
+  if (v <= 70) return COLORS.MODERATE;
+  if (v <= 85) return COLORS.UNHEALTHY_SENSITIVE;
+  return COLORS.UNHEALTHY;
 };
 
 const getNO2Color = (v: number) => {
   if (v <= 53) return "#E76595";
-  if (v <= 100) return "#f5c518";
-  return "#ff8c00";
+  if (v <= 100) return COLORS.MODERATE;
+  if (v <= 360) return COLORS.UNHEALTHY_SENSITIVE;
+  return COLORS.UNHEALTHY;
 };
 
-// 根據 PM2.5 決定活動建議 icon & 文字
+// 根據 AQI 決定活動建議 icon & 文字
 const getActivityInfo = (
-  pm25: number,
+  aqi: number,
 ): {
   icon: React.ComponentProps<typeof Feather>["name"];
-  iconColor: string;
-  advice: string;
+  color: string;
+  generalAdvice: string;
+  sensitiveAdvice: string;
 } => {
-  if (pm25 <= 12)
+  if (aqi <= 50)
     return {
-      icon: "activity",
-      iconColor: "#E76595",
-      advice: "空氣清新，非常適合戶外運動，盡情享受戶外活動！",
+      icon: "smile",
+      color: "#E76595",
+      generalAdvice: "正常戶外活動，無須特別注意。",
+      sensitiveAdvice: "正常戶外活動，無須特別注意。",
     };
-  if (pm25 <= 35)
+  if (aqi <= 100)
     return {
-      icon: "user",
-      iconColor: "#FBA7BC",
-      advice: "當前 PM2.5 濃度適合戶外運動，敏感族群無需特殊防護。",
+      icon: "meh",
+      color: COLORS.MODERATE,
+      generalAdvice: "正常戶外活動。",
+      sensitiveAdvice: "注意可能出現咳嗽或呼吸急促症狀，但仍可正常戶外活動。",
     };
-  if (pm25 <= 55)
+  if (aqi <= 150)
     return {
-      icon: "shield",
-      iconColor: "#ff8c00",
-      advice: "空氣品質普通，敏感族群建議減少長時間戶外活動。",
+      icon: "frown", 
+      color: COLORS.UNHEALTHY_SENSITIVE,
+      generalAdvice: "若感不適（眼痛、咳嗽、喉嚨痛），考慮減少戶外活動；學生可進行戶外活動，但建議減少長時間劇烈運動。",
+      sensitiveAdvice: "有心臟、呼吸道及心血管疾病者、孩童及老年人，減少體力消耗及戶外活動，外出配戴口罩；氣喘者注意增加使用吸入劑頻率。",
     };
+  if (aqi <= 200)
+    return {
+      icon: "frown",
+      color: COLORS.UNHEALTHY,
+      generalAdvice: "正常戶外活動。若感不適，減少體力消耗，特別是戶外活動；學生避免長時間劇烈運動，戶外活動時增加休息。",
+      sensitiveAdvice: "留在室內並減少體力消耗活動，外出必須配戴口罩；氣喘者注意增加使用吸入劑頻率。",
+    };
+  if (aqi <= 300)
+    return {
+      icon: "frown",
+      color: COLORS.VERY_UNHEALTHY,
+      generalAdvice: "減少戶外活動；學生應立即停止戶外活動，課程調整至室內進行。",
+      sensitiveAdvice: "留在室內並避免體力消耗，外出必須配戴口罩；氣喘者增加使用吸入劑頻率。",
+    };
+  
   return {
-    icon: "alert-triangle",
-    iconColor: "#e53935",
-    advice: "空氣品質不佳，建議外出配戴口罩，敏感族群避免戶外活動。",
+    icon: "frown", 
+    color: COLORS.HAZARDOUS,
+    generalAdvice: "避免所有戶外活動，緊閉門窗，外出必須配戴口罩等防護用具；學生立即停止戶外活動，課程移至室內。",
+    sensitiveAdvice: "留在室內並避免所有體力消耗活動，外出必須配戴口罩；氣喘者增加使用吸入劑頻率。",
   };
 };
 
@@ -486,7 +522,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   const no2 = Math.round(pm25 * 0.3);
 
   const pm25Color = getPM25Color(pm25);
-  const activityInfo = getActivityInfo(pm25);
+  const activ = getActivityInfo(locatedAqi);
   const pm25Progress = Math.min((pm25 / 75) * 100, 100);
 
   if (isLoading) {
@@ -623,30 +659,34 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
             </View>
 
             {/* Activity advice */}
-            <View
-              style={[
-                styles.adviceRow,
-                {
-                  backgroundColor: `${activityInfo.iconColor}0D`,
-                  borderColor: `${activityInfo.iconColor}28`,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.adviceIconBg,
-                  { backgroundColor: `${activityInfo.iconColor}20` },
-                ]}
-              >
-                <Feather
-                  name={activityInfo.icon}
-                  size={18}
-                  color={activityInfo.iconColor}
-                />
+            
+
+            <View style={{ marginBottom: 4 }}>
+              <View style={[styles.cardTitleGroup, { marginTop: 20 }]}>
+                <Feather name="alert-circle" size={15} color="#E76595" />
+                <Text style={styles.cardSectionTitle}>活動建議</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.insightTitle}>活動建議</Text>
-                <Text style={[styles.adviceText]}>{activityInfo.advice}</Text>
+
+              {/* 一般民眾 */}
+              <View style={[styles.adviceRow, { marginBottom: 8, marginTop: 15, backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                <View style={[styles.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                  <Feather name={activ.icon} size={18} color={activ.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.adviceLabel, { color: activ.color }]}>一般民眾</Text>
+                  <Text style={styles.adviceText}>{activ.generalAdvice}</Text>
+                </View>
+              </View>
+
+              {/* 敏感族群 */}
+              <View style={[styles.adviceRow, { marginBottom: 8, backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                <View style={[styles.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                  <Feather name={activ.icon} size={18} color={activ.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.adviceLabel, { color: activ.color }]}>敏感族群</Text>
+                  <Text style={styles.adviceText}>{activ.sensitiveAdvice}</Text>
+                </View>
               </View>
             </View>
 
@@ -830,405 +870,102 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF6F9",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF6F9",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#E76595",
-  },
-  scrollView: { flex: 1 },
+  container:              { flex: 1, backgroundColor: "#FFF6F9" },
+  loadingContainer:       { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF6F9" },
+  loadingText:            { marginTop: 16, fontSize: 16, color: "#E76595" },
+  scrollView:             { flex: 1 },
 
   // ── Gauge ──
-  gaugeSection: {
-    alignItems: "center",
-    paddingTop: 35,
-    paddingVertical: 20,
-    paddingBottom: 8,
-  },
-  gaugeInnerCircle: {
-    width: 158,
-    height: 158,
-    borderRadius: 79,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  gaugeLabel: {
-    fontSize: 10,
-    color: "#9ca3af",
-    fontWeight: "500",
-    letterSpacing: 2,
-    marginBottom: 6,
-  },
-  gaugeValue: {
-    fontSize: 48,
-    fontWeight: "bold",
-    lineHeight: 48,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  gaugePill: { 
-    marginTop: 5, 
-    paddingHorizontal: 10, 
-    paddingVertical: 3, 
-    borderRadius: 999, 
-    borderWidth: 1, 
-  },
-  gaugeBadgeText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  gaugeSection:           { alignItems: "center", paddingTop: 35, paddingVertical: 20, paddingBottom: 8 },
+  gaugeInnerCircle:       { width: 158, height: 158, borderRadius: 79, backgroundColor: "white", justifyContent: "center", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
+  gaugeLabel:             { fontSize: 10, color: "#9ca3af", fontWeight: "500", letterSpacing: 2, marginBottom: 6 },
+  gaugeValue:             { fontSize: 48, fontWeight: "bold", lineHeight: 48, marginTop: 4, marginBottom: 4 },
+  gaugePill:              { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
+  gaugeBadgeText:         { fontSize: 14, fontWeight: "500" },
 
   // ── Insight ──
-  insightSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  insightCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  insightIconContainer: { marginTop: 2 },
-  insightIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(231, 101, 149, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  insightContent: { flex: 1 },
-  insightTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#666",
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  insightText: { fontSize: 15, color: "#374151", lineHeight: 22 },
-  highlightText: { color: "#E76595", fontWeight: "bold" },
+  insightSection:         { paddingHorizontal: 24, marginBottom: 24 },
+  insightCard:            { backgroundColor: "rgba(255, 255, 255, 0.8)", borderRadius: 20, padding: 20, flexDirection: "row", gap: 16, alignItems: "flex-start", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)" },
+  insightIconContainer:   { marginTop: 2 },
+  insightIconBg:          { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(231, 101, 149, 0.15)", justifyContent: "center", alignItems: "center" },
+  insightContent:         { flex: 1 },
+  insightTitle:           { fontSize: 14, fontWeight: "bold", color: "#666", letterSpacing: 1, marginBottom: 8 },
+  insightText:            { fontSize: 15, color: "#374151", lineHeight: 22 },
+  highlightText:          { color: "#E76595", fontWeight: "bold" },
 
   // ── Shared card container ──
-  sectionPad: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: "rgba(255, 255, 255, 0.82)",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  cardTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  cardSectionTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#666",
-    letterSpacing: 1.2,
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.06)",
-    marginVertical: 16,
-  },
+  sectionPad:             { paddingHorizontal: 24, marginBottom: 20 },
+  card:                   { backgroundColor: "rgba(255, 255, 255, 0.82)", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.35)", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
+  cardHeaderRow:          { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  cardTitleGroup:         { flexDirection: "row", alignItems: "center", gap: 7 },
+  cardSectionTitle:       { fontSize: 13, fontWeight: "bold", color: "#666", letterSpacing: 1.2 },
+  dividerLine:            { height: 1, backgroundColor: "rgba(0,0,0,0.06)", marginVertical: 16 },
 
   // ── AQI badge ──
-  aqiBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  aqiBadgeLabelText: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
-  aqiBadgeValueText: { fontSize: 14, fontWeight: "bold" },
+  aqiBadge:               { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  aqiBadgeLabelText:      { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
+  aqiBadgeValueText:      { fontSize: 14, fontWeight: "bold" },
 
   // ── PM2.5 prominent ──
-  pm25Row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  pm25Tag: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#888",
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  pm25ValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  pm25BigNum: {
-    fontSize: 52,
-    fontWeight: "bold",
-    lineHeight: 54,
-  },
-  pm25UnitText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#9ca3af",
-    marginBottom: 4,
-    marginRight: 6,
-  },
-  pm25StatusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 6,
-  },
-  pm25StatusLabel: { fontSize: 12, fontWeight: "600" },
+  pm25Row:                { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },
+  pm25Tag:                { fontSize: 12, fontWeight: "700", color: "#888", letterSpacing: 0.8, marginBottom: 4 },
+  pm25ValueRow:           { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  pm25BigNum:             { fontSize: 52, fontWeight: "bold", lineHeight: 54 },
+  pm25UnitText:           { fontSize: 12, fontWeight: "600", color: "#9ca3af", marginBottom: 4, marginRight: 6 },
+  pm25StatusPill:         { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginTop: 6 },
+  pm25StatusLabel:        { fontSize: 12, fontWeight: "600" },
 
   // ── Horizontal progress bar ──
-  hProgressTrack: {
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.07)",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 6,
-  },
-  hProgressFill: { height: "100%", borderRadius: 3 },
-  hProgressScale: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  hScaleText: { fontSize: 10, color: "#bbb" },
+  hProgressTrack:         { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden", marginBottom: 6 },
+  hProgressFill:          { height: "100%", borderRadius: 3 },
+  hProgressScale:         { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+  hScaleText:             { fontSize: 10, color: "#bbb" },
 
   // ── Advice row ──
-  adviceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 4,
-  },
-  adviceIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  adviceText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#374151",
-    lineHeight: 19,
-  },
+  adviceRow:              { flexDirection: "row", alignItems: "flex-start", gap: 11, padding: 13, borderRadius: 12, borderWidth: 0.5 },
+  adviceIcon:             { width: 36, height: 36, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center", flexShrink: 0, marginTop: 2, marginRight: 3 },
+  adviceLabel:            { fontSize: 13, fontWeight: "600", marginBottom: 4 },
+  adviceText:             { fontSize: 12, color: "#7a6880", lineHeight: 20 },
 
-  // ── Mini pollutant rows (O3, NO2) ──
-  miniPollutRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    gap: 10,
-  },
-  miniPollutLeft: { width: 44 },
-  miniPollutName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#444",
-  },
-  miniPollutSub: {
-    fontSize: 10,
-    color: "#aaa",
-    marginTop: 1,
-  },
-  miniPollutBar: { flex: 1 },
-  miniBarTrack: {
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.07)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  miniBarFill: { height: "100%", borderRadius: 3 },
-  miniPollutRight: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 3,
-    width: 52,
-    justifyContent: "flex-end",
-  },
-  miniPollutVal: { fontSize: 15, fontWeight: "700" },
-  miniPollutUnit: { fontSize: 10, color: "#aaa" },
+  // ── Mini pollutant rows ──
+  miniPollutRow:          { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 10 },
+  miniPollutLeft:         { width: 44 },
+  miniPollutName:         { fontSize: 13, fontWeight: "700", color: "#444" },
+  miniPollutSub:          { fontSize: 10, color: "#aaa", marginTop: 1 },
+  miniPollutBar:          { flex: 1 },
+  miniBarTrack:           { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" },
+  miniBarFill:            { height: "100%", borderRadius: 3 },
+  miniPollutRight:        { flexDirection: "row", alignItems: "baseline", gap: 3, width: 52, justifyContent: "flex-end" },
+  miniPollutVal:          { fontSize: 15, fontWeight: "700" },
+  miniPollutUnit:         { fontSize: 10, color: "#aaa" },
 
   // ── Weather card ──
-  districtBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "rgba(251, 167, 188, 0.12)",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(251, 167, 188, 0.25)",
-  },
-  districtBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FBA7BC",
-  },
-  weatherCurrentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  weatherTempBig: {
-    fontSize: 54,
-    fontWeight: "bold",
-    color: "#222",
-    lineHeight: 58,
-  },
-  weatherDesc: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
-  },
-  weatherIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(231, 101, 149, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  weatherStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.025)",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  weatherStatItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 3,
-  },
-  weatherStatVal: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#333",
-    marginTop: 2,
-  },
-  weatherStatLabel: {
-    fontSize: 10,
-    color: "#aaa",
-  },
-  weatherStatSep: {
-    width: 1,
-    height: 28,
-    backgroundColor: "rgba(0,0,0,0.07)",
-  },
+  districtBadge:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "rgba(251, 167, 188, 0.12)", borderRadius: 10, borderWidth: 1, borderColor: "rgba(251, 167, 188, 0.25)" },
+  districtBadgeText:      { fontSize: 12, fontWeight: "600", color: "#FBA7BC" },
+  weatherCurrentRow:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  weatherTempBig:         { fontSize: 54, fontWeight: "bold", color: "#222", lineHeight: 58 },
+  weatherDesc:            { fontSize: 14, color: "#666", marginTop: 2 },
+  weatherIconCircle:      { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(231, 101, 149, 0.1)", justifyContent: "center", alignItems: "center" },
+  weatherStatsRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(0,0,0,0.025)", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 8 },
+  weatherStatItem:        { flex: 1, alignItems: "center", gap: 3 },
+  weatherStatVal:         { fontSize: 12, fontWeight: "700", color: "#333", marginTop: 2 },
+  weatherStatLabel:       { fontSize: 10, color: "#aaa" },
+  weatherStatSep:         { width: 1, height: 28, backgroundColor: "rgba(0,0,0,0.07)" },
 
   // ── 3-day forecast ──
-  forecastTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#999",
-    letterSpacing: 0.6,
-    marginBottom: 12,
-  },
-  forecastRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  forecastDayCol: {
-    flex: 1,
-    alignItems: "center",
-  },
-  forecastDayColBorder: {
-    borderRightWidth: 1,
-    borderRightColor: "rgba(0,0,0,0.07)",
-    marginRight: 0,
-  },
-  forecastLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#444",
-  },
-  forecastDate: {
-    fontSize: 10,
-    color: "#bbb",
-    marginTop: 2,
-  },
-  forecastTempRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  forecastTempHigh: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#e05c2a",
-  },
-  forecastTempLow: {
-    fontSize: 13,
-    color: "#FBA7BC",
-    fontWeight: "600",
-  },
-  forecastPopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  forecastPopText: {
-    fontSize: 11,
-    color: "#bbb",
-    fontWeight: "600",
-  },
-  weatherHighLow: {
-    fontSize: 12, color: '#999', marginTop: 2,
-  },
+  forecastTitle:          { fontSize: 11, fontWeight: "700", color: "#999", letterSpacing: 0.6, marginBottom: 12 },
+  forecastRow:            { flexDirection: "row", justifyContent: "space-between" },
+  forecastDayCol:         { flex: 1, alignItems: "center" },
+  forecastDayColBorder:   { borderRightWidth: 1, borderRightColor: "rgba(0,0,0,0.07)", marginRight: 0 },
+  forecastLabel:          { fontSize: 12, fontWeight: "700", color: "#444" },
+  forecastDate:           { fontSize: 10, color: "#bbb", marginTop: 2 },
+  forecastTempRow:        { flexDirection: "row", alignItems: "baseline" },
+  forecastTempHigh:       { fontSize: 13, fontWeight: "700", color: "#e05c2a" },
+  forecastTempLow:        { fontSize: 13, color: "#FBA7BC", fontWeight: "600" },
+  forecastPopRow:         { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
+  forecastPopText:        { fontSize: 11, color: "#bbb", fontWeight: "600" },
+  weatherHighLow:         { fontSize: 12, color: "#999", marginTop: 2 },
 
-  bottomSpacing: { height: 100 },
+  bottomSpacing:          { height: 100 },
 });

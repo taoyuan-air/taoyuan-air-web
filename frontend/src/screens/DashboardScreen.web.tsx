@@ -160,12 +160,12 @@ const EPA_STATION_TO_DISTRICT: Record<string, string> = {
 
 const DISTRICT_STATIC_AQ: Record<string, { pm25: number; o3: number; aqi: number }> = {
   桃園區: { pm25: 20, o3: 48, aqi: 75 }, 中壢區: { pm25: 18, o3: 42, aqi: 72 },
-  八德區: { pm25: 16, o3: 40, aqi: 68 }, 龜山區: { pm25: 19, o3: 44, aqi: 73 },
-  蘆竹區: { pm25: 14, o3: 36, aqi: 62 }, 大園區: { pm25: 12, o3: 35, aqi: 58 },
-  大溪區: { pm25: 13, o3: 37, aqi: 60 }, 平鎮區: { pm25: 16, o3: 40, aqi: 68 },
+  八德區: { pm25: 16, o3: 40, aqi: 30 }, 龜山區: { pm25: 19, o3: 44, aqi: 350 },
+  蘆竹區: { pm25: 14, o3: 36, aqi: 132 }, 大園區: { pm25: 12, o3: 35, aqi: 58 },
+  大溪區: { pm25: 13, o3: 37, aqi: 189 }, 平鎮區: { pm25: 16, o3: 40, aqi: 68 },
   楊梅區: { pm25: 17, o3: 41, aqi: 70 }, 龍潭區: { pm25: 15, o3: 38, aqi: 65 },
   觀音區: { pm25: 22, o3: 45, aqi: 78 }, 新屋區: { pm25: 21, o3: 43, aqi: 76 },
-  復興區: { pm25: 10, o3: 32, aqi: 52 },
+  復興區: { pm25: 10, o3: 32, aqi: 220 },
 };
 
 // ─── District coordinates for geolocation ────────────────────────────
@@ -282,11 +282,11 @@ const C = {
 
 const COLORS = {
   GOOD: "#76c476",          // 良好 (綠)
-  MODERATE: "#f5c518",      // 普通 (黃)
-  UNHEALTHY_SENSITIVE: "#ff8c00", // 對敏感族群不健康 (橘)
-  UNHEALTHY: "#e53935",     // 不健康 (紅)
+  MODERATE: "#edbb05",      // 普通 (黃)
+  UNHEALTHY_SENSITIVE: "#ff9800", // 對敏感族群不健康 (橘)
+  UNHEALTHY: "#f44336",     // 不健康 (紅)
   VERY_UNHEALTHY: "#9c27b0",// 非常不健康 (紫)
-  HAZARDOUS: "#7e0023"      // 有害 (褐紫)
+  HAZARDOUS: "#7b241c"      // 有害 (褐紫)
 };
 
 // ─── Gauge dimensions (desktop baseline) ──────────────────────────────
@@ -301,7 +301,8 @@ const getAQIColor = (aqi: number) => {
   if (aqi <= 100) return COLORS.MODERATE;
   if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
   if (aqi <= 200) return COLORS.UNHEALTHY;
-  return COLORS.VERY_UNHEALTHY;
+  if (aqi <= 300) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;
 };
 
 // ─── Helper: AQI → status label ───────────────────────────────────────
@@ -310,6 +311,7 @@ const getAQIStatus = (aqi: number) => {
   if (aqi <= 100) return "普通";
   if (aqi <= 150) return "敏感族群";
   if (aqi <= 200) return "不健康";
+  if (aqi <= 300) return "非常不健康";
   return "危害";
 };
 
@@ -337,11 +339,57 @@ const getNO2Color = (v: number) => {
   return COLORS.UNHEALTHY;
 };
 
-const getActivityInfo = (pm25: number) => {
-  if (pm25 <= 12) return { icon: "activity" as const, advice: "空氣清新，非常適合戶外運動，盡情享受戶外活動！" };
-  if (pm25 <= 35) return { icon: "user"     as const, advice: "當前 PM2.5 濃度適合戶外活動，敏感族群無需特殊防護。" };
-  if (pm25 <= 55) return { icon: "shield"   as const, advice: "空氣品質普通，敏感族群建議減少長時間戶外活動。" };
-  return              { icon: "alert-triangle" as const, advice: "空氣品質不佳，建議外出配戴口罩，敏感族群避免戶外活動。" };
+// 根據 AQI 決定活動建議 icon & 文字
+const getActivityInfo = (
+  aqi: number,
+): {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  color: string;
+  generalAdvice: string;
+  sensitiveAdvice: string;
+} => {
+  if (aqi <= 50)
+    return {
+      icon: "smile",
+      color: "#E76595",
+      generalAdvice: "正常戶外活動，無須特別注意。",
+      sensitiveAdvice: "正常戶外活動，無須特別注意。",
+    };
+  if (aqi <= 100)
+    return {
+      icon: "meh",
+      color: COLORS.MODERATE,
+      generalAdvice: "正常戶外活動。",
+      sensitiveAdvice: "注意可能出現咳嗽或呼吸急促症狀，但仍可正常戶外活動。",
+    };
+  if (aqi <= 150)
+    return {
+      icon: "frown", 
+      color: COLORS.UNHEALTHY_SENSITIVE,
+      generalAdvice: "若感不適（眼痛、咳嗽、喉嚨痛），考慮減少戶外活動；學生可進行戶外活動，但建議減少長時間劇烈運動。",
+      sensitiveAdvice: "有心臟、呼吸道及心血管疾病者、孩童及老年人，減少體力消耗及戶外活動，外出配戴口罩；氣喘者注意增加使用吸入劑頻率。",
+    };
+  if (aqi <= 200)
+    return {
+      icon: "frown",
+      color: COLORS.UNHEALTHY,
+      generalAdvice: "正常戶外活動。若感不適，減少體力消耗，特別是戶外活動；學生避免長時間劇烈運動，戶外活動時增加休息。",
+      sensitiveAdvice: "留在室內並減少體力消耗活動，外出必須配戴口罩；氣喘者注意增加使用吸入劑頻率。",
+    };
+  if (aqi <= 300)
+    return {
+      icon: "frown",
+      color: COLORS.VERY_UNHEALTHY,
+      generalAdvice: "減少戶外活動；學生應立即停止戶外活動，課程調整至室內進行。",
+      sensitiveAdvice: "留在室內並避免體力消耗，外出必須配戴口罩；氣喘者增加使用吸入劑頻率。",
+    };
+  
+  return {
+    icon: "frown", 
+    color: COLORS.HAZARDOUS,
+    generalAdvice: "避免所有戶外活動，緊閉門窗，外出必須配戴口罩等防護用具；學生立即停止戶外活動，課程移至室內。",
+    sensitiveAdvice: "留在室內並避免所有體力消耗活動，外出必須配戴口罩；氣喘者增加使用吸入劑頻率。",
+  };
 };
 
 const getWeatherIcon = (w: string): keyof typeof Feather.glyphMap => {
@@ -490,7 +538,7 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
   const colorLight = color + "99";        // 60% opacity hex
 
   return (
-    <View style={{ width: GAUGE_SIZE, height: GAUGE_SIZE, justifyContent: "center", alignItems: "center" }}>
+    <View style={{ width: GAUGE_SIZE, height: GAUGE_SIZE, justifyContent: "center", alignItems: "center", marginTop: 10 }}>
       <Svg width={GAUGE_SIZE} height={GAUGE_SIZE} style={{ position: "absolute" }}>
         <Defs>
           <SvgLinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -500,7 +548,7 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
         </Defs>
 
         {/* track */}
-        <Circle cx={cx} cy={cy} r={GAUGE_R} stroke={C.roseLt} strokeWidth={STROKE_W} fill="none" />
+        <Circle cx={cx} cy={cy} r={GAUGE_R} stroke={color} strokeOpacity={0.25} strokeWidth={STROKE_W} fill="none" />
 
         {/* main arc */}
         <Circle
@@ -518,7 +566,7 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
       {/* inner frosted circle */}
       <View style={S.gaugeInner}>
         <Text style={S.gaugeLabel}>AQI</Text>
-        <Text style={[S.gaugeValue, { color }]}>{aqi}</Text>
+        <Text style={[S.gaugeValue, { color: getAQIColor(aqi) }]}>{aqi}</Text>
         <View style={[S.gaugePill, { backgroundColor: getAQIColor(aqi)+"33", borderColor: getAQIColor(aqi)+"55" }]}>
           <Text style={[S.gaugePillText, { color: getAQIColor(aqi) }]}>{getAQIStatus(aqi)}</Text>
         </View>
@@ -636,19 +684,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
     }).catch(console.warn);
   }, [displayDistrict]);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      setScenario(selectedScenario);
-      const [, grid, alertsData, eventsData] = await Promise.all([getMeta(), getGrid({ pollutant: "PM25" }), getAlerts(), getEvents()]);
-      setGridCells(grid); setAlerts(alertsData); setEvents(eventsData);
-    } catch (e) { console.error(e); } finally { setIsLoading(false); }
-  };
-
   const pm25  = locatedPm25;
   const o3    = locatedO3;
   const no2   = Math.round(pm25 * 0.3);
-  const activ = getActivityInfo(pm25);
+  const activ = getActivityInfo(locatedAqi);
 
   if (isLoading) {
     return (
@@ -678,8 +717,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                   />
                 </View>
 
-                {/* 左下角詳情按鈕 */}
-                
+                {/* 左下角詳情按鈕 */}             
                   <TouchableOpacity
                     style={{
                       position: 'absolute',
@@ -697,8 +735,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                     <Text style={{ color: '#d4567a', fontWeight: '700', fontSize: 15 }}>
                       點選查看區域詳情　<Feather name="map-pin" size={15} color="#d4567a" /> {selectedDistrict}
                     </Text>
-                  </TouchableOpacity>
-                
+                  </TouchableOpacity>            
               </View>    
           </View>
 
@@ -743,13 +780,29 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                       {/* 活動建議卡片 */}
                       <View style={{ marginBottom: 4 }}>
                         <SecLabel title="活動建議" />
-                        <View style={S.adviceRow}>
-                          <View style={S.adviceIcon}>
-                            <Feather name={activ.icon} size={18} color={C.rose} />
+
+                        {/* 一般民眾 */}
+                        <View style={[S.adviceRow, { marginBottom: 8, backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                          <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                            <Feather name={activ.icon} size={18} color={activ.color} />
                           </View>
-                          <Text style={S.adviceText} numberOfLines={2}>{activ.advice}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[S.adviceLabel, { color: activ.color }]}>一般民眾</Text>
+                            <Text style={S.adviceText}>{activ.generalAdvice}</Text>
+                          </View>
                         </View>
-                      </View> 
+
+                        {/* 敏感族群 */}
+                        <View style={[S.adviceRow, { marginBottom: 8, backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                          <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                            <Feather name={activ.icon} size={18} color={activ.color} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[S.adviceLabel, { color: activ.color }]}>敏感族群</Text>
+                            <Text style={S.adviceText}>{activ.sensitiveAdvice}</Text>
+                          </View>
+                        </View>
+                      </View>
                       <View style={S.divider} />
                       {/* AI 趨勢分析區塊 */}
                       <View>
@@ -959,7 +1012,7 @@ const S = StyleSheet.create({
     backgroundColor: C.glass,
     borderWidth: 1, borderColor: C.glassInner,
     justifyContent: "center", alignItems: "center",
-    shadowColor: C.glassShadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 12,
+    shadowColor: C.glassShadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 2, shadowRadius: 12,
   },
   gaugeLabel:    { fontSize: 9, color: C.hint, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "monospace" },
   gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.rose, lineHeight: 44 },
@@ -968,9 +1021,10 @@ const S = StyleSheet.create({
   aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 15 },
 
   // Activity advice
-  adviceRow:  { flexDirection: "row", gap: 12, alignItems: "center" },
-  adviceIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder, justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  adviceText: { flex: 1, fontSize: 12, color: C.muted, lineHeight: 20, justifyContent: "center" },
+  adviceRow:    { flexDirection: "row", alignItems: "flex-start", gap: 11, padding: 13, borderRadius: 12, borderWidth: 1,},
+  adviceIcon:   { width: 36, height: 36, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center", flexShrink: 0, marginTop: 2, marginRight: 3 },
+  adviceLabel:  { fontSize: 13, fontWeight: "600", marginBottom: 4 },
+  adviceText:   { fontSize: 12, color: C.muted, lineHeight: 20 },
 
   // Metric tiles 2×2
   metrics2:  { flexDirection: "row", gap: 7 },
