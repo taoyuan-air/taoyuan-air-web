@@ -20,8 +20,10 @@ import Svg, {
   Defs,
   LinearGradient as SvgLinearGradient,
   Stop,
+  Path, 
+  Line, 
+  Text as SvgText
 } from "react-native-svg";
-import { LinearGradient } from "expo-linear-gradient";
 import { DashboardScreenMobile } from "./DashboardScreenMobile";
 import { Layout } from '../styles/responsive';
 import { TaoyuanMapView } from './TaoyuanMapView.web';
@@ -78,9 +80,9 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
     return baseColor + 'CC';
   };
 
-  const maxHeight = 56;  // 從48增加到56 (+17%)
-  const barWidth = 12;   // 從10增加到12 (+20%)
-  const barSpacing = 6;  // 從5增加到6 (+20%)
+  const maxHeight = 56;  
+  const barWidth = 12;   
+  const barSpacing = 6;  
   const { labels } = getCurrentTimeLabels();
   
   // 使用前11個數據點（5個歷史 + 1個當前 + 5個預測）
@@ -152,20 +154,26 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
 
 const CWA_API_KEY = process.env.EXPO_PUBLIC_CWA_API_KEY;
 
-// ─── EPA / district maps ──────────────────────────────────────────────
-const EPA_STATION_TO_DISTRICT: Record<string, string> = {
+// ─── MOE / district maps ──────────────────────────────────────────────
+const MOE_STATION_TO_DISTRICT: Record<string, string> = {
   中壢: "中壢區", 桃園: "桃園區", 大園: "大園區",
   觀音: "觀音區", 平鎮: "平鎮區", 龍潭: "龍潭區",
 };
 
-const DISTRICT_STATIC_AQ: Record<string, { pm25: number; o3: number; aqi: number }> = {
-  桃園區: { pm25: 20, o3: 48, aqi: 75 }, 中壢區: { pm25: 18, o3: 42, aqi: 72 },
-  八德區: { pm25: 16, o3: 40, aqi: 30 }, 龜山區: { pm25: 19, o3: 44, aqi: 350 },
-  蘆竹區: { pm25: 14, o3: 36, aqi: 132 }, 大園區: { pm25: 12, o3: 35, aqi: 58 },
-  大溪區: { pm25: 13, o3: 37, aqi: 189 }, 平鎮區: { pm25: 16, o3: 40, aqi: 68 },
-  楊梅區: { pm25: 17, o3: 41, aqi: 70 }, 龍潭區: { pm25: 15, o3: 38, aqi: 65 },
-  觀音區: { pm25: 22, o3: 45, aqi: 78 }, 新屋區: { pm25: 21, o3: 43, aqi: 76 },
-  復興區: { pm25: 10, o3: 32, aqi: 220 },
+const DISTRICT_STATIC_AQ: Record<string, { pm25: number; o3: number; no2: number; so2: number; co: number; pm10: number; aqi: number }> = {
+  桃園區: { pm25: 20, o3: 48, no2: 15, so2: 2.5, co: 0.45, pm10: 45, aqi: 75 },
+  中壢區: { pm25: 18, o3: 42, no2: 14, so2: 2.3, co: 0.42, pm10: 40, aqi: 72 },
+  八德區: { pm25: 16, o3: 40, no2: 12, so2: 2.1, co: 0.38, pm10: 38, aqi: 30 },
+  龜山區: { pm25: 19, o3: 44, no2: 18, so2: 3.2, co: 0.55, pm10: 52, aqi: 350 },
+  蘆竹區: { pm25: 14, o3: 36, no2: 11, so2: 2.0, co: 0.35, pm10: 32, aqi: 132 },
+  大園區: { pm25: 12, o3: 35, no2: 10, so2: 2.8, co: 0.30, pm10: 30, aqi: 58 },
+  大溪區: { pm25: 13, o3: 37, no2: 9, so2: 1.8, co: 0.28, pm10: 28, aqi: 189 },
+  平鎮區: { pm25: 16, o3: 40, no2: 13, so2: 2.2, co: 0.40, pm10: 36, aqi: 68 },
+  楊梅區: { pm25: 17, o3: 65, no2: 200, so2: 200, co: 16, pm10: 150, aqi: 70 },
+  龍潭區: { pm25: 15, o3: 38, no2: 10, so2: 1.9, co: 0.36, pm10: 33, aqi: 65 },
+  觀音區: { pm25: 22, o3: 45, no2: 16, so2: 3.5, co: 0.48, pm10: 50, aqi: 78 },
+  新屋區: { pm25: 21, o3: 43, no2: 14, so2: 3.0, co: 0.46, pm10: 48, aqi: 76 },
+  復興區: { pm25: 10, o3: 32, no2: 5, so2: 1.2, co: 0.20, pm10: 20, aqi: 220 },
 };
 
 // ─── District coordinates for geolocation ────────────────────────────
@@ -318,25 +326,21 @@ const getAQIStatus = (aqi: number) => {
 // ─── Air Quality Helpers ──────────────────────────────────────────────────────
 
 const getPM25Color = (v: number) => {
-  if (v <= 12.0) return "#E76595";
-  if (v <= 35.4) return COLORS.MODERATE;
-  if (v <= 55.4) return COLORS.UNHEALTHY_SENSITIVE;
+  if (v <= 15.4)  return "#E76595";
+  if (v <= 35.4)  return COLORS.MODERATE;
+  if (v <= 54.4)  return COLORS.UNHEALTHY_SENSITIVE; 
   if (v <= 150.4) return COLORS.UNHEALTHY;
-  return COLORS.VERY_UNHEALTHY;
+  if (v <= 250.4) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;                          
 };
 
 const getO3Color = (v: number) => {
-  if (v <= 54) return "#E76595";
-  if (v <= 70) return COLORS.MODERATE;
-  if (v <= 85) return COLORS.UNHEALTHY_SENSITIVE;
-  return COLORS.UNHEALTHY;
-};
-
-const getNO2Color = (v: number) => {
-  if (v <= 53) return "#E76595";
-  if (v <= 100) return COLORS.MODERATE;
-  if (v <= 360) return COLORS.UNHEALTHY_SENSITIVE;
-  return COLORS.UNHEALTHY;
+  if (v <= 54)  return "#E76595";                  
+  if (v <= 70)  return COLORS.MODERATE;             
+  if (v <= 85)  return COLORS.UNHEALTHY_SENSITIVE;  
+  if (v <= 105) return COLORS.UNHEALTHY;            
+  if (v <= 200) return COLORS.VERY_UNHEALTHY;       
+  return COLORS.HAZARDOUS;                          
 };
 
 // 根據 AQI 決定活動建議 icon & 文字
@@ -575,6 +579,84 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
   );
 };
 
+/* pm2.5 and o3 GaugeArc */
+const R = 45;
+const CX = 55;
+const CY = 58;
+const ARC_LEN = Math.PI * R; // 半圓周長 ≈ 141.37
+
+function polarToXY(angleDeg: number) {
+  // 0° = 左端(180°數學角), 100% = 右端(0°數學角)
+  const rad = (Math.PI * (180 - angleDeg)) / 180;
+  return {
+    x: CX + R * Math.cos(rad),
+    y: CY - R * Math.sin(rad),
+  };
+}
+
+function GaugeArc({
+  value, max, markerVal, color, unit,
+}: { value: number; max: number; markerVal: number; color: string; unit: string; }) {
+  const ratio = Math.min(value / max, 1);
+  const dashOffset = ARC_LEN * (1 - ratio);
+
+  const markerRatio = Math.min(markerVal / max, 1);
+  const markerAngleDeg = markerRatio * 180;
+  const mp = polarToXY(markerAngleDeg); 
+  // 標籤往外延伸
+  const labelDist = 14;
+  const rad = (Math.PI * (180 - markerAngleDeg)) / 180;
+  const lx = CX + (R + labelDist) * Math.cos(rad);
+  const ly = CY - (R + labelDist) * Math.sin(rad);
+
+  return (
+    <Svg width={110} height={68} viewBox="-10 0 120 68">
+      {/* 背景弧 */}
+      <Path
+        d={`M 10 58 A ${R} ${R} 0 0 1 100 58`}
+        fill="none"
+        stroke="rgba(0,0,0,0.08)"
+        strokeWidth={7}
+        strokeLinecap="round"
+      />
+      {/* 填色弧 */}
+      <Path
+        d={`M 10 58 A ${R} ${R} 0 0 1 100 58`}
+        fill="none"
+        stroke={color}
+        strokeWidth={7}
+        strokeLinecap="round"
+        strokeDasharray={ARC_LEN}
+        strokeDashoffset={dashOffset}
+      />
+      {/* 指標線 */}
+      <Line
+        x1={mp.x} y1={mp.y}
+        x2={lx}   y2={ly}
+        stroke="rgba(0,0,0,0.3)"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      {/* 指標數值 */}
+      <SvgText
+        x={lx} y={ly - 3}
+        fontSize={9}
+        fill="#aaa"
+        textAnchor="middle"
+      >
+        {markerVal}
+      </SvgText>
+      {/* 中央數值 */}
+      <SvgText x={CX} y={52} fontSize={20} fontWeight="700" fill={color} textAnchor="middle">
+        {value}
+      </SvgText>
+      <SvgText x={CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">
+        {unit}
+      </SvgText>
+    </Svg>
+  );
+}
+
 /** Section label with rose accent bar */
 const SecLabel: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => (
   <View style={S.secLabel}>
@@ -583,15 +665,6 @@ const SecLabel: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => 
       <Text style={S.secTitle}>{title}</Text>
       {sub && <Text style={S.secSub}>{sub}</Text>}
     </View>
-  </View>
-);
-
-/** Frosted weather stat tile */
-const WxStat: React.FC<{ icon: keyof typeof Feather.glyphMap; label: string; value: string; color: string }> = ({ icon, label, value, color }) => (
-  <View style={S.wxStat}>
-    <Feather name={icon} size={16} color={color} />
-    <Text style={S.wxStatLabel}>{label}</Text>
-    <Text style={[S.wxStatValue, { color }]}>{value}</Text>
   </View>
 );
 
@@ -634,13 +707,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   const { selectedScenario, setGridCells, setAlerts, setEvents, isLoading, setIsLoading } = useStore();
   const { location, permission } = useUserLocation();
 
-  const [locatedAqi,   setLocatedAqi]   = useState(65);
-  const [locatedPm25,  setLocatedPm25]  = useState(18);
-  const [locatedO3,    setLocatedO3]    = useState(42);
+ const [locatedAqi, setLocatedAqi] = useState(65);
+  const [locatedPm25, setLocatedPm25] = useState(18);
+  const [locatedO3, setLocatedO3] = useState(42);
+  const [locatedNo2, setLocatedNo2] = useState(12);
+  const [locatedSo2, setLocatedSo2] = useState(2.1);
+  const [locatedCo, setLocatedCo] = useState(0.38);
+  const [locatedPm10, setLocatedPm10] = useState(35);
   const [currentDistrict, setCurrentDistrict] = useState<string>('中壢區');
-  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData>(MOCK_CURRENT);
-  const [forecast,       setForecast]       = useState<ForecastDay[]>(generateMockForecast());
-  const [past1hrRain,    setPast1hrRain]    = useState("0.0");
+  const [forecast, setForecast]       = useState<ForecastDay[]>(generateMockForecast());
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(currentDistrict);
 
   const displayDistrict = selectedDistrict ?? currentDistrict;
@@ -668,25 +743,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   }, [currentDistrict]);
 
   useEffect(() => {
-    fetchCurrentWeather(displayDistrict).then(setCurrentWeather);
-    fetchWeatherForecast(displayDistrict).then(({ days }) => setForecast(days));
-    fetchPast1hrRainfall(displayDistrict).then(setPast1hrRain);
-  }, [displayDistrict]);
-
-  useEffect(() => {
     const s = DISTRICT_STATIC_AQ[displayDistrict];
-    if (s) { setLocatedPm25(s.pm25); setLocatedO3(s.o3); setLocatedAqi(s.aqi); }
+    if (s) { setLocatedPm25(s.pm25); setLocatedO3(s.o3); setLocatedAqi(s.aqi); setLocatedNo2(s.no2); setLocatedSo2(s.so2); setLocatedCo(s.co); setLocatedPm10(s.pm10); }
     fetchMoeStations().then((stations) => {
-      const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === displayDistrict)?.[0];
+      const sitename = Object.entries(MOE_STATION_TO_DISTRICT).find(([, d]) => d === displayDistrict)?.[0];
       if (!sitename) return;
       const st = stations.find((s) => s.sitename === sitename);
-      if (st) { setLocatedPm25(st.pm25); setLocatedO3(st.o3); setLocatedAqi(st.aqi || s?.aqi || 65); }
+      if (st) { setLocatedPm25(st.pm25); setLocatedO3(st.o3); setLocatedAqi(st.aqi || s?.aqi || 65); setLocatedNo2(st.no2); setLocatedSo2(st.so2); setLocatedCo(st.co); setLocatedPm10(st.pm10); }
     }).catch(console.warn);
   }, [displayDistrict]);
 
+
   const pm25  = locatedPm25;
   const o3    = locatedO3;
-  const no2   = Math.round(pm25 * 0.3);
+  const no2   = locatedNo2;
+  const so2   = locatedSo2;
+  const co    = locatedCo;
+  const pm10  = locatedPm10;
   const activ = getActivityInfo(locatedAqi);
 
   if (isLoading) {
@@ -707,7 +780,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
         <View style={{ flexDirection: 'row' }}>
 
           {/* 左半部：地圖 */}
-          <View style={{ width: '45%' }}>
+          <View style={{ width: '40%' }}>
             {/* ── 桃園地圖 ── */}
               <View style={[{ padding: 40, paddingTop: 70 }]}>
                 <View style={{ height: 650}}>
@@ -741,7 +814,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
           {/* 右半部：所有資訊 */}
           <View style={{
-            width: '51%',
+            width: '56%',
             backgroundColor: 'rgb(255, 255, 255)',  
             //backdropFilter: 'blur(16px)',   // web 毛玻璃效果
             borderWidth: 1,
@@ -778,7 +851,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                     <View style={{ flex: 1.5, gap: 10 }}>
                       
                       {/* 活動建議卡片 */}
-                      <View style={{ marginBottom: 4 }}>
+                      <View>
                         <SecLabel title="活動建議" />
 
                         {/* 一般民眾 */}
@@ -826,99 +899,102 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                   </View>
 
                   {/* SECOND ROW */}
-                  <SecLabel title="污染物詳情"/>
-                  <View style={S.secondRow}>
-                      
-                      {/* Pollutant Bars */}
-                      <View style={{ flex: 1 }}>
-                        <View style={[S.miniPollutRow]}>
-                          <View style={S.miniPollutLeft}>
+                  <View style={{ flexDirection: "row" }}>
+                    <SecLabel title="污染物詳情"/>
+                    <Text style={{ fontSize: 12, color: "#aaa", marginTop: 2, marginLeft: 10 }}>（每小時）</Text>
+                    <SecLabel title="PM2.5 趨勢"/>
+                  </View>
+                    <View style={S.secondRow}>
+                        
+                      {/* Pollutants */}
+                      <View style={{ flex: 1.2 }}>
+
+                        {/* PM2.5 + O₃ 弧形儀表並排 */}
+                        <View style={S.miniGaugeRow}>
+
+                          {/* PM2.5 */}
+                          <View style={S.miniGaugeCard}>
                             <Text style={S.miniPollutName}>PM2.5</Text>
                             <Text style={S.miniPollutSub}>細懸浮微粒</Text>
+                            <Text style={{ fontSize: 9, color: "#aaa" }}>標準日均值為 15.4 μg/m³</Text>
+                            <GaugeArc value={pm25} max={150} markerVal={15.4} color={getPM25Color(pm25)} unit="μg/m³"/>
                           </View>
-                          <View style={S.miniPollutBar}>
-                            <View style={S.miniBarTrack}>
-                              <View style={[S.miniBarFill, { width: `${Math.min((pm25 / 75) * 100, 100)}%`, backgroundColor: getPM25Color(pm25) }]} />
-                            </View>
-                          </View>
-                          <View style={S.miniPollutRight}>
-                            <Text style={[S.miniPollutVal, { color: getPM25Color(pm25) }]}>{pm25}</Text>
-                            <Text style={S.miniPollutUnit}>μg/m³</Text>
-                          </View>
-                        </View>
-                        <View style={[S.miniPollutRow]}>
-                          <View style={S.miniPollutLeft}>
+
+                          <View style={S.miniGaugeDivider} />
+
+                          {/* O₃ */}
+                          <View style={S.miniGaugeCard}>
                             <Text style={S.miniPollutName}>O₃</Text>
                             <Text style={S.miniPollutSub}>臭氧</Text>
+                            <Text style={{ fontSize: 9, color: "#aaa" }}>標準8小時均值為 54 ppb</Text>
+                            <GaugeArc value={o3} max={200}  markerVal={54} color={getO3Color(o3)} unit="ppb"/>
                           </View>
-                          <View style={S.miniPollutBar}>
-                            <View style={S.miniBarTrack}>
-                              <View style={[S.miniBarFill, { width: `${Math.min((o3 / 100) * 100, 100)}%`, backgroundColor: getO3Color(o3) }]} />
+
+                        </View>
+
+                        {/* 其他四項汙染物 — 單行橫排 */}
+                        <View style={S.miniPollutStrip}>
+                          <View style={S.miniPillCard}>
+                            <Text style={S.miniPillName}>NO₂</Text>
+                            <Text style={S.miniPillSub}>二氧化氮</Text>
+                            <View style={S.miniPillValRow}>
+                              <Text style={S.miniPillVal}>{no2}</Text>
+                              <Text style={S.miniPillUnit}>ppb</Text>
+                            </View>   
+                          </View>
+                          <View style={S.miniPillDivider} />
+                          <View style={S.miniPillCard}>
+                            <Text style={S.miniPillName}>SO₂</Text>
+                            <Text style={S.miniPillSub}>二氧化硫</Text>
+                            <View style={S.miniPillValRow}>
+                              <Text style={S.miniPillVal}>{so2}</Text>
+                              <Text style={S.miniPillUnit}>ppb</Text>
+                            </View> 
+                          </View>
+                          <View style={S.miniPillDivider} />
+                          <View style={S.miniPillCard}>
+                            <Text style={S.miniPillName}>CO</Text>
+                            <Text style={S.miniPillSub}>一氧化碳</Text>
+                            <View style={S.miniPillValRow} >
+                              <Text style={S.miniPillVal}>{co}</Text>
+                              <Text style={S.miniPillUnit}>ppm</Text>
                             </View>
                           </View>
-                          <View style={S.miniPollutRight}>
-                            <Text style={[S.miniPollutVal, { color: getO3Color(o3) }]}>{o3}</Text>
-                            <Text style={S.miniPollutUnit}>ppb</Text>
-                          </View>
-                        </View>
-                        <View style={[S.miniPollutRow, { marginBottom: 0 }]}>
-                          <View style={S.miniPollutLeft}>
-                            <Text style={S.miniPollutName}>NO₂</Text>
-                            <Text style={S.miniPollutSub}>二氧化氮</Text>
-                          </View>
-                          <View style={S.miniPollutBar}>
-                            <View style={S.miniBarTrack}>
-                              <View style={[S.miniBarFill, { width: `${Math.min((no2 / 100) * 100, 100)}%`, backgroundColor: getNO2Color(no2) }]} />
+                          <View style={S.miniPillDivider} />
+                          <View style={S.miniPillCard}>
+                            <Text style={S.miniPillName}>PM10</Text>
+                            <Text style={S.miniPillSub}>懸浮微粒</Text>
+                            <View style={S.miniPillValRow}>
+                              <Text style={S.miniPillVal}>{pm10}</Text>
+                              <Text style={S.miniPillUnit}>μg/m³</Text>
                             </View>
                           </View>
-                          <View style={S.miniPollutRight}>
-                            <Text style={[S.miniPollutVal, { color: getNO2Color(no2) }]}>{no2}</Text>
-                            <Text style={S.miniPollutUnit}>ppb</Text>
-                          </View>
                         </View>
+
                       </View>
-                      
                       {/* PM2.5 趨勢圖 */}           
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                          <Text style={S.secTitle}>PM2.5 趨勢</Text>
                           <Text style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</Text>
                         </View>
-                        <View style={{ alignItems: "center" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                          <Text>今天</Text>
+                          <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+                        </View>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                          <Text>明天</Text>
+                          <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
+                        </View>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                          <Text>後天</Text>
                           <TrendBars trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]} />
                         </View>
                       </View>
                   </View>
                   
-                  {/* THIRD ROW */}
-                  <View style={S.thirdRow}>
-                    {/* Current weather */}
-                    <View style={{flex: 1}}>
-                      <SecLabel title="當前天氣"/>
-                      <View style={S.wxHero}>
-                        <View>
-                          <Text style={S.wxTemp}>{currentWeather.temperature}°</Text>
-                          <Text style={S.wxDesc}>{currentWeather.weather}</Text>
-                          <Text style={S.wxHL}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</Text>
-                        </View>
-                        <View style={S.wxIconCircle}>
-                          <Feather name={getWeatherIcon(currentWeather.weather)} size={26} color={C.rose} />
-                        </View>
-                      </View>
-                      <View style={S.wxStats}>
-                        <WxStat icon="droplet"   label="濕度"    value={`${currentWeather.humidity}%`}    color={C.sky}  />
-                        <WxStat icon="wind"      label="風速"    value={`${currentWeather.windSpeed}m/s`} color={C.mint} />
-                        <WxStat icon="cloud-rain" label="近1hr" value={`${past1hrRain}mm`}               color={C.muted}/>
-                      </View>
-                    </View>
-                    {/* 3-day forecast */}
-                    <View style={{flex: 1}}>
-                      <SecLabel title="未來三日預報"/>
-                      <View style={S.fcRow}>
-                        {forecast.map((day, i) => <FcCard key={i} day={day} highlight={i === 1} />)}
-                      </View>
-                    </View>
-                  </View>
+                     
+                
+                  
 
               </View>
             </ScrollView>
@@ -992,12 +1068,12 @@ const S = StyleSheet.create({
   },
 
   // Rows 
-  firstRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", paddingBottom: 30 },
+  firstRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", paddingBottom: 10 },
   secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between',gap: 40, width: "100%" },
   thirdRow: { flexDirection: "row", gap: 10, width: "100%", marginTop: 40 },
 
   // Divider
-  divider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 8 },
+  divider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 4 },
 
   // Section label
   secLabel: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
@@ -1052,22 +1128,6 @@ const S = StyleSheet.create({
   insightChip:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(212,86,122,0.14)", borderWidth: 1, borderColor: C.roseBorder, flexShrink: 0 },
   insightChipText:{ fontSize: 12, fontWeight: "700", color: C.rose },
 
-  // Weather hero
-  wxHero: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 14, borderRadius: 12, backgroundColor: C.glass2,
-    borderWidth: 1, borderColor: C.glassBorder2, marginBottom: 12,
-  },
-  wxTemp:      { fontSize: 44, fontWeight: "700", color: C.text, lineHeight: 46 },
-  wxDesc:      { fontSize: 12, color: C.muted, marginTop: 4 },
-  wxHL:        { fontSize: 10, color: C.hint, marginTop: 3 },
-  wxIconCircle:{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.glass, borderWidth: 1, borderColor: C.glassInner, justifyContent: "center", alignItems: "center", shadowColor: C.glassShadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 10 },
-
-  wxStats:     { flexDirection: "row", gap: 8 },
-  wxStat:      { ...glass2Base, flex: 1, padding: 10, alignItems: "center", gap: 5 } as any,
-  wxStatLabel: { fontSize: 9, color: C.hint, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "monospace" },
-  wxStatValue: { fontSize: 12, fontWeight: "700" },
-
   // Forecast
   fcRow:      { flexDirection: "row", gap: 8 },
   fcCard:     { ...glass2Base, flex: 1, padding: 12, alignItems: "center", gap: 3 } as any,
@@ -1078,17 +1138,20 @@ const S = StyleSheet.create({
   fcTemps:    { fontSize: 9, fontWeight: "600", color: C.text, marginTop: 3 },
   fcPop:      { fontSize: 10, color: C.hint, marginTop: 2 },
 
-  // ── Mini pollutant rows (pm2.5, O3, NO2) ──
-  miniPollutRow:    { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 10 },
-  miniPollutLeft:   { width: 50 },
-  miniPollutName:   { fontSize: 13, fontWeight: "700", color: "#444" },
-  miniPollutSub:    { fontSize: 10, color: "#aaa", marginTop: 1 },
-  miniPollutBar:    { flex: 1 },
-  miniBarTrack:     { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" },
-  miniBarFill:      { height: "100%", borderRadius: 3 },
-  miniPollutRight:  { flexDirection: "row", alignItems: "baseline", gap: 3, width: 52, justifyContent: "flex-end" },
-  miniPollutVal:    { fontSize: 15, fontWeight: "700" },
-  miniPollutUnit:   { fontSize: 10, color: "#aaa" },
+  // ── Mini pollutant rows (PM2.5, O₃ 長條) ──
+  miniGaugeRow:      { flexDirection: "row", overflow: "hidden", marginBottom: 20 },
+  miniGaugeCard:     { flex: 1, paddingTop: 12, paddingBottom: 8, alignItems: "center" },
+  miniGaugeDivider:  { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 12 },
+  miniPollutName:    { fontSize: 20, fontWeight: "700", color: "#444" },
+  miniPollutSub:     { fontSize: 10, color: C.muted, marginTop: 1, marginBottom: 4 },
+  miniPollutStrip:   { flexDirection: "row", overflow: "hidden" },
+  miniPillCard:      { flex: 1, paddingVertical: 8, alignItems: "center", gap: 2 },
+  miniPillDivider:   { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 8 },
+  miniPillName:      { fontSize: 15, fontWeight: "700", color: "#555" },
+  miniPillSub:       { fontSize: 10, color: C.muted, marginBottom: 4 },
+  miniPillVal:       { color: "#E76595",fontSize: 14, fontWeight: "700" },
+  miniPillValRow:    { flexDirection: "row", justifyContent: "center", alignItems: "center" , gap: 8 },
+  miniPillUnit:      { fontSize: 9, color: "#aaa" },
 });
 
 const styles = StyleSheet.create({
