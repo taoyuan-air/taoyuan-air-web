@@ -334,12 +334,6 @@ const COLORS = {
   HAZARDOUS: "#7b241c"      // 有害 (褐紫)
 };
 
-// ─── Gauge dimensions (desktop baseline) ──────────────────────────────
-const GAUGE_SIZE   = 200;
-const STROKE_W     = 11;
-const GAUGE_R      = (GAUGE_SIZE - STROKE_W) / 2;
-const GAUGE_CIRC   = 2 * Math.PI * GAUGE_R;
-
 // ─── Helper: AQI color ───────────────────────────────────────
 const getAQIColor = (aqi: number) => {
   if (aqi <= 50) return "#E76595";
@@ -425,6 +419,13 @@ const getActivityInfo = ( aqi: number,): {
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────
+
+// ─── Gauge dimensions (desktop baseline) ──────────────────────────────
+const GAUGE_SIZE   = 220;
+const STROKE_W     = 11;
+const GAUGE_R      = (GAUGE_SIZE - STROKE_W) / 2;
+const GAUGE_CIRC   = 2 * Math.PI * GAUGE_R;
+
 /** Frosted glass AQI ring */
 const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
   const pct    = Math.min(Math.max(aqi / 200, 0), 1);
@@ -507,7 +508,7 @@ function GaugeArc({
   const ly = CY - (R + labelDist) * Math.sin(rad);
 
   return (
-    <Svg width={110} height={68} viewBox="-10 0 120 68">
+    <Svg width={190} height={90} viewBox="-10 0 120 68">
       {/* 背景弧 */}
       <Path
         d={`M 10 58 A ${R} ${R} 0 0 1 100 58`}
@@ -904,9 +905,9 @@ const S = StyleSheet.create({
   rightDataInfoGrid: { width: '59%', backgroundColor: 'rgb(255, 255, 255)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28, shadowColor: "rgba(231, 101, 149, 0.08)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 20, elevation: 8, borderWidth: 1, borderColor: "rgba(231, 101, 149, 0.08)" },
 
   // Rows 
-  firstRow:  { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", paddingBottom: 30 },
-  secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between',gap: 10, width: "100%" },
-  thirdRow:  { flexDirection: "row", gap: 10, width: "100%", marginTop: 40 },
+  firstRow:  { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", marginBottom: 20 },
+  secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 15, width: "100%" },
+  thirdRow:  { flexDirection: "row", gap: 10, width: "100%", marginTop: 25 },
 
   // Divider
   divider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 4 },
@@ -974,9 +975,9 @@ const S = StyleSheet.create({
   miniPollutStrip:   { flexDirection: "row", overflow: "hidden" },
   miniPillCard:      { flex: 1, paddingVertical: 8, alignItems: "center", gap: 2 },
   miniPillDivider:   { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 8 },
-  miniPillName:      { fontSize: 15, fontWeight: "700", color: "#555" },
+  miniPillName:      { fontSize: 17, fontWeight: "700", color: "#555" },
   miniPillSub:       { fontSize: 10, color: C.muted, marginBottom: 4 },
-  miniPillVal:       { color: "#E76595",fontSize: 14, fontWeight: "700" },
+  miniPillVal:       { color: "#E76595",fontSize: 18, fontWeight: "700" },
   miniPillValRow:    { flexDirection: "row", justifyContent: "center", alignItems: "center" , gap: 8 },
   miniPillUnit:      { fontSize: 9, color: "#aaa" },
 });
