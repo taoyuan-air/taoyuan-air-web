@@ -30,124 +30,164 @@ import { palette } from "../styles/theme";
 
 // ─── pm2.5 trend bars ──────────────────────────────────────────────
 const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
-  // 獲取當前時間並生成時間標籤
-  const getCurrentTimeLabels = () => {
+  const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+
+  // 產生過去5 + 現在 + 未來24，共30個時間點
+  const getTimeSlots = () => {
     const now = new Date();
     const currentHour = now.getHours();
-    const labels = [];
-    const times = [];
-    
-    // 生成過去5個整點時間（歷史數據）
+    const slots: { hour: number; date: Date; isPrediction: boolean; isNow: boolean }[] = [];
+
+    // 過去5小時
     for (let i = 5; i >= 1; i--) {
-      const pastHour = currentHour - i;
-      const hour = pastHour < 0 ? pastHour + 24 : pastHour;
-      times.push(hour);
-      labels.push(`${hour.toString().padStart(2, '0')}:00`);
+      const d = new Date(now);
+      d.setHours(currentHour - i, 0, 0, 0);
+      slots.push({ hour: d.getHours(), date: d, isPrediction: false, isNow: false });
     }
-    
-    // 當前時間
-    times.push(currentHour);
-    labels.push(`${currentHour.toString().padStart(2, '0')}:00`);
-    
-    // 生成未來5個整點時間（預測數據）
-    for (let i = 1; i <= 5; i++) {
-      const futureHour = (currentHour + i) % 24;
-      times.push(futureHour);
-      labels.push(`${futureHour.toString().padStart(2, '0')}:00`);
+    // 現在
+    slots.push({ hour: currentHour, date: new Date(now), isPrediction: false, isNow: true });
+    // 未來32小時
+    for (let i = 1; i <= 32; i++) {
+      const d = new Date(now);
+      d.setHours(currentHour + i, 0, 0, 0);
+      slots.push({ hour: d.getHours(), date: d, isPrediction: true, isNow: false });
     }
-    
-    return { labels, times };
+    return slots;
   };
 
-  // 根據數值決定顏色
-  const getBarColor = (value: number, isPrediction: boolean = false) => {
-    // 1. 如果是預測數據，使用不同深度的灰色
+  const slots = getTimeSlots();
+
+  const getBarColor = (value: number, isPrediction: boolean) => {
     if (isPrediction) {
-      if (value <= 0.3) return 'rgba(224, 224, 224, 0.6)'; // 淺灰 (對應 綠色等級)
-      if (value <= 0.5) return 'rgba(189, 189, 189, 0.6)'; // 次淺灰 (對應 黃色等級)
-      if (value <= 0.7) return 'rgba(117, 117, 117, 0.6)'; // 中深灰 (對應 紅色等級)
-      return 'rgba(66, 66, 66, 0.6)';                   // 深灰 (對應 紫色等級)
+      if (value <= 0.3) return '#D9D9D9';
+      if (value <= 0.5) return '#C4C4C4';
+      if (value <= 0.7) return '#999999';
+      return '#7B7B7B';
     }
-
-    // 2. 如果是真實數據，使用原本的彩色系統
-    let baseColor;
-    if (value <= 0.3) baseColor = COLORS.GOOD; // 主色系 - 低
-    else if (value <= 0.5) baseColor = COLORS.MODERATE; // 黃色 - 一般
-    else if (value <= 0.7) baseColor = COLORS.UNHEALTHY; // 紅色 - 高
-    else baseColor = COLORS.VERY_UNHEALTHY; // 紫色 - 很高
-
-    return baseColor + 'CC';
+    let base;
+    if (value <= 0.3) base = COLORS.GOOD;
+    else if (value <= 0.5) base = COLORS.MODERATE;
+    else if (value <= 0.7) base = COLORS.UNHEALTHY;
+    else base = COLORS.VERY_UNHEALTHY;
+    return base + 'CC';
   };
 
-  const maxHeight = 56;  
-  const barWidth = 12;   
-  const barSpacing = 6;  
-  const { labels } = getCurrentTimeLabels();
-  
-  // 使用前11個數據點（5個歷史 + 1個當前 + 5個預測）
-  const displayData = trend.slice(0, 11);
+  const maxHeight = 80;
+  const barWidth = 14;
+  const barSpacing = 8;
+  // （5 過去 + 1 現在 + 32 未來）
+  const displayData = trend.slice(0, 38);
+
+  // 找出每個 bar 是否是某天的第一個 bar（用來顯示日期標籤）
+  const getDateLabel = (index: number): string | null => {
+    if (index === 0) return null; // 第一根不標（過去）
+    const curr = slots[index];
+    const prev = slots[index - 1];
+    if (!curr || !prev) return null;
+    const currDay = curr.date.getDate();
+    const prevDay = prev.date.getDate();
+    if (currDay !== prevDay) {
+      const m = curr.date.getMonth() + 1;
+      const d = curr.date.getDate();
+      const w = weekDays[curr.date.getDay()];
+      return `${m}/${d}(${w})`;
+    }
+    return null;
+  };
+
+  const pastCount = 5;
   const totalWidth = displayData.length * (barWidth + barSpacing) - barSpacing;
+  const pastWidth = pastCount * (barWidth + barSpacing);
+  const nowOffset = pastWidth + barWidth / 2;
 
   return (
-    <View style={styles.trendBarsWrapper}>
-      {/* 柱狀圖 */}
-      <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
-        {displayData.map((value, index) => {
-          const barHeight = Math.max(5, value * maxHeight); // 最小高度從4增加到5
-          const isPrediction = index > 5; // 索引大於5的是預測數據
-          const isNow = index === 5; // 索引5是當前時間
-          
-          return (
-            <View key={index} style={styles.barWrapper}>
-              <View
-                style={[
-                  styles.trendBar,
-                  {
-                    height: barHeight,
-                    width: barWidth,
-                    backgroundColor: getBarColor(value, isPrediction),
-                    marginRight: index < displayData.length - 1 ? barSpacing : 0,
-                    borderWidth: isNow ? 1 : 0,
-                    borderColor: isNow ? '#FBA7BC' : 'transparent',
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%' }}>
+      <View style={styles.trendBarsWrapper}>
+        {/* 日期標籤列（bar 上方） */}
+        <View style={{ flexDirection: "row", width: totalWidth, height: 16, marginBottom: 2 }}>
+          {displayData.map((_, index) => {
+            const label = getDateLabel(index);
+            const left = index * (barWidth + barSpacing);
+            return label ? (
+              <View key={index} style={{ position: "absolute", left: left - 10, top: 0, width: 50 }}>
+                <Text style={{ fontSize: 10, color: C.rose, fontWeight: "700" }}>{label}</Text>
+              </View>
+            ) : null;
+          })}
+        </View>
+
+        {/* 柱狀圖 */}
+        <View style={[styles.trendBarsContainer, { width: totalWidth }]}>
+          {displayData.map((value, index) => {
+            const barHeight = Math.max(5, value * maxHeight);
+            const { isPrediction, isNow } = slots[index] ?? { isPrediction: false, isNow: false };
+            const label = getDateLabel(index);  // 加這行
+            return (
+              <View key={index} style={styles.barWrapper}>
+                {/* 跨日垂直線，畫在 bar 下方（先 render） */}
+                {label && (
+                  <View style={{
+                    position: "absolute",
+                    width: 1.5,
+                    height: 55,           // 跟 bar 區域等高
+                    backgroundColor: C.rose,
+                    bottom: 0,
+                    left: barWidth / 2 - 0.5,          // bar 正中間
+                    zIndex: 0,
+                  }} />
+                )}
+                <View
+                  style={[
+                    styles.trendBar,
+                    {
+                      height: barHeight,
+                      width: barWidth,
+                      backgroundColor: getBarColor(value, isPrediction),
+                      marginRight: index < displayData.length - 1 ? barSpacing : 0,
+                      borderWidth: isNow ? 1 : 0,
+                      borderColor: isNow ? '#FBA7BC' : 'transparent',
+                      zIndex: 1,                 // bar 疊在線上面
+                    },
+                  ]}
+                />
+              </View>
+            );
+          })}
+        </View>
+
+        {/* 時間標籤列（bar 下方，每隔數根顯示一次） */}
+        <View style={{ flexDirection: "row", width: totalWidth, height: 20, position: "relative" }}>
+          {displayData.map((_, index) => {
+            const slot = slots[index];
+            if (!slot) return null;
+            // 每5根顯示一次時間，NOW 強制顯示
+            const showLabel = true;
+            if (!showLabel) return null;
+            const left = index * (barWidth + barSpacing);
+            return (
+              <View key={index} style={{ position: "absolute", left: left - 5, top: 2, width: 24 }}>
+                <Text
+                  style={[
+                    styles.timeLabel,
+                    slot.isNow && styles.timeLabelNow,
+                    slot.isPrediction && styles.timeLabelPrediction,
+                  ]}
+                >
+                  {slot.hour.toString().padStart(2, "0")}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* 底部區段說明文字 */}
+        <View style={{ flexDirection: "row", width: totalWidth, marginTop: 4 }}>
+          <Text style={{ width: pastWidth, fontSize: 11, color: C.hint, textAlign: "left" }}>過去 5h</Text>
+          <Text style={{ position: "absolute", left: nowOffset - 14, top: 1, fontSize: 11, color: C.rose, fontWeight: "700" }}>NOW</Text>
+          <Text style={{ flex: 1, fontSize: 11, color: C.hint, textAlign: "right" }}>未來 32h</Text>
+        </View>
       </View>
-      
-      {/* 時間標籤 */}
-      <View style={styles.timeLabelsContainer}>
-        {labels.slice(0, 11).map((label, index) => {
-          const isNow = index === 5;
-          const isPrediction = index > 5;
-          
-          return (
-            <View 
-              key={index} 
-              style={[
-                styles.timeLabelWrapper,
-                { 
-                  width: barWidth,
-                  marginRight: index < displayData.length - 1 ? barSpacing : 0
-                }
-              ]}
-            >
-              <Text 
-                style={[
-                  styles.timeLabel,
-                  isNow && styles.timeLabelNow,
-                  isPrediction && styles.timeLabelPrediction
-                ]}
-              >
-                {label.replace(':00', '')}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -525,50 +565,13 @@ const SecLabel: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => 
   </View>
 );
 
-// ─── PM2.5 三日趨勢區塊 ──────────────────────────────────────────────
-const PM25TrendSection: React.FC<{
-  todayTrend: number[];
-  tomorrowTrend: number[];
-  dayAfterTrend: number[];
-  }> = ({ todayTrend, tomorrowTrend, dayAfterTrend }) => {
-    const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
-    const today = new Date();
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
-    const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()} (${weekDays[d.getDay()]})`;
-
-    const barWidth = 12;
-    const barSpacing = 6;
-    const totalBars = 11;
-    const totalWidth = totalBars * (barWidth + barSpacing) - barSpacing;
-    const pastWidth = 5 * (barWidth + barSpacing);
-    const nowWidth = barWidth;
-
-    const days = [
-      { label: fmt(today),    trend: todayTrend },
-      { label: fmt(tomorrow), trend: tomorrowTrend },
-      { label: fmt(dayAfter), trend: dayAfterTrend },
-    ];
-
-    return (
-      <View style={{ flex: 1 }}>
-        {days.map((day, i) => (
-          <View key={i} style={{ marginBottom: i < 2 ? 10 : 0 }}>
-            <Text style={{ fontSize: 11, color: C.hint, fontWeight: "600", marginBottom: 4 }}>
-              {day.label}
-            </Text>
-            <TrendBars trend={day.trend} />
-            
-              <View style={{ flexDirection: "row", width: totalWidth, alignSelf: "center", marginTop: 2 }}>
-                <Text style={{ width: pastWidth, fontSize: 9, color: C.hint, textAlign: "left" }}>過去 5h</Text>
-                <Text style={{ position: "absolute", left: pastWidth + nowWidth / 2, transform: [{ translateX: -10 }], fontSize: 9, color: C.rose, fontWeight: "700",}}>NOW</Text>
-                <Text style={{ flex: 1, fontSize: 9, color: C.hint, textAlign: "right" }}>預測 5h</Text>
-              </View>
-           
-          </View>
-        ))}
-      </View>
-    );
+// ─── PM2.5 趨勢區塊 ──────────────────────────────────────────────
+const PM25TrendSection: React.FC<{ trend: number[] }> = ({ trend }) => {
+  return (
+    <View style={{ flex: 1 }}>
+      <TrendBars trend={trend} />
+    </View>
+  );
 };
 
 
@@ -788,47 +791,47 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
               {/* SECOND ROW */}
               <View style={S.secondRow}>
+                {/* 活動建議卡片 */}
+                <View style={{ flexDirection: "column", flex: 1 }}>
+                  <SecLabel title="活動建議" />
+                  <View style={[S.adviceRow, { backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                    <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                      <Feather name={activ.icon} size={18} color={activ.color} />
+                    </View>
+                    <Text style={S.adviceText}>{activ.generalAdvice}</Text>
+                  </View>
+                </View>
 
-                    {/* 活動建議 + AI 趨勢分析 */}
-                  <View style={{ flex: 1, gap: 10 }}>
-                      {/* 活動建議卡片 */}
-                    <SecLabel title="活動建議" />
-                    <View style={[S.adviceRow, { backgroundColor: activ.color + "20", borderColor: activ.color }]}>
-                      <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
-                        <Feather name={activ.icon} size={18} color={activ.color} />
-                      </View>
-                      
-                      <Text style={S.adviceText}>{activ.generalAdvice}</Text>
-               
+                <View style={S.divider} />
+                {/* AI 趨勢分析區塊 */}
+                <View style={{ flexDirection: "column", flex: 1.2 }}>
+                  <SecLabel title="AI 趨勢分析" />
+                  <View style={S.insightRow}>
+                    <View style={S.insightIcon}>
+                      <Feather name="trending-down" size={15} color={C.rose} />
                     </View>
-                    <View style={S.divider} />
-                    {/* AI 趨勢分析區塊 */}
-                    <SecLabel title="AI 趨勢分析" />
-                    <View style={S.insightRow}>
-                      <View style={S.insightIcon}>
-                        <Feather name="trending-down" size={15} color={C.rose} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
-                        <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
-                      </View>
-                      <View style={S.insightChip}>
-                        <Text style={S.insightChipText}>−12%</Text>
-                      </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
+                      <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
                     </View>
-                      
+                    <View style={S.insightChip}>
+                      <Text style={S.insightChipText}>−12%</Text>
+                    </View>
                   </View>
-                  
-                  {/* PM2.5 趨勢圖 */}
-                  <View style={{ flex: 1 }}>
-                    <SecLabel title="PM2.5 趨勢" />
-                    <PM25TrendSection
-                      todayTrend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]}
-                      tomorrowTrend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]}
-                      dayAfterTrend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38]}
-                    />
-                  </View>
+                </View>
               </View>
+
+            <View style={S.thirdRow}>
+  <View style={{ flex: 1 }}>
+    <SecLabel title="PM2.5 趨勢" />
+    <PM25TrendSection
+      trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38,
+          0.35, 0.30, 0.28, 0.40, 0.55, 0.60, 0.52, 0.45, 0.38, 0.30,
+          0.25, 0.28, 0.32, 0.38, 0.42, 0.48, 0.50, 0.45, 0.40,
+          0.38, 0.35, 0.33, 0.30, 0.28, 0.32, 0.35, 0.38]}
+      />
+  </View>
+</View>
 
           </View>
         </ScrollView>
@@ -898,11 +901,11 @@ const S = StyleSheet.create({
   grid: { flexDirection: "column", paddingHorizontal: 12, gap: 10, alignItems: "stretch", },
 
   // 右半部全部資訊
-  rightDataInfoGrid: { width: '56%', backgroundColor: 'rgb(255, 255, 255)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28, shadowColor: "rgba(231, 101, 149, 0.08)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 20, elevation: 8, borderWidth: 1, borderColor: "rgba(231, 101, 149, 0.08)", margin: 20 },
+  rightDataInfoGrid: { width: '59%', backgroundColor: 'rgb(255, 255, 255)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28, shadowColor: "rgba(231, 101, 149, 0.08)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 20, elevation: 8, borderWidth: 1, borderColor: "rgba(231, 101, 149, 0.08)" },
 
   // Rows 
   firstRow:  { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", paddingBottom: 30 },
-  secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between',gap: 40, width: "100%" },
+  secondRow: { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between',gap: 10, width: "100%" },
   thirdRow:  { flexDirection: "row", gap: 10, width: "100%", marginTop: 40 },
 
   // Divider
@@ -979,7 +982,7 @@ const S = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  trendBarsWrapper:    { alignItems: "center" },
+  trendBarsWrapper:    { marginLeft: 20, alignItems: "center" },
   trendBarsContainer:  { flexDirection: "row", alignItems: "flex-end", height: 56, marginBottom: 10 },
   trendBar:            { borderRadius: 2 },
   barWrapper:          { alignItems: "center" },
