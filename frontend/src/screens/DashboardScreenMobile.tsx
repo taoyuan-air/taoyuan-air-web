@@ -625,6 +625,11 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                       {getPM25StatusLabel(locatedPm25)}
                     </Text>
                   </View>
+
+                  <Text style={{ fontSize: 10, color: "#bbb", marginBottom: 14, marginTop: -10, marginLeft: 10 }}>
+                    標準日均值為 15.4 μg/m³
+                  </Text>
+
                 </View>
               </View>
             </View>
@@ -676,18 +681,36 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                 <Text style={styles.miniPollutSub}>臭氧</Text>
               </View>
               <View style={styles.miniPollutBar}>
-                <View style={styles.miniBarTrack}>
-                  <View
-                    style={[
-                      styles.miniBarFill,
-                      {
-                        width: `${Math.min((locatedO3 / 100) * 100, 100)}%`,
-                        backgroundColor: getO3Color(locatedO3),
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
+  {/* 包一層 relative wrapper */}
+  <View style={{ position: "relative", marginTop: 14 }}>
+    {/* 標準說明文字，對齊 54% 位置 */}
+    <Text style={{
+      position: "absolute",
+      left: "54%",
+      bottom: 10,
+      fontSize: 9,
+      color: "#888",
+      transform: [{ translateX: -28 }], // 微調讓文字置中對齊線
+    }}>
+      標準 8 小時均為 54 ppb
+    </Text>
+    <View style={[styles.miniBarTrack, { position: "relative", overflow: "hidden" }]}>
+      <View style={[styles.miniBarFill, {
+        width: `${Math.min((locatedO3 / 100) * 100, 100)}%`,
+        backgroundColor: getO3Color(locatedO3),
+      }]} />
+      <View style={{
+        position: "absolute",
+        left: "54%",
+        top: -3,
+        bottom: -3,
+        width: 1.5,
+        backgroundColor: "#888",
+        borderRadius: 1,
+      }} />
+    </View>
+  </View>
+</View>
               <View style={styles.miniPollutRight}>
                 <Text style={[styles.miniPollutVal, { color: getO3Color(locatedO3) }]}>
                   {locatedO3}
