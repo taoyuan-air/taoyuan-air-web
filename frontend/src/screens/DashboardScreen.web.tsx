@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -421,7 +421,7 @@ const getActivityInfo = ( aqi: number,): {
 // ─── Sub-components ───────────────────────────────────────────────────
 
 // ─── Gauge dimensions (desktop baseline) ──────────────────────────────
-const GAUGE_SIZE   = 220;
+const GAUGE_SIZE   = 200;
 const STROKE_W     = 11;
 const GAUGE_R      = (GAUGE_SIZE - STROKE_W) / 2;
 const GAUGE_CIRC   = 2 * Math.PI * GAUGE_R;
@@ -609,6 +609,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
   const [locatedPm10, setLocatedPm10] = useState(35);
   const [currentDistrict, setCurrentDistrict] = useState<string>('中壢區');
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(currentDistrict);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const trendContainerWidth = useRef(0);
 
   const displayDistrict = selectedDistrict ?? currentDistrict;
 
@@ -668,10 +670,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
   return (
     
-    <View style={{ flexDirection: 'row' }}>
+    <View style={{ flexDirection: isTablet ? 'column' : 'row' }}>
 
       {/* 左半部：地圖 */}
-      <View style={{ width: '40%' }}>
+      <View style={{ width: isTablet ? '100%' : '40%' }}>
         {/* ── 桃園地圖 ── */}
           <View style={[{ padding: 40, paddingTop: 70 }]}>
             <View style={{ height: 650}}>
@@ -692,147 +694,174 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
       </View>
 
       {/* 右半部：所有資訊 */}
-      <View style={S.rightDataInfoGrid}>
+      <View style={[S.rightDataInfoGrid, isTablet && { width: '100%' }]}>
         <ScrollView>
           <View style={[S.grid]}>
 
-              {/* Choosen District Name */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Feather name="map-pin" size={30} color="#d4567a" style={{marginRight: 10 ,marginTop: 5}} />
-                <Text style={S.districtName}>{selectedDistrict}</Text>
+            {/* Choosen District Name */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="map-pin" size={30} color="#d4567a" style={{marginRight: 10 ,marginTop: 5}} />
+              <Text style={S.districtName}>{selectedDistrict}</Text>
+            </View>
+            
+            <View style={S.divider}/>
+
+            {/* FIRST ROW */}
+            <View style={S.firstRow}>
+              
+              {/* AQI */}
+              <View style={{ flex: 1 }}>
+                <SecLabel title="AQI 空氣品質指標" />
+                <View style={{ alignItems: "center", marginTop: 20 }}>
+                  <AQIGauge aqi={locatedAqi} />
+                  <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
+                </View>
               </View>
               
-              <View style={S.divider}/>
-
-              {/* FIRST ROW */}
-              <View style={S.firstRow}>
-                
-                {/* AQI */}
+              <View style={{ flex: 2 }}>
+                <View style={{ flexDirection: "row", gap: 5 }}>
+                  <SecLabel title="污染物詳情"/>
+                  <Text style={{ fontSize: 12, color: "#aaa", marginTop: 2, marginLeft: 10 }}>（每小時）</Text>
+                </View>
+                {/* Pollutants */}
                 <View style={{ flex: 1.2 }}>
-                  <SecLabel title="AQI 空氣品質指標" />
-                  <View style={{ alignItems: "center", marginTop: 12 }}>
-                    <AQIGauge aqi={locatedAqi} />
-                    <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
+
+                  {/* PM2.5 + O₃ 弧形儀表並排 */}
+                  <View style={S.miniGaugeRow}>
+
+                    {/* PM2.5 */}
+                    <View style={S.miniGaugeCard}>
+                      <Text style={S.miniPollutName}>PM2.5</Text>
+                      <Text style={S.miniPollutSub}>細懸浮微粒</Text>
+                      <Text style={{ fontSize: 9, color: "#aaa" }}>標準日均值為 15.4 μg/m³</Text>
+                      <GaugeArc value={pm25} max={150} markerVal={15.4} color={getPM25Color(pm25)} unit="μg/m³"/>
+                    </View>
+
+                    <View style={S.miniGaugeDivider} />
+
+                    {/* O₃ */}
+                    <View style={S.miniGaugeCard}>
+                      <Text style={S.miniPollutName}>O₃</Text>
+                      <Text style={S.miniPollutSub}>臭氧</Text>
+                      <Text style={{ fontSize: 9, color: "#aaa" }}>標準8小時均值為 54 ppb</Text>
+                      <GaugeArc value={o3} max={200}  markerVal={54} color={getO3Color(o3)} unit="ppb"/>
+                    </View>
+
                   </View>
+
+                  {/* 其他四項汙染物 — 單行橫排 */}
+                  <View style={S.miniPollutStrip}>
+                    <View style={S.miniPillCard}>
+                      <Text style={S.miniPillName}>NO₂</Text>
+                      <Text style={S.miniPillSub}>二氧化氮</Text>
+                      <View style={S.miniPillValRow}>
+                        <Text style={S.miniPillVal}>{no2}</Text>
+                        <Text style={S.miniPillUnit}>ppb</Text>
+                      </View>   
+                    </View>
+                    <View style={S.miniPillDivider} />
+                    <View style={S.miniPillCard}>
+                      <Text style={S.miniPillName}>SO₂</Text>
+                      <Text style={S.miniPillSub}>二氧化硫</Text>
+                      <View style={S.miniPillValRow}>
+                        <Text style={S.miniPillVal}>{so2}</Text>
+                        <Text style={S.miniPillUnit}>ppb</Text>
+                      </View> 
+                    </View>
+                    <View style={S.miniPillDivider} />
+                    <View style={S.miniPillCard}>
+                      <Text style={S.miniPillName}>CO</Text>
+                      <Text style={S.miniPillSub}>一氧化碳</Text>
+                      <View style={S.miniPillValRow} >
+                        <Text style={S.miniPillVal}>{co}</Text>
+                        <Text style={S.miniPillUnit}>ppm</Text>
+                      </View>
+                    </View>
+                    <View style={S.miniPillDivider} />
+                    <View style={S.miniPillCard}>
+                      <Text style={S.miniPillName}>PM10</Text>
+                      <Text style={S.miniPillSub}>懸浮微粒</Text>
+                      <View style={S.miniPillValRow}>
+                        <Text style={S.miniPillVal}>{pm10}</Text>
+                        <Text style={S.miniPillUnit}>μg/m³</Text>
+                      </View>
+                    </View>
+                  </View>
+
                 </View>
-                
-                <View style={{ flex: 2 }}>
-                  <View style={{ flexDirection: "row", gap: 5 }}>
-                    <SecLabel title="污染物詳情"/>
-                    <Text style={{ fontSize: 12, color: "#aaa", marginTop: 2, marginLeft: 10 }}>（每小時）</Text>
+              </View>
+            </View>
+
+            {/* SECOND ROW */}
+            <View style={S.secondRow}>
+              {/* 活動建議卡片 */}
+              <View style={{ flexDirection: "column", flex: 1 }}>
+                <SecLabel title="活動建議" />
+                <View style={[S.adviceRow, { backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                  <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                    <Feather name={activ.icon} size={18} color={activ.color} />
                   </View>
-                  {/* Pollutants */}
-                  <View style={{ flex: 1.2 }}>
-
-                    {/* PM2.5 + O₃ 弧形儀表並排 */}
-                    <View style={S.miniGaugeRow}>
-
-                      {/* PM2.5 */}
-                      <View style={S.miniGaugeCard}>
-                        <Text style={S.miniPollutName}>PM2.5</Text>
-                        <Text style={S.miniPollutSub}>細懸浮微粒</Text>
-                        <Text style={{ fontSize: 9, color: "#aaa" }}>標準日均值為 15.4 μg/m³</Text>
-                        <GaugeArc value={pm25} max={150} markerVal={15.4} color={getPM25Color(pm25)} unit="μg/m³"/>
-                      </View>
-
-                      <View style={S.miniGaugeDivider} />
-
-                      {/* O₃ */}
-                      <View style={S.miniGaugeCard}>
-                        <Text style={S.miniPollutName}>O₃</Text>
-                        <Text style={S.miniPollutSub}>臭氧</Text>
-                        <Text style={{ fontSize: 9, color: "#aaa" }}>標準8小時均值為 54 ppb</Text>
-                        <GaugeArc value={o3} max={200}  markerVal={54} color={getO3Color(o3)} unit="ppb"/>
-                      </View>
-
-                    </View>
-
-                    {/* 其他四項汙染物 — 單行橫排 */}
-                    <View style={S.miniPollutStrip}>
-                      <View style={S.miniPillCard}>
-                        <Text style={S.miniPillName}>NO₂</Text>
-                        <Text style={S.miniPillSub}>二氧化氮</Text>
-                        <View style={S.miniPillValRow}>
-                          <Text style={S.miniPillVal}>{no2}</Text>
-                          <Text style={S.miniPillUnit}>ppb</Text>
-                        </View>   
-                      </View>
-                      <View style={S.miniPillDivider} />
-                      <View style={S.miniPillCard}>
-                        <Text style={S.miniPillName}>SO₂</Text>
-                        <Text style={S.miniPillSub}>二氧化硫</Text>
-                        <View style={S.miniPillValRow}>
-                          <Text style={S.miniPillVal}>{so2}</Text>
-                          <Text style={S.miniPillUnit}>ppb</Text>
-                        </View> 
-                      </View>
-                      <View style={S.miniPillDivider} />
-                      <View style={S.miniPillCard}>
-                        <Text style={S.miniPillName}>CO</Text>
-                        <Text style={S.miniPillSub}>一氧化碳</Text>
-                        <View style={S.miniPillValRow} >
-                          <Text style={S.miniPillVal}>{co}</Text>
-                          <Text style={S.miniPillUnit}>ppm</Text>
-                        </View>
-                      </View>
-                      <View style={S.miniPillDivider} />
-                      <View style={S.miniPillCard}>
-                        <Text style={S.miniPillName}>PM10</Text>
-                        <Text style={S.miniPillSub}>懸浮微粒</Text>
-                        <View style={S.miniPillValRow}>
-                          <Text style={S.miniPillVal}>{pm10}</Text>
-                          <Text style={S.miniPillUnit}>μg/m³</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                  </View>
+                  <Text style={S.adviceText}>{activ.generalAdvice}</Text>
                 </View>
               </View>
 
-              {/* SECOND ROW */}
-              <View style={S.secondRow}>
-                {/* 活動建議卡片 */}
-                <View style={{ flexDirection: "column", flex: 1 }}>
-                  <SecLabel title="活動建議" />
-                  <View style={[S.adviceRow, { backgroundColor: activ.color + "20", borderColor: activ.color }]}>
-                    <View style={[S.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
-                      <Feather name={activ.icon} size={18} color={activ.color} />
-                    </View>
-                    <Text style={S.adviceText}>{activ.generalAdvice}</Text>
+              <View style={S.divider} />
+              {/* AI 趨勢分析區塊 */}
+              <View style={{ flexDirection: "column", flex: 1.2 }}>
+                <SecLabel title="AI 趨勢分析" />
+                <View style={S.insightRow}>
+                  <View style={S.insightIcon}>
+                    <Feather name="trending-down" size={15} color={C.rose} />
                   </View>
-                </View>
-
-                <View style={S.divider} />
-                {/* AI 趨勢分析區塊 */}
-                <View style={{ flexDirection: "column", flex: 1.2 }}>
-                  <SecLabel title="AI 趨勢分析" />
-                  <View style={S.insightRow}>
-                    <View style={S.insightIcon}>
-                      <Feather name="trending-down" size={15} color={C.rose} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
-                      <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
-                    </View>
-                    <View style={S.insightChip}>
-                      <Text style={S.insightChipText}>−12%</Text>
-                    </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
+                    <Text style={S.insightSub}>未來 3 小時因海風輻合影響下降 12%</Text>
+                  </View>
+                  <View style={S.insightChip}>
+                    <Text style={S.insightChipText}>−12%</Text>
                   </View>
                 </View>
               </View>
+            </View>
 
+            {/* THIRD ROW */}
             <View style={S.thirdRow}>
-  <View style={{ flex: 1 }}>
-    <SecLabel title="PM2.5 趨勢" />
-    <PM25TrendSection
-      trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38,
-          0.35, 0.30, 0.28, 0.40, 0.55, 0.60, 0.52, 0.45, 0.38, 0.30,
-          0.25, 0.28, 0.32, 0.38, 0.42, 0.48, 0.50, 0.45, 0.40,
-          0.38, 0.35, 0.33, 0.30, 0.28, 0.32, 0.35, 0.38]}
-      />
-  </View>
-</View>
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}
+                  onLayout={(e) => {
+                    // 38根柱子的總寬度
+                    const barCount = 38;
+                    const barWidth = 14;
+                    const barSpacing = 8;
+                    const totalBarWidth = barCount * (barWidth + barSpacing) - barSpacing + 20; // +20 for marginLeft
+                    setShowScrollHint(totalBarWidth > e.nativeEvent.layout.width);
+                  }}
+                >
+                  <SecLabel title="PM2.5 趨勢" />
+                  {showScrollHint && (
+                    <View style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 4,
+                      backgroundColor: 'rgba(212,86,122,0.10)',
+                      borderWidth: 1, borderColor: 'rgba(212,86,122,0.30)',
+                      borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4,
+                    }}>
+                      <Feather name="chevrons-right" size={13} color="#d4567a" />
+                      <Text style={{ fontSize: 11, color: '#d4567a', fontWeight: '700' }}>左右滑動查看</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={{ position: 'relative' }}>
+                  <PM25TrendSection trend={[0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38,
+                                  0.35, 0.30, 0.28, 0.40, 0.55, 0.60, 0.52, 0.45, 0.38, 0.30,
+                                  0.25, 0.28, 0.32, 0.38, 0.42, 0.48, 0.50, 0.45, 0.40,
+                                  0.38, 0.35, 0.33, 0.30, 0.28, 0.32, 0.35, 0.38]} />
+                  
+              </View>
+            </View>
+
+            </View>
 
           </View>
         </ScrollView>
@@ -931,7 +960,7 @@ const S = StyleSheet.create({
   gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.rose, lineHeight: 44 },
   gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.roseLt, borderWidth: 1.2 },
   gaugePillText: { fontSize: 11, fontWeight: "700" },
-  aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 15 },
+  aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 20 },
 
   // Activity advice
   adviceRow:    {  marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, borderWidth: 1,},
