@@ -1,74 +1,178 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useStore } from '@shared/store';
-import { getGrid, getAlerts, getEvents, setScenario } from '@shared/api/index';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
 import { fetchMoeStations } from '@shared/api/moe';
 import {
-  EPA_STATION_TO_DISTRICT, DISTRICT_STATIC_AQ,
-  DISTRICTS, findNearestDistrict,
+  DISTRICT_STATIC_AQ,
+  EPA_STATION_TO_DISTRICT,
+  findNearestDistrict,
 } from '@shared/constants/districts';
+import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
 
-// ── Design tokens ──────────────────────────────────────────────────────
 const C = {
-  rose: '#D4567A', roseMid: '#C2446A',
-  roseLt: 'rgba(212,86,122,0.12)', roseGlow: 'rgba(212,86,122,0.22)',
+  rose: '#D4567A',
+  roseLt: 'rgba(212,86,122,0.12)',
   roseBorder: 'rgba(212,86,122,0.30)',
-  sky: '#5BA0C8', mint: '#37A085', amber: '#B87820',
-  glass: 'rgba(255,255,255,0.52)', glass2: 'rgba(255,255,255,0.32)',
-  glassBorder: 'rgba(255,255,255,0.72)', glassBorder2: 'rgba(255,255,255,0.50)',
-  glassShadow: 'rgba(180,140,160,0.14)', glassInner: 'rgba(255,255,255,0.80)',
-  text: '#1a1220', muted: '#7a6880', hint: '#b0a0b8',
+  glass: 'rgba(255,255,255,0.52)',
+  glassInner: 'rgba(255,255,255,0.80)',
+  glassShadow: 'rgba(180,140,160,0.14)',
+  text: '#1a1220',
+  muted: '#7a6880',
+  hint: '#b0a0b8',
 };
 
-const GAUGE_SIZE = 200, STROKE_W = 11;
-const GAUGE_R = (GAUGE_SIZE - STROKE_W) / 2;
-const GAUGE_CIRC = 2 * Math.PI * GAUGE_R;
+const COLORS = {
+  good: '#76c476',
+  moderate: '#edbb05',
+  unhealthySensitive: '#ff9800',
+  unhealthy: '#f44336',
+  veryUnhealthy: '#9c27b0',
+  hazardous: '#7b241c',
+};
+
+const DISTRICT_EXTENDED: Record<string, { no2: number; so2: number; co: number; pm10: number }> = {
+  桃園區: { no2: 15, so2: 2.5, co: 0.45, pm10: 45 },
+  中壢區: { no2: 15, so2: 1.3, co: 0.41, pm10: 44 },
+  八德區: { no2: 12, so2: 2.1, co: 0.38, pm10: 38 },
+  龜山區: { no2: 18, so2: 3.2, co: 0.55, pm10: 52 },
+  蘆竹區: { no2: 11, so2: 2.0, co: 0.35, pm10: 32 },
+  大園區: { no2: 10, so2: 2.8, co: 0.30, pm10: 30 },
+  大溪區: { no2: 9, so2: 1.8, co: 0.28, pm10: 28 },
+  平鎮區: { no2: 13, so2: 2.2, co: 0.40, pm10: 36 },
+  楊梅區: { no2: 12, so2: 2.0, co: 0.36, pm10: 34 },
+  龍潭區: { no2: 10, so2: 1.9, co: 0.36, pm10: 33 },
+  觀音區: { no2: 16, so2: 3.5, co: 0.48, pm10: 50 },
+  新屋區: { no2: 14, so2: 3.0, co: 0.46, pm10: 48 },
+  復興區: { no2: 5, so2: 1.2, co: 0.20, pm10: 20 },
+};
+
+const TREND_DATA = [
+  0.3, 0.2, 0.3, 0.5, 0.58, 0.47, 0.48, 0.52, 0.65, 0.42, 0.38,
+  0.35, 0.3, 0.28, 0.4, 0.55, 0.6, 0.52, 0.45, 0.38, 0.3,
+  0.25, 0.28, 0.32, 0.38, 0.42, 0.48, 0.5, 0.45, 0.4,
+  0.38, 0.35, 0.33, 0.3, 0.28, 0.32, 0.35, 0.38,
+];
+
+const getAQIColor = (aqi: number) => {
+  if (aqi <= 50) return '#E76595';
+  if (aqi <= 100) return COLORS.moderate;
+  if (aqi <= 150) return COLORS.unhealthySensitive;
+  if (aqi <= 200) return COLORS.unhealthy;
+  if (aqi <= 300) return COLORS.veryUnhealthy;
+  return COLORS.hazardous;
+};
 
 const getAQIStatus = (aqi: number) => {
   if (aqi <= 50) return '良好';
   if (aqi <= 100) return '普通';
   if (aqi <= 150) return '敏感族群';
   if (aqi <= 200) return '不健康';
+  if (aqi <= 300) return '非常不健康';
   return '危害';
 };
-const getPM25Color = (v: number) => v <= 12 ? C.rose : v <= 35 ? C.amber : C.roseMid;
-const getO3Color = (v: number) => v <= 54 ? C.mint : C.amber;
-const getNO2Color = (v: number) => v <= 53 ? C.sky : C.amber;
-const getActivityInfo = (pm25: number) => {
-  if (pm25 <= 12) return '空氣清新，非常適合戶外運動，盡情享受戶外活動！';
-  if (pm25 <= 35) return '當前 PM2.5 濃度適合戶外活動，敏感族群無需特殊防護。';
-  if (pm25 <= 55) return '空氣品質普通，敏感族群建議減少長時間戶外活動。';
-  return '空氣品質不佳，建議外出配戴口罩，敏感族群避免戶外活動。';
+
+const getPM25Color = (v: number) => {
+  if (v <= 15.4) return '#E76595';
+  if (v <= 35.4) return COLORS.moderate;
+  if (v <= 54.4) return COLORS.unhealthySensitive;
+  if (v <= 150.4) return COLORS.unhealthy;
+  if (v <= 250.4) return COLORS.veryUnhealthy;
+  return COLORS.hazardous;
 };
 
+const getO3Color = (v: number) => {
+  if (v <= 54) return '#E76595';
+  if (v <= 70) return COLORS.moderate;
+  if (v <= 85) return COLORS.unhealthySensitive;
+  if (v <= 105) return COLORS.unhealthy;
+  if (v <= 200) return COLORS.veryUnhealthy;
+  return COLORS.hazardous;
+};
+
+const getActivityInfo = (aqi: number) => {
+  if (aqi <= 50) {
+    return { icon: Smile, color: '#E76595', advice: '正常戶外活動，無須特別注意。' };
+  }
+  if (aqi <= 100) {
+    return { icon: Meh, color: COLORS.moderate, advice: '正常戶外活動。' };
+  }
+  if (aqi <= 150) {
+    return {
+      icon: Frown,
+      color: COLORS.unhealthySensitive,
+      advice: '若感不適，考慮減少戶外活動；學生建議減少長時間劇烈運動。',
+    };
+  }
+  if (aqi <= 200) {
+    return {
+      icon: Frown,
+      color: COLORS.unhealthy,
+      advice: '若感不適，減少體力消耗；學生避免長時間劇烈運動並增加休息。',
+    };
+  }
+  return {
+    icon: Frown,
+    color: aqi <= 300 ? COLORS.veryUnhealthy : COLORS.hazardous,
+    advice: '減少或避免戶外活動；學生應停止戶外活動，課程調整至室內進行。',
+  };
+};
+
+function SecLabel({ title, sub }: { title: string; sub?: string }) {
+  return (
+    <div className="dash-section-label">
+      <div className="dash-section-dot" />
+      <span>{title}</span>
+      {sub && <small>{sub}</small>}
+    </div>
+  );
+}
+
+const GAUGE_SIZE = 200;
+const STROKE_W = 11;
+const GAUGE_R = (GAUGE_SIZE - STROKE_W) / 2;
+const GAUGE_CIRC = 2 * Math.PI * GAUGE_R;
+
 function AQIGauge({ aqi }: { aqi: number }) {
+  const color = getAQIColor(aqi);
   const pct = Math.min(Math.max(aqi / 200, 0), 1);
   const offset = GAUGE_CIRC * (1 - pct);
-  const cx = GAUGE_SIZE / 2, cy = GAUGE_SIZE / 2;
+
   return (
-    <div style={{ width: GAUGE_SIZE, height: GAUGE_SIZE, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <svg width={GAUGE_SIZE} height={GAUGE_SIZE} style={{ position: 'absolute' }}>
+    <div className="aqi-gauge">
+      <svg width={GAUGE_SIZE} height={GAUGE_SIZE} aria-hidden="true">
         <defs>
-          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#F48FB1" />
-            <stop offset="100%" stopColor={C.rose} />
+          <linearGradient id="aqi-ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={`${color}99`} />
+            <stop offset="100%" stopColor={color} />
           </linearGradient>
         </defs>
-        <circle cx={cx} cy={cy} r={GAUGE_R} stroke={C.roseLt} strokeWidth={STROKE_W} fill="none" />
-        <circle cx={cx} cy={cy} r={GAUGE_R} stroke="url(#rg)" strokeWidth={STROKE_W} fill="none"
-          strokeDasharray={GAUGE_CIRC} strokeDashoffset={offset}
-          strokeLinecap="round" transform={`rotate(-90, ${cx}, ${cy})`} />
+        <circle
+          cx={100}
+          cy={100}
+          r={GAUGE_R}
+          stroke={color}
+          strokeOpacity={0.25}
+          strokeWidth={STROKE_W}
+          fill="none"
+        />
+        <circle
+          cx={100}
+          cy={100}
+          r={GAUGE_R}
+          stroke="url(#aqi-ring-gradient)"
+          strokeWidth={STROKE_W}
+          fill="none"
+          strokeDasharray={GAUGE_CIRC}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90, 100, 100)"
+        />
       </svg>
-      <div style={{
-        width: GAUGE_SIZE - 60, height: GAUGE_SIZE - 60, borderRadius: '50%',
-        backgroundColor: C.glass, border: `1px solid ${C.glassInner}`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        boxShadow: `0 3px 12px ${C.glassShadow}`,
-      }}>
-        <span style={{ fontSize: 9, color: C.hint, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'monospace' }}>AQI</span>
-        <span style={{ fontSize: 40, fontWeight: 800, color: C.rose, lineHeight: 1.1 }}>{aqi}</span>
-        <span style={{ marginTop: 5, padding: '3px 10px', borderRadius: 999, backgroundColor: C.roseLt, border: `1px solid ${C.roseBorder}`, fontSize: 11, fontWeight: 700, color: C.rose }}>
+      <div className="aqi-gauge-inner">
+        <span className="aqi-label">AQI</span>
+        <strong style={{ color }}>{aqi}</strong>
+        <span className="aqi-pill" style={{ color, backgroundColor: `${color}33`, borderColor: `${color}55` }}>
           {getAQIStatus(aqi)}
         </span>
       </div>
@@ -76,331 +180,911 @@ function AQIGauge({ aqi }: { aqi: number }) {
   );
 }
 
-function GlassCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+const ARC_R = 45;
+const ARC_CX = 55;
+const ARC_CY = 58;
+const ARC_LEN = Math.PI * ARC_R;
+
+function polarToXY(angleDeg: number) {
+  const rad = (Math.PI * (180 - angleDeg)) / 180;
+  return { x: ARC_CX + ARC_R * Math.cos(rad), y: ARC_CY - ARC_R * Math.sin(rad) };
+}
+
+function GaugeArc({
+  value,
+  max,
+  markerVal,
+  color,
+  unit,
+}: {
+  value: number;
+  max: number;
+  markerVal: number;
+  color: string;
+  unit: string;
+}) {
+  const dashOffset = ARC_LEN * (1 - Math.min(value / max, 1));
+  const markerAngle = Math.min(markerVal / max, 1) * 180;
+  const mp = polarToXY(markerAngle);
+  const rad = (Math.PI * (180 - markerAngle)) / 180;
+  const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
+  const ly = ARC_CY - (ARC_R + 14) * Math.sin(rad);
+
   return (
-    <div style={{ backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 18, padding: 20, boxShadow: `0 4px 20px ${C.glassShadow}`, ...style }}>
-      {children}
-    </div>
+    <svg width={190} height={90} viewBox="-10 0 120 68" className="mini-arc" aria-hidden="true">
+      <path d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={7} strokeLinecap="round" />
+      <path
+        d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`}
+        fill="none"
+        stroke={color}
+        strokeWidth={7}
+        strokeLinecap="round"
+        strokeDasharray={ARC_LEN}
+        strokeDashoffset={dashOffset}
+      />
+      <line x1={mp.x} y1={mp.y} x2={lx} y2={ly} stroke="rgba(0,0,0,0.28)" strokeWidth={1.5} strokeLinecap="round" />
+      <text x={lx} y={ly - 3} fontSize={9} fill="#aaa" textAnchor="middle">{markerVal}</text>
+      <text x={ARC_CX} y={52} fontSize={20} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
+      <text x={ARC_CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">{unit}</text>
+    </svg>
   );
 }
 
-function SecLabel({ title }: { title: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-      <div style={{ width: 3, height: 14, backgroundColor: C.rose, borderRadius: 2 }} />
-      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{title}</span>
-    </div>
-  );
-}
+function TrendBars() {
+  const BAR_W = 14;
+  const BAR_GAP = 8;
+  const MAX_H = 56;
+  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
-function PollBar({ name, nameEn, value, max, color, unit }: { name: string; nameEn: string; value: number; max: number; color: string; unit: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-      <div style={{ width: 54 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{nameEn}</div>
-        <div style={{ fontSize: 9, color: C.hint, marginTop: 1 }}>{name}</div>
-      </div>
-      <div style={{ flex: 1, height: 5, backgroundColor: 'rgba(0,0,0,0.07)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.min((value / max) * 100, 100)}%`, height: '100%', borderRadius: 3, background: `linear-gradient(to right, ${color}aa, ${color})` }} />
-      </div>
-      <span style={{ width: 28, textAlign: 'right', fontSize: 12, fontWeight: 700, color }}>{value}</span>
-      <span style={{ fontSize: 10, color: C.hint }}>{unit}</span>
-    </div>
-  );
-}
+  const slots = useMemo(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const items: { hour: number; date: Date; isPrediction: boolean; isNow: boolean }[] = [];
 
-function TrendBars({ trend }: { trend: number[] }) {
-  const curHour = new Date().getHours();
-  const labels = [];
-  for (let i = 5; i >= 1; i--) labels.push(String(((curHour - i) + 24) % 24).padStart(2, '0'));
-  labels.push(String(curHour).padStart(2, '0'));
-  for (let i = 1; i <= 5; i++) labels.push(String((curHour + i) % 24).padStart(2, '0'));
-
-  const getColor = (v: number, isPred: boolean) => {
-    if (isPred) {
-      if (v <= 0.3) return 'rgba(224,224,224,0.6)';
-      if (v <= 0.5) return 'rgba(189,189,189,0.6)';
-      if (v <= 0.7) return 'rgba(117,117,117,0.6)';
-      return 'rgba(66,66,66,0.6)';
+    for (let i = 5; i >= 1; i -= 1) {
+      const d = new Date(now);
+      d.setHours(currentHour - i, 0, 0, 0);
+      items.push({ hour: d.getHours(), date: d, isPrediction: false, isNow: false });
     }
-    if (v <= 0.3) return 'rgba(212,86,122,0.8)';
-    if (v <= 0.5) return 'rgba(255,193,7,0.8)';
-    if (v <= 0.7) return 'rgba(255,87,34,0.8)';
-    return 'rgba(156,39,176,0.8)';
+
+    items.push({ hour: currentHour, date: new Date(now), isPrediction: false, isNow: true });
+
+    for (let i = 1; i <= 32; i += 1) {
+      const d = new Date(now);
+      d.setHours(currentHour + i, 0, 0, 0);
+      items.push({ hour: d.getHours(), date: d, isPrediction: true, isNow: false });
+    }
+
+    return items;
+  }, []);
+
+  const data = TREND_DATA.slice(0, 38);
+  const totalWidth = data.length * (BAR_W + BAR_GAP) - BAR_GAP;
+  const pastWidth = 5 * (BAR_W + BAR_GAP);
+  const nowOffset = pastWidth + BAR_W / 2;
+
+  const barColor = (value: number, isPrediction: boolean) => {
+    if (isPrediction) {
+      if (value <= 0.3) return '#D9D9D9';
+      if (value <= 0.5) return '#C4C4C4';
+      if (value <= 0.7) return '#999999';
+      return '#7B7B7B';
+    }
+    if (value <= 0.3) return `${COLORS.good}cc`;
+    if (value <= 0.5) return `${COLORS.moderate}cc`;
+    if (value <= 0.7) return `${COLORS.unhealthy}cc`;
+    return `${COLORS.veryUnhealthy}cc`;
+  };
+
+  const dateLabel = (index: number) => {
+    if (index === 0) return null;
+    const curr = slots[index];
+    const prev = slots[index - 1];
+    if (!curr || !prev || curr.date.getDate() === prev.date.getDate()) return null;
+    return `${curr.date.getMonth() + 1}/${curr.date.getDate()}(${WEEK[curr.date.getDay()]})`;
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', height: 56, marginBottom: 6, gap: 6 }}>
-        {trend.slice(0, 11).map((v, i) => (
-          <div key={i} style={{
-            width: 12, height: Math.max(5, v * 56), borderRadius: 2,
-            backgroundColor: getColor(v, i > 5),
-            border: i === 5 ? '1px solid #FBA7BC' : 'none',
-          }} />
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        {labels.slice(0, 11).map((l, i) => (
-          <div key={i} style={{ width: 12, textAlign: 'center', fontSize: 9, color: i === 5 ? C.rose : i > 5 ? 'rgba(93,115,137,0.4)' : 'rgba(93,115,137,0.6)', fontWeight: i === 5 ? 700 : 400 }}>{l}</div>
-        ))}
+    <div className="trend-scroll">
+      <div className="trend-inner" style={{ width: totalWidth }}>
+        <div className="trend-date-row">
+          {data.map((_, index) => {
+            const label = dateLabel(index);
+            if (!label) return null;
+            return (
+              <span key={index} className="trend-date-label" style={{ left: index * (BAR_W + BAR_GAP) - 10 }}>
+                {label}
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="trend-bars" style={{ gap: BAR_GAP }}>
+          {data.map((value, index) => {
+            const slot = slots[index] ?? { isPrediction: false, isNow: false };
+            const label = dateLabel(index);
+            return (
+              <div key={index} className="trend-bar-wrap" style={{ width: BAR_W }}>
+                {label && <span className="trend-day-line" />}
+                <span
+                  className="trend-bar"
+                  style={{
+                    height: Math.max(5, value * MAX_H),
+                    width: BAR_W,
+                    backgroundColor: barColor(value, slot.isPrediction),
+                    borderColor: slot.isNow ? '#FBA7BC' : 'transparent',
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="trend-hour-row">
+          {data.map((_, index) => {
+            const slot = slots[index];
+            if (!slot) return null;
+            return (
+              <span
+                key={index}
+                className={`trend-hour${slot.isNow ? ' now' : ''}${slot.isPrediction ? ' prediction' : ''}`}
+                style={{ left: index * (BAR_W + BAR_GAP) - 5 }}
+              >
+                {String(slot.hour).padStart(2, '0')}
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="trend-footer">
+          <span>過去 5h</span>
+          <strong style={{ left: nowOffset - 14 }}>NOW</strong>
+          <span>未來 32h</span>
+        </div>
       </div>
     </div>
   );
 }
 
-interface CurrentWeatherData { temperature: string; weather: string; humidity: string; windSpeed: string; dailyHigh: string; dailyLow: string; }
-interface ForecastDay { label: string; dateLabel: string; maxTemp: string; minTemp: string; weather: string; precipProb: string; }
+function DashboardStyles() {
+  return (
+    <style>{`
+      .dashboard-page {
+        min-height: calc(100vh - 80px);
+        padding: 14px 44px 30px;
+        display: grid;
+        grid-template-columns: minmax(420px, 40%) minmax(720px, 1fr);
+        gap: 28px;
+        overflow: hidden;
+      }
 
-const MOCK_CURRENT: CurrentWeatherData = { temperature: '24', weather: '晴時多雲', humidity: '68', windSpeed: '2.5', dailyHigh: '28', dailyLow: '19' };
-const generateMockForecast = (): ForecastDay[] => {
-  const DAY = ['日', '一', '二', '三', '四', '五', '六'];
-  const now = new Date();
-  return [1, 2, 3].map((i) => {
-    const d = new Date(now); d.setDate(d.getDate() + i);
-    return { label: `${d.getMonth() + 1}/${d.getDate()}`, dateLabel: `週${DAY[d.getDay()]}`, maxTemp: String(28 - i), minTemp: String(19 + i), weather: i === 2 ? '短暫陣雨' : '晴', precipProb: i === 2 ? '60' : '10' };
-  });
-};
+      .dashboard-map-pane {
+        position: relative;
+        min-height: calc(100vh - 124px);
+        padding: 54px 28px 38px 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
 
-async function fetchCurrentWeather(district: string): Promise<CurrentWeatherData> {
-  const key = process.env.NEXT_PUBLIC_CWA_API_KEY;
-  if (!key) return MOCK_CURRENT;
-  try {
-    const res = await fetch(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=${key}&CountyName=桃園市&format=JSON`);
-    if (!res.ok) return MOCK_CURRENT;
-    const json = await res.json();
-    const stations: any[] = json?.records?.Station ?? [];
-    if (!stations.length) return MOCK_CURRENT;
-    const keyword = district.replace('區', '');
-    const st = stations.find((s: any) => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
-    const obs = st.WeatherElement ?? {};
-    return {
-      temperature: String(Math.round(parseFloat(obs.AirTemperature ?? MOCK_CURRENT.temperature))),
-      weather: obs.Weather ?? MOCK_CURRENT.weather,
-      humidity: obs.RelativeHumidity ?? MOCK_CURRENT.humidity,
-      windSpeed: obs.WindSpeed ?? MOCK_CURRENT.windSpeed,
-      dailyHigh: String(Math.round(parseFloat(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyHigh))),
-      dailyLow: String(Math.round(parseFloat(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature ?? MOCK_CURRENT.dailyLow))),
-    };
-  } catch { return MOCK_CURRENT; }
-}
+      .dashboard-map-wrap {
+        width: min(100%, 610px);
+        height: min(72vh, 650px);
+      }
 
-async function fetchWeatherForecast(district: string): Promise<ForecastDay[]> {
-  const key = process.env.NEXT_PUBLIC_CWA_API_KEY;
-  if (!key) return generateMockForecast();
-  const DAY = ['日', '一', '二', '三', '四', '五', '六'];
-  try {
-    const res = await fetch(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-005?Authorization=${key}&LocationsName=桃園市&LocationName=${district}&format=JSON`);
-    if (!res.ok) return generateMockForecast();
-    const json = await res.json();
-    const loc = (json?.records?.Locations?.[0]?.Location ?? []).find((l: any) => l.LocationName === district) ?? (json?.records?.Locations?.[0]?.Location ?? [])[0];
-    if (!loc) return generateMockForecast();
-    const em: Record<string, any[]> = {};
-    (loc.WeatherElement ?? []).forEach((el: any) => { em[el.ElementName] = el.Time ?? []; });
-    const tempTimes = em['溫度'] ?? [], wxTimes = em['天氣現象'] ?? [], popTimes = em['3小時降雨機率'] ?? [];
-    const dayMaxPop = (ds: string) => { const v = popTimes.filter((t: any) => (t.StartTime ?? '').startsWith(ds)).map((t: any) => parseInt(t.ElementValue?.[0]?.ProbabilityOfPrecipitation ?? '0', 10)).filter((v: number) => !isNaN(v)); return v.length ? Math.max(...v) : null; };
-    const now = new Date();
-    return [1, 2, 3].map((i) => {
-      const d = new Date(now); d.setDate(d.getDate() + i);
-      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const temps = tempTimes.filter((t: any) => (t.DataTime ?? '').startsWith(ds)).map((t: any) => parseFloat(t.ElementValue?.[0]?.Temperature ?? 'NaN')).filter((v: number) => !isNaN(v));
-      const wx = wxTimes.filter((t: any) => (t.StartTime ?? '').startsWith(ds)).map((t: any) => t.ElementValue?.[0]?.Weather ?? '').filter(Boolean);
-      return { label: `${d.getMonth() + 1}/${d.getDate()}`, dateLabel: `週${DAY[d.getDay()]}`, maxTemp: temps.length ? String(Math.max(...temps)) : String(28 - i), minTemp: temps.length ? String(Math.min(...temps)) : String(19 + i), precipProb: String(dayMaxPop(ds) ?? (i === 2 ? 60 : 10)), weather: wx[0] ?? '晴' };
-    });
-  } catch { return generateMockForecast(); }
+      .dashboard-map-action {
+        position: absolute;
+        left: 32px;
+        bottom: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d4567a;
+        border-radius: 999px;
+        padding: 10px 18px;
+        background: #f7e9ec;
+        color: #d4567a;
+        font-size: 15px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .dashboard-panel {
+        min-height: calc(100vh - 110px);
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+        background: rgba(255, 255, 255, 0.97);
+        border: 1px solid rgba(231, 101, 149, 0.08);
+        border-radius: 20px;
+        box-shadow: 0 4px 32px rgba(231, 101, 149, 0.08);
+        padding: 24px 28px 22px;
+      }
+
+      .district-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #d4567a;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .dash-divider {
+        height: 1px;
+        background: rgba(0, 0, 0, 0.06);
+        margin: 14px 0 18px;
+      }
+
+      .dashboard-first-row,
+      .dashboard-second-row {
+        display: grid;
+        gap: 18px;
+      }
+
+      .dashboard-first-row {
+        grid-template-columns: minmax(230px, 0.9fr) minmax(450px, 1.7fr);
+        align-items: start;
+      }
+
+      .dashboard-second-row {
+        grid-template-columns: minmax(360px, 1fr) 1px minmax(420px, 1.2fr);
+        align-items: start;
+        margin-top: 20px;
+      }
+
+      .dash-section-label {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 18px;
+        margin-bottom: 16px;
+        color: ${C.text};
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .dash-section-dot {
+        width: 3px;
+        height: 14px;
+        flex-shrink: 0;
+        border-radius: 2px;
+        background: ${C.rose};
+        box-shadow: 0 0 8px ${C.roseBorder};
+      }
+
+      .dash-section-label small {
+        color: #aaa;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .aqi-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 18px;
+      }
+
+      .aqi-gauge {
+        position: relative;
+        width: ${GAUGE_SIZE}px;
+        height: ${GAUGE_SIZE}px;
+        display: grid;
+        place-items: center;
+      }
+
+      .aqi-gauge svg {
+        position: absolute;
+        inset: 0;
+      }
+
+      .aqi-gauge-inner {
+        position: relative;
+        z-index: 1;
+        width: ${GAUGE_SIZE - 60}px;
+        height: ${GAUGE_SIZE - 60}px;
+        border-radius: 50%;
+        background: ${C.glass};
+        border: 1px solid ${C.glassInner};
+        box-shadow: 0 3px 12px ${C.glassShadow};
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .aqi-label {
+        color: ${C.hint};
+        font-family: monospace;
+        font-size: 9px;
+        letter-spacing: 1.5px;
+      }
+
+      .aqi-gauge-inner strong {
+        font-size: 40px;
+        line-height: 44px;
+        font-weight: 900;
+      }
+
+      .aqi-pill {
+        margin-top: 5px;
+        padding: 3px 10px;
+        border: 1.2px solid;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .aqi-hint {
+        margin-top: 18px;
+        color: ${C.hint};
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .pollutant-title-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .mini-gauge-row,
+      .mini-pollut-strip {
+        display: grid;
+      }
+
+      .mini-gauge-row {
+        grid-template-columns: 1fr 1px 1fr;
+        margin-bottom: 12px;
+      }
+
+      .mini-gauge-card {
+        min-width: 0;
+        padding-top: 16px;
+        text-align: center;
+      }
+
+      .mini-gauge-card h3 {
+        margin: 0;
+        color: #444;
+        font-size: 20px;
+        line-height: 1;
+        font-weight: 800;
+      }
+
+      .mini-gauge-card p {
+        margin: 3px 0 4px;
+        color: ${C.muted};
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .mini-gauge-card small {
+        display: block;
+        color: #aaa;
+        font-size: 9px;
+      }
+
+      .mini-divider,
+      .metric-divider,
+      .row-divider {
+        background: rgba(0, 0, 0, 0.08);
+      }
+
+      .mini-divider {
+        margin: 12px 0;
+      }
+
+      .mini-arc {
+        display: block;
+        margin: 0 auto;
+        overflow: visible;
+      }
+
+      .mini-pollut-strip {
+        grid-template-columns: repeat(7, auto);
+      }
+
+      .mini-pollut-card {
+        min-width: 0;
+        padding: 8px 8px;
+        text-align: center;
+      }
+
+      .metric-divider {
+        width: 1px;
+        margin: 8px 0;
+      }
+
+      .mini-pollut-card h4 {
+        margin: 0;
+        color: #555;
+        font-size: 17px;
+        line-height: 1.1;
+        font-weight: 800;
+      }
+
+      .mini-pollut-card p {
+        margin: 3px 0 5px;
+        color: ${C.muted};
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .mini-pollut-value {
+        display: inline-flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 7px;
+      }
+
+      .mini-pollut-value strong {
+        color: #e76595;
+        font-size: 18px;
+        line-height: 1;
+        font-weight: 800;
+      }
+
+      .mini-pollut-value small {
+        color: #aaa;
+        font-size: 9px;
+        font-weight: 700;
+      }
+
+      .advice-card,
+      .insight-card {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: 12px;
+        padding: 13px;
+      }
+
+      .advice-icon,
+      .insight-icon {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+      }
+
+      .advice-icon {
+        width: 36px;
+        height: 36px;
+        border: 1px solid;
+        border-radius: 10px;
+      }
+
+      .advice-card p,
+      .insight-card p {
+        margin: 0;
+      }
+
+      .advice-card p {
+        color: ${C.muted};
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      .row-divider {
+        width: 1px;
+        align-self: stretch;
+      }
+
+      .insight-card {
+        background: ${C.roseLt};
+        border: 1px solid ${C.roseBorder};
+      }
+
+      .insight-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: rgba(212, 86, 122, 0.16);
+        color: ${C.rose};
+      }
+
+      .insight-copy {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .insight-copy strong {
+        display: block;
+        color: ${C.rose};
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .insight-copy span {
+        display: block;
+        margin-top: 2px;
+        color: ${C.muted};
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .insight-chip {
+        flex: 0 0 auto;
+        border: 1px solid ${C.roseBorder};
+        border-radius: 999px;
+        padding: 3px 9px;
+        background: rgba(212, 86, 122, 0.14);
+        color: ${C.rose};
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .trend-section {
+        margin-top: 28px;
+      }
+
+      .trend-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .scroll-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: 1px solid ${C.roseBorder};
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: rgba(212, 86, 122, 0.10);
+        color: ${C.rose};
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .trend-scroll {
+        width: 100%;
+        overflow-x: auto;
+        padding: 0 0 4px 20px;
+      }
+
+      .trend-scroll::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .trend-scroll::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(212, 86, 122, 0.18);
+      }
+
+      .trend-inner {
+        min-width: max-content;
+      }
+
+      .trend-date-row {
+        position: relative;
+        height: 18px;
+        margin-bottom: 2px;
+      }
+
+      .trend-date-label {
+        position: absolute;
+        top: 0;
+        color: ${C.rose};
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .trend-bars {
+        height: 60px;
+        display: flex;
+        align-items: flex-end;
+      }
+
+      .trend-bar-wrap {
+        position: relative;
+        height: 60px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+      }
+
+      .trend-day-line {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 1.5px;
+        height: 56px;
+        transform: translateX(-50%);
+        background: ${C.rose};
+      }
+
+      .trend-bar {
+        position: relative;
+        z-index: 1;
+        display: block;
+        border: 1px solid transparent;
+        border-radius: 2px;
+      }
+
+      .trend-hour-row {
+        position: relative;
+        height: 22px;
+        margin-top: 4px;
+      }
+
+      .trend-hour {
+        position: absolute;
+        top: 2px;
+        width: 24px;
+        text-align: center;
+        color: rgba(93, 115, 137, 0.6);
+        font-size: 9px;
+        font-weight: 500;
+      }
+
+      .trend-hour.now {
+        color: ${C.rose};
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .trend-hour.prediction {
+        color: rgba(93, 115, 137, 0.4);
+        font-style: italic;
+      }
+
+      .trend-footer {
+        position: relative;
+        height: 16px;
+        margin-top: 4px;
+        display: flex;
+        justify-content: space-between;
+        color: ${C.hint};
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .trend-footer strong {
+        position: absolute;
+        top: 0;
+        color: ${C.rose};
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      @media (max-width: 1180px) {
+        .dashboard-page {
+          grid-template-columns: 1fr;
+          overflow: visible;
+        }
+
+        .dashboard-map-pane,
+        .dashboard-panel {
+          min-height: auto;
+          max-height: none;
+        }
+
+        .dashboard-map-wrap {
+          height: 520px;
+        }
+
+        .dashboard-map-action {
+          position: static;
+          margin-top: 18px;
+          align-self: flex-start;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .dashboard-page {
+          padding: 14px 18px 28px;
+        }
+
+        .dashboard-panel {
+          padding: 20px 18px;
+        }
+
+        .dashboard-first-row,
+        .dashboard-second-row {
+          grid-template-columns: 1fr;
+        }
+
+        .row-divider {
+          display: none;
+        }
+
+        .mini-pollut-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px 0;
+        }
+
+        .metric-divider {
+          display: none;
+        }
+      }
+    `}</style>
+  );
 }
 
 export default function DashboardPage() {
-  const { selectedScenario, setGridCells, setAlerts, setEvents, isLoading, setIsLoading } = useStore();
-  const [locatedAqi, setLocatedAqi] = useState(65);
-  const [locatedPm25, setLocatedPm25] = useState(18);
-  const [locatedO3, setLocatedO3] = useState(42);
-  const [currentDistrict, setCurrentDistrict] = useState('中壢區');
-  const [selectedDistrict, setSelectedDistrict] = useState<string | null>('中壢區');
-  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData>(MOCK_CURRENT);
-  const [forecast, setForecast] = useState<ForecastDay[]>(generateMockForecast());
-
-  const displayDistrict = selectedDistrict ?? currentDistrict;
+  const [district, setDistrict] = useState('中壢區');
+  const [remoteMetrics, setRemoteMetrics] = useState<{
+    district: string;
+    aqi: number;
+    pm25: number;
+    o3: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const nearest = findNearestDistrict(pos.coords.latitude, pos.coords.longitude);
-      setCurrentDistrict(nearest); setSelectedDistrict(nearest);
-    });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nearest = findNearestDistrict(pos.coords.latitude, pos.coords.longitude);
+        setDistrict(nearest);
+      },
+      () => undefined,
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
+    );
   }, []);
 
   useEffect(() => {
-    fetchCurrentWeather(displayDistrict).then(setCurrentWeather);
-    fetchWeatherForecast(displayDistrict).then(setForecast);
-  }, [displayDistrict]);
+    let alive = true;
+    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
 
-  useEffect(() => {
-    const s = DISTRICT_STATIC_AQ[displayDistrict];
-    if (s) { setLocatedPm25(s.pm25); setLocatedO3(s.o3); setLocatedAqi(s.aqi); }
-    fetchMoeStations().then((stations) => {
-      const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === displayDistrict)?.[0];
-      if (!sitename) return;
-      const st = stations.find((s) => s.sitename === sitename);
-      if (st) { setLocatedPm25(st.pm25); setLocatedO3(st.o3); setLocatedAqi(st.aqi || DISTRICT_STATIC_AQ[displayDistrict]?.aqi || 65); }
-    }).catch(console.warn);
-  }, [displayDistrict]);
+    fetchMoeStations()
+      .then((stations) => {
+        const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === district)?.[0];
+        if (!sitename || !alive) return;
+        const station = stations.find((s) => s.sitename === sitename);
+        if (!station || !alive) return;
 
-  useEffect(() => {
-    setIsLoading(true);
-    setScenario(selectedScenario);
-    Promise.all([getGrid({ pollutant: 'PM25' }), getAlerts(), getEvents()])
-      .then(([grid, alertsData, eventsData]) => { setGridCells(grid); setAlerts(alertsData); setEvents(eventsData); })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, [selectedScenario]);
+        setRemoteMetrics({
+          district,
+          pm25: station.pm25 || base.pm25,
+          o3: station.o3 || base.o3,
+          aqi: station.aqi || base.aqi,
+        });
+      })
+      .catch(console.warn);
 
-  const pm25 = locatedPm25, o3 = locatedO3, no2 = Math.round(pm25 * 0.3);
+    return () => {
+      alive = false;
+    };
+  }, [district]);
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: 16 }}>
-        <div style={{ width: 40, height: 40, border: `3px solid ${C.roseLt}`, borderTopColor: C.rose, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ color: C.rose, fontWeight: 600, fontSize: 15 }}>載入中...</span>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
+  const ext = DISTRICT_EXTENDED[district] ?? DISTRICT_EXTENDED.中壢區;
+  const live = remoteMetrics?.district === district ? remoteMetrics : null;
+  const aqi = live?.aqi ?? base.aqi;
+  const pm25 = live?.pm25 ?? base.pm25;
+  const o3 = live?.o3 ?? base.o3;
+  const no2 = ext.no2;
+  const so2 = ext.so2;
+  const co = ext.co;
+  const pm10 = ext.pm10;
+  const activity = getActivityInfo(aqi);
+  const ActivityIcon = activity.icon;
+
+  const pollutants = [
+    { name: 'NO₂', sub: '二氧化氮', value: no2, unit: 'ppb' },
+    { name: 'SO₂', sub: '二氧化硫', value: so2, unit: 'ppb' },
+    { name: 'CO', sub: '一氧化碳', value: co, unit: 'ppm' },
+    { name: 'PM10', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fce8f0, #f0eafc, #e8f0fc, #e8f5ef)' }}>
-      {/* District chips */}
-      <div style={{ overflowX: 'auto', paddingTop: 14 }}>
-        <div style={{ display: 'flex', gap: 8, paddingLeft: 48, paddingRight: 48, paddingBottom: 8, minWidth: 'max-content' }}>
-          {DISTRICTS.map((d) => {
-            const on = selectedDistrict === d;
-            return (
-              <button key={d} onClick={() => setSelectedDistrict(on ? null : d)} style={{
-                padding: '6px 14px', borderRadius: 999, cursor: 'pointer',
-                backgroundColor: on ? C.roseLt : C.glass2, border: `1px solid ${on ? C.roseBorder : C.glassBorder2}`,
-                color: on ? C.rose : C.muted, fontWeight: on ? 700 : 500, fontSize: 12,
-                transition: 'all 0.2s',
-              }}>
-                {d}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <>
+      <DashboardStyles />
+      <main className="dashboard-page">
+        <section className="dashboard-map-pane" aria-label="桃園行政區地圖">
+          <div className="dashboard-map-wrap">
+            <TaoyuanSVGMap selectedDistrict={district} onSelectDistrict={setDistrict} />
+          </div>
+          <button className="dashboard-map-action" type="button">
+            點選查看區域詳情
+            <MapPin size={15} />
+            {district}
+          </button>
+        </section>
 
-      {/* 3-column grid */}
-      <div style={{ display: 'flex', gap: 14, padding: '14px 48px 60px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <section className="dashboard-panel" aria-label={`${district} 空氣品質儀表板`}>
+          <header className="district-heading">
+            <MapPin size={31} strokeWidth={2.3} />
+            <h1>{district}</h1>
+          </header>
 
-        {/* LEFT */}
-        <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 14, flexShrink: 0 }}>
-          <GlassCard>
-            <SecLabel title="空氣品質指數" />
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
-              <AQIGauge aqi={locatedAqi} />
-            </div>
-            <p style={{ textAlign: 'center', fontSize: 10, color: C.hint, marginTop: 4 }}>數值範圍 0–200，越低越好</p>
-          </GlassCard>
-          <GlassCard>
-            <SecLabel title="活動建議" />
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: C.roseLt, border: `1px solid ${C.roseBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.rose} strokeWidth="2" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <div className="dash-divider" />
+
+          <div className="dashboard-first-row">
+            <div>
+              <SecLabel title="AQI 空氣品質指標" />
+              <div className="aqi-block">
+                <AQIGauge aqi={aqi} />
+                <span className="aqi-hint">數值範圍 0-200，越低越好</span>
               </div>
-              <p style={{ flex: 1, fontSize: 12, color: C.muted, lineHeight: 1.7 }}>{getActivityInfo(pm25)}</p>
             </div>
-          </GlassCard>
-        </div>
 
-        {/* MIDDLE */}
-        <div style={{ flex: 1, minWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <GlassCard>
-            <SecLabel title="AI 趨勢分析" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: 13, borderRadius: 12, backgroundColor: C.roseLt, border: `1px solid ${C.roseBorder}` }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(212,86,122,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.rose} strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <div>
+              <div className="pollutant-title-row">
+                <SecLabel title="污染物詳情" sub="（每小時）" />
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: C.rose }}>PM2.5 濃度預計下降</p>
-                <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>未來 3 小時因海風輻合影響下降 12%</p>
-              </div>
-              <span style={{ padding: '3px 9px', borderRadius: 999, backgroundColor: 'rgba(212,86,122,0.14)', border: `1px solid ${C.roseBorder}`, fontSize: 12, fontWeight: 700, color: C.rose }}>−12%</span>
-            </div>
-          </GlassCard>
 
-          <GlassCard>
-            <SecLabel title="污染物詳情" />
-            <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
-              {[
-                { label: 'PM2.5', value: pm25, unit: 'μg/m³', color: getPM25Color(pm25) },
-                { label: 'O₃ 臭氧', value: o3, unit: 'ppb', color: getO3Color(o3) },
-                { label: 'NO₂', value: no2, unit: 'ppb', color: getNO2Color(no2) },
-              ].map(m => (
-                <div key={m.label} style={{ flex: 1, padding: 13, borderRadius: 12, backgroundColor: C.glass2, border: `1px solid ${C.glassBorder2}`, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: C.hint, letterSpacing: 1, textTransform: 'uppercase', fontFamily: 'monospace', marginBottom: 4 }}>{m.label}</span>
-                  <span style={{ fontSize: 24, fontWeight: 700, color: m.color, lineHeight: 1.1 }}>{m.value}</span>
-                  <span style={{ fontSize: 10, color: C.hint, marginTop: 3 }}>{m.unit}</span>
+              <div className="mini-gauge-row">
+                <div className="mini-gauge-card">
+                  <h3>PM2.5</h3>
+                  <p>細懸浮微粒</p>
+                  <small>標準日均值為 15.4 μg/m³</small>
+                  <GaugeArc value={pm25} max={150} markerVal={15.4} color={getPM25Color(pm25)} unit="μg/m³" />
                 </div>
-              ))}
-            </div>
-            <div style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.05)', marginBottom: 14 }} />
-            <PollBar name="細懸浮微粒" nameEn="PM2.5" value={pm25} max={75} color={getPM25Color(pm25)} unit="μg/m³" />
-            <PollBar name="臭氧" nameEn="O₃" value={o3} max={100} color={getO3Color(o3)} unit="ppb" />
-            <PollBar name="二氧化氮" nameEn="NO₂" value={no2} max={100} color={getNO2Color(no2)} unit="ppb" />
-            <div style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.05)', margin: '14px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>PM2.5 趨勢</span>
-              <span style={{ fontSize: 10, color: C.hint }}>過去 5h ／ NOW ／ 預測 5h</span>
-            </div>
-            <TrendBars trend={[0.45, 0.5, 0.55, 0.6, 0.58, 0.62, 0.48, 0.52, 0.65, 0.42, 0.38]} />
-          </GlassCard>
-        </div>
-
-        {/* RIGHT */}
-        <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 14, flexShrink: 0 }}>
-          <GlassCard>
-            <SecLabel title="當前天氣" />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: C.glass2, border: `1px solid ${C.glassBorder2}`, marginBottom: 12 }}>
-              <div>
-                <p style={{ fontSize: 44, fontWeight: 700, color: C.text, lineHeight: 1 }}>{currentWeather.temperature}°</p>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{currentWeather.weather}</p>
-                <p style={{ fontSize: 10, color: C.hint, marginTop: 3 }}>{currentWeather.dailyHigh}° / {currentWeather.dailyLow}°</p>
-              </div>
-              <div style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.glass, border: `1px solid ${C.glassInner}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.rose} strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[{ label: '濕度', value: `${currentWeather.humidity}%`, color: C.sky }, { label: '風速', value: `${currentWeather.windSpeed}m/s`, color: C.mint }].map(s => (
-                <div key={s.label} style={{ flex: 1, padding: 10, borderRadius: 12, backgroundColor: C.glass2, border: `1px solid ${C.glassBorder2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 9, color: C.hint, letterSpacing: 0.8, textTransform: 'uppercase', fontFamily: 'monospace' }}>{s.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.value}</span>
+                <div className="mini-divider" />
+                <div className="mini-gauge-card">
+                  <h3>O₃</h3>
+                  <p>臭氧</p>
+                  <small>標準8小時均值為 54 ppb</small>
+                  <GaugeArc value={o3} max={200} markerVal={54} color={getO3Color(o3)} unit="ppb" />
                 </div>
-              ))}
-            </div>
-          </GlassCard>
+              </div>
 
-          <GlassCard>
-            <SecLabel title="未來三日預報" />
-            <div style={{ display: 'flex', gap: 8 }}>
-              {forecast.map((day, i) => {
-                const hi = i === 1;
-                return (
-                  <div key={i} style={{ flex: 1, padding: 12, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, backgroundColor: hi ? C.roseLt : C.glass2, border: `1px solid ${hi ? C.roseBorder : C.glassBorder2}` }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{day.dateLabel}</span>
-                    <span style={{ fontSize: 10, color: C.hint, marginBottom: 4 }}>{day.label}</span>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={Number(day.precipProb) >= 50 ? C.sky : C.rose} strokeWidth="1.5" style={{ margin: '8px 0' }}>
-                      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                    </svg>
-                    <span style={{ fontSize: 10, color: C.muted, textAlign: 'center' }}>{day.weather}</span>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: C.text, marginTop: 3 }}>{day.maxTemp}° / {day.minTemp}°</span>
-                    <span style={{ fontSize: 10, color: C.hint, marginTop: 2 }}>{day.precipProb}%</span>
-                  </div>
-                );
-              })}
+              <div className="mini-pollut-strip">
+                {pollutants.map((item, index) => (
+                  <React.Fragment key={item.name}>
+                    {index > 0 && <div className="metric-divider" />}
+                    <div className="mini-pollut-card">
+                      <h4>{item.name}</h4>
+                      <p>{item.sub}</p>
+                      <span className="mini-pollut-value">
+                        <strong>{item.value}</strong>
+                        <small>{item.unit}</small>
+                      </span>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
-          </GlassCard>
-        </div>
-      </div>
-    </div>
+          </div>
+
+          <div className="dashboard-second-row">
+            <div>
+              <SecLabel title="活動建議" />
+              <div className="advice-card" style={{ backgroundColor: `${activity.color}20`, border: `1px solid ${activity.color}` }}>
+                <span className="advice-icon" style={{ backgroundColor: `${activity.color}30`, borderColor: activity.color }}>
+                  <ActivityIcon size={18} color={activity.color} />
+                </span>
+                <p>{activity.advice}</p>
+              </div>
+            </div>
+
+            <div className="row-divider" />
+
+            <div>
+              <SecLabel title="AI 趨勢分析" />
+              <div className="insight-card">
+                <span className="insight-icon">
+                  <TrendingDown size={15} />
+                </span>
+                <p className="insight-copy">
+                  <strong>PM2.5 濃度預計下降</strong>
+                  <span>未來 3 小時因海風輻合影響下降 12%</span>
+                </p>
+                <span className="insight-chip">-12%</span>
+              </div>
+            </div>
+          </div>
+
+          <section className="trend-section">
+            <div className="trend-heading">
+              <SecLabel title="PM2.5 趨勢" />
+              <span className="scroll-hint">
+                <ChevronsRight size={13} />
+                左右滑動查看
+              </span>
+            </div>
+            <TrendBars />
+          </section>
+        </section>
+      </main>
+    </>
   );
 }
