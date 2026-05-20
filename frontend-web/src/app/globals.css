@@ -214,7 +214,7 @@ a {
   position: fixed;
   inset: 0;
   background: rgba(58, 30, 45, 0.40);
-  z-index: 1000;
+  z-index: 1400;
 }
 
 .mobile-overlay.visible {
@@ -228,7 +228,7 @@ a {
   width: min(416px, calc(100vw - 56px));
   background: #ffffff;
   box-shadow: -4px 0 24px rgba(58, 30, 45, 0.12);
-  z-index: 1001;
+  z-index: 1401;
   padding: 124px 28px 40px;
   display: flex;
   flex-direction: column;
