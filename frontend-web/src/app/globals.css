@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+:root {
+  --app-bg-gradient: linear-gradient(180deg, #fff1f6 0%, #fce3ee 38%, #f4dff1 68%, #eee4fb 100%);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -7,7 +11,8 @@
 html, body {
   height: 100%;
   font-family: 'Noto Sans TC', 'Noto Sans', system-ui, sans-serif;
-  background-color: #FFF6F9;
+  background: var(--app-bg-gradient);
+  background-attachment: fixed;
   color: #3A1E2D;
 }
 
@@ -21,4 +26,318 @@ input:focus {
 
 a {
   color: inherit;
+}
+
+/* ── TopNav ── */
+.top-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 997;
+  isolation: isolate;
+  border-bottom: 1px solid rgba(231, 101, 149, 0.10);
+  /* 頂邊光澤線：模擬磨砂玻璃迎光面 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.70),
+    0 1px 0 rgba(231, 101, 149, 0.06);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 磨砂模糊層：半透明背景 + 強力 blur + saturate */
+.top-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 246, 249, 0.88);
+  backdrop-filter: blur(28px) saturate(1.6) brightness(1.02);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6) brightness(1.02);
+  opacity: 1;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 磨砂噪點紋理層 */
+.top-nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: 0.065;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.top-nav.scrolled {
+  border-color: rgba(231, 101, 149, 0.20);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.70),
+    0 6px 32px rgba(231, 101, 149, 0.11);
+}
+
+.top-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.top-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  min-width: 200px;
+}
+
+.top-nav-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(231, 101, 149, 0.28);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(231, 101, 149, 0.06);
+  box-shadow: 0 0 0 4px rgba(231, 101, 149, 0.07);
+}
+
+.top-nav-logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #E76595;
+  letter-spacing: 0.5px;
+}
+
+/* Nav links */
+.top-nav-links {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  justify-content: center;
+  height: 100%;
+}
+
+.top-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #FBA7BC;
+  text-decoration: none;
+  transition: color 0.25s ease;
+  white-space: nowrap;
+}
+
+/* 文字＋底線作為一個整體，由外層 flex 垂直置中 */
+.top-nav-link-inner {
+  position: relative;
+  padding-bottom: 6px;
+}
+
+.top-nav-link-inner::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #E76595;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s ease;
+}
+
+.top-nav-link:hover,
+.top-nav-link.active {
+  color: #E76595;
+}
+
+.top-nav-link:hover .top-nav-link-inner::after,
+.top-nav-link.active .top-nav-link-inner::after {
+  transform: scaleX(1);
+}
+
+/* Action buttons */
+.top-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: flex-end;
+}
+
+.top-nav-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(231, 101, 149, 0.2);
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #C9849C;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+
+.top-nav-action-btn:hover {
+  background: rgba(231, 101, 149, 0.08);
+  border-color: rgba(231, 101, 149, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Hamburger */
+.top-nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #C9849C;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+/* Mobile overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 30, 45, 0.40);
+  z-index: 1000;
+}
+
+.mobile-overlay.visible {
+  display: block;
+}
+
+/* Mobile slide-in panel */
+.mobile-nav-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(416px, calc(100vw - 56px));
+  background: #ffffff;
+  box-shadow: -4px 0 24px rgba(58, 30, 45, 0.12);
+  z-index: 1001;
+  padding: 124px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+.mobile-nav-close {
+  position: absolute;
+  top: 42px;
+  right: 30px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: #B9798D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mobile-nav-close:hover {
+  color: #E76595;
+}
+
+.mobile-nav-panel.open {
+  transform: translateX(0);
+}
+
+.mobile-nav-link {
+  display: block;
+  padding: 18px 4px 19px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #FBA7BC;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(231, 101, 149, 0.14);
+  transition: color 0.2s ease;
+  line-height: 1.35;
+}
+
+.mobile-nav-link:hover {
+  color: #E76595;
+}
+
+.mobile-nav-link.active {
+  color: #E76595;
+  font-weight: 800;
+}
+
+.mobile-nav-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 32px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(231, 101, 149, 0.14);
+}
+
+/* ── 中等螢幕：960px 以下收合成漢堡 ── */
+@media (max-width: 960px) {
+  .top-nav-links {
+    display: none;
+  }
+
+  .top-nav-logo {
+    min-width: unset;
+  }
+
+  /* Bell / Settings 移入 panel，header 只留漢堡 */
+  .top-nav-actions .top-nav-action-btn {
+    display: none;
+  }
+
+  .top-nav-hamburger {
+    display: flex;
+  }
+
+  .mobile-nav-panel {
+    width: min(416px, calc(100vw - 56px));
+  }
+}
+
+@media (max-width: 720px) {
+  .mobile-nav-panel {
+    width: min(416px, calc(100vw - 56px));
+  }
+}
+
+/* ── 超窄螢幕（≤ 400px）：logo 文字縮小 ── */
+@media (max-width: 400px) {
+  .top-nav-logo-text {
+    font-size: 17px;
+  }
+
+  .top-nav-inner {
+    padding: 0 16px;
+  }
+
+  .mobile-nav-panel {
+    width: min(360px, calc(100vw - 28px));
+    padding-left: 26px;
+    padding-right: 26px;
+  }
+
+  .mobile-nav-link {
+    font-size: 21px;
+  }
 }

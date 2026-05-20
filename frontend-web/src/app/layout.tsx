@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-TW">
-      <body style={{ minHeight: '100vh', backgroundColor: '#FFF6F9' }}>
+      <body style={{ minHeight: '100vh' }}>
         <TopNav />
         <main style={{ paddingTop: 80 }}>{children}</main>
       </body>

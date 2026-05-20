@@ -25,7 +25,7 @@ export default function SettingsPage() {
   return (
     <div style={{
       minHeight: 'calc(100vh - 80px)',
-      background: `linear-gradient(180deg, ${palette.bg}, ${palette.bgEnd})`,
+      background: 'var(--app-bg-gradient)',
       padding: '28px 24px 80px',
     }}>
       <div style={{ maxWidth: 920, margin: '0 auto' }}>

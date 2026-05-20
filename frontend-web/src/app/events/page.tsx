@@ -55,7 +55,7 @@ export default function EventsPage() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${palette.bgBase}, #FFEAF0)`, paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, padding: '20px 20px 0', flexWrap: 'wrap' }}>
         <FilterBtn id="events" value={selectedFilter} options={filterOptions.events} onSelect={setSelectedFilter} />

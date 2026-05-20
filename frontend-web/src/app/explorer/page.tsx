@@ -64,7 +64,7 @@ export default function ExplorerPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${palette.bgBase}, #FFEAF0)`, paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       {/* Search Bar */}
       <div style={{ padding: '20px 20px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 25, padding: '12px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', gap: 12 }}>

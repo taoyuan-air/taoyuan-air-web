@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { Menu, X, Bell, Settings } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: '空氣總覽' },
@@ -14,116 +16,114 @@ const navItems = [
 
 export function TopNav() {
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 24);
+        ticking = false;
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const isActive = (href: string) =>
+    pathname === href || (href === '/dashboard' && pathname === '/');
 
   return (
-    <nav style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 997,
-      backgroundColor: '#FFF6F9',
-      paddingTop: 20,
-      paddingBottom: 20,
-    }}>
-      <div style={{
-        backgroundColor: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: 50,
-        paddingTop: 5,
-        paddingBottom: 5,
-        paddingLeft: 25,
-        paddingRight: 25,
-        boxShadow: '0 4px 20px rgba(231,101,149,0.08)',
-        border: '1px solid rgba(231,101,149,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        maxWidth: 1200,
-      }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 200 }}>
-          <Image
-            src="https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp"
-            alt="Taoyuan Air Logo"
-            width={36}
-            height={36}
-            style={{ objectFit: 'contain' }}
-            unoptimized
-          />
-          <span style={{ fontSize: 24, fontWeight: 600, color: '#E76595', letterSpacing: 0.5, paddingLeft: 5 }}>
-            Taoyuan Air
-          </span>
-        </div>
+    <>
+      <nav className={`top-nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="top-nav-inner">
+          {/* Logo */}
+          <Link href="/dashboard" className="top-nav-logo">
+            <span className="top-nav-logo-img">
+              <Image
+                src="https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp"
+                alt="Taoyuan Air Logo"
+                width={34}
+                height={34}
+                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                unoptimized
+              />
+            </span>
+            <span className="top-nav-logo-text">Taoyuan Air</span>
+          </Link>
 
-        {/* Nav items */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center', paddingLeft: 40, paddingRight: 40 }}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === '/dashboard' && pathname === '/');
-            return (
+          {/* Desktop nav links */}
+          <div className="top-nav-links">
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                style={{
-                  paddingTop: 18,
-                  paddingBottom: 18,
-                  paddingLeft: 15,
-                  paddingRight: 15,
-                  fontSize: 16,
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#E76595' : '#FBA7BC',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                }}
+                className={`top-nav-link${isActive(item.href) ? ' active' : ''}`}
               >
-                {item.label}
+                <span className="top-nav-link-inner">{item.label}</span>
               </Link>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        {/* Right actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 120, justifyContent: 'flex-end', paddingRight: 15 }}>
+          {/* Right actions */}
+          <div className="top-nav-actions">
+            <Link href="/notifications" className="top-nav-action-btn" title="通知" aria-label="通知">
+              <Bell size={17} />
+            </Link>
+            <Link href="/settings" className="top-nav-action-btn" title="設定" aria-label="設定">
+              <Settings size={17} />
+            </Link>
+            <button
+              className="top-nav-hamburger"
+              aria-label={mobileOpen ? '關閉選單' : '開啟選單'}
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              <Menu size={22} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile overlay */}
+      <div
+        className={`mobile-overlay${mobileOpen ? ' visible' : ''}`}
+        onClick={() => setMobileOpen(false)}
+      />
+
+      {/* Mobile slide-in panel */}
+      <div className={`mobile-nav-panel${mobileOpen ? ' open' : ''}`}>
+        <button
+          className="mobile-nav-close"
+          aria-label="關閉選單"
+          onClick={() => setMobileOpen(false)}
+        >
+          <X size={28} />
+        </button>
+
+        {navItems.map((item) => (
           <Link
-            href="/notifications"
-            style={{
-              width: 36, height: 36, borderRadius: 8,
-              backgroundColor: 'rgba(255,255,255,0.7)',
-              border: '1px solid rgba(231,101,149,0.1)',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              textDecoration: 'none',
-            }}
-            title="通知"
-            aria-label="通知"
+            key={item.href}
+            href={item.href}
+            className={`mobile-nav-link${isActive(item.href) ? ' active' : ''}`}
+            onClick={() => setMobileOpen(false)}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+            {item.label}
           </Link>
-          <Link
-            href="/settings"
-            style={{
-              width: 36, height: 36, borderRadius: 8,
-              backgroundColor: 'rgba(255,255,255,0.7)',
-              border: '1px solid rgba(231,101,149,0.1)',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              textDecoration: 'none',
-            }}
-            title="設定"
-            aria-label="設定"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
+        ))}
+
+        <div className="mobile-nav-actions">
+          <Link href="/notifications" className="top-nav-action-btn" title="通知" onClick={() => setMobileOpen(false)}>
+            <Bell size={17} />
+          </Link>
+          <Link href="/settings" className="top-nav-action-btn" title="設定" onClick={() => setMobileOpen(false)}>
+            <Settings size={17} />
           </Link>
         </div>
       </div>
-    </nav>
+    </>
   );
 }

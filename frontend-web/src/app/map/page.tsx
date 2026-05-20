@@ -35,7 +35,7 @@ export default function MapPage() {
   const getPollutantLabel = () => ({ PM25: 'PM2.5', O3: 'O₃', NOX: 'NOₓ', VOCs: 'VOCs' }[selectedPollutant]);
 
   return (
-    <div style={{ position: 'relative', height: 'calc(100vh - 80px)', backgroundColor: palette.bgBase, overflow: 'hidden' }}>
+    <div style={{ position: 'relative', height: 'calc(100vh - 80px)', background: 'var(--app-bg-gradient)', overflow: 'hidden' }}>
 
       {/* Top controls */}
       <div style={{ position: 'absolute', top: 20, left: 20, right: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>

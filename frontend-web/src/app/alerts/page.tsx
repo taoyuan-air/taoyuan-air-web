@@ -76,7 +76,7 @@ export default function AlertsPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${palette.bgBase}, #FFEAF0)`, paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       {/* Tab selector */}
       <div style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', padding: 4, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.4)' }}>
