@@ -30,6 +30,23 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
     activity: 80,
     urgency: 20,
   });
+  const [govThresholds, setGovThresholds] = useState({
+    industrial: 10,   
+    traffic: "輕度" as "輕度" | "中管制" | "強管制" | "極強管制",  
+    alert: 30,        
+  });
+  const getGovThresholdLabel = (type: string, value: number) => {
+    switch (type) {
+      case "industrial":
+        return `削減 ${value}%`;
+      case "traffic":
+        return govThresholds.traffic; 
+      case "alert":
+        return `AQI > ${value}`;
+      default:
+        return `${value}`;
+    }
+  };
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < Layout.breakpoints.mobile;
 
@@ -64,240 +81,441 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
   };
 
   return (
-    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
-      { isMobile && (
-        <MobileTopAppbar title="警報與 AI" subtitle="ALERTS & AI" />
+    <View style={[!isMobile && styles.webContentRow]}>
+
+      {/* ── 左上角 Tab 按鈕（Web 版獨立在最頂端左側） ── */}
+      {!isMobile && (
+        <View style={styles.webTabBar}>
+          <TouchableOpacity
+            style={[styles.webTabBtn, activeTab === "HEALTH" && styles.webTabBtnActive]}
+            onPress={() => setActiveTab("HEALTH")}
+          >
+            <View style={[styles.webTabDot, activeTab === "HEALTH" && styles.webTabDotActive]} />
+            <Text style={[styles.webTabText, activeTab === "HEALTH" && styles.webTabTextActive]}>
+              個人健康
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.webTabBtn, activeTab === "GOV" && styles.webTabBtnActive]}
+            onPress={() => setActiveTab("GOV")}
+          >
+            <View style={[styles.webTabDot, activeTab === "GOV" && styles.webTabDotActive]} />
+            <Text style={[styles.webTabText, activeTab === "GOV" && styles.webTabTextActive]}>
+              治理支援
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
-      
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Tab Selector */}
+
+      {/* ── Mobile 版 Tab（保留原有） ── */}
+      {isMobile && (
         <View style={styles.tabContainer}>
           <View style={styles.segmentedControl}>
             <TouchableOpacity
-              style={[
-                styles.segment,
-                activeTab === "HEALTH" && styles.activeSegment,
-              ]}
+              style={[styles.segment, activeTab === "HEALTH" && styles.activeSegment]}
               onPress={() => setActiveTab("HEALTH")}
             >
-              <Text
-                style={[
-                  styles.segmentText,
-                  activeTab === "HEALTH" && styles.activeSegmentText,
-                ]}
-              >
+              <Text style={[styles.segmentText, activeTab === "HEALTH" && styles.activeSegmentText]}>
                 個人健康
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.segment,
-                activeTab === "GOV" && styles.activeSegment,
-              ]}
+              style={[styles.segment, activeTab === "GOV" && styles.activeSegment]}
               onPress={() => setActiveTab("GOV")}
             >
-              <Text
-                style={[
-                  styles.segmentText,
-                  activeTab === "GOV" && styles.activeSegmentText,
-                ]}
-              >
+              <Text style={[styles.segmentText, activeTab === "GOV" && styles.activeSegmentText]}>
                 治理支援
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+      )}
 
-        {/* Health Guard Card */}
-        {activeTab === "HEALTH" && (
-          <View style={styles.healthGuardCard}>
-            <View style={styles.healthGuardHeader}>
-              <View>
-                <Text style={styles.healthGuardTitle}>主動健康守護</Text>
-                <Text style={styles.healthGuardSubtitle}>自訂敏感度</Text>
-              </View>
-              <CustomSwitch
-                value={healthGuardEnabled}
-                onValueChange={setHealthGuardEnabled}
-                trackColor={{ false: "#E0E0E0", true: "#E76595" }}
-                thumbColor="#FFFFFF"
-              />
+      {/* ════════════════════════════════════════
+          個人健康頁面
+      ════════════════════════════════════════ */}
+      {activeTab === "HEALTH" && (
+        <View style={[!isMobile && styles.webTwoCol]}>
+
+          {/* 左欄：參數調整 */}
+          <View style={[!isMobile && styles.webColLeft]}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>健康守護設定</Text>
             </View>
 
-            <View style={styles.thresholdSection}>
-              {/* Asthma Threshold */}
-              <View style={styles.thresholdItem}>
-                <View style={styles.thresholdHeader}>
-                  <View style={styles.thresholdLabelContainer}>
-                    <Ionicons name="medical" size={18} color="#E76595" />
-                    <Text style={styles.thresholdLabel}>氣喘門檻</Text>
-                  </View>
-                  <Text style={styles.thresholdValue}>
-                    {getThresholdLabel("asthma", thresholds.asthma)}
-                  </Text>
+            <View style={[styles.healthGuardCard, !isMobile && { marginHorizontal: 0 }]}>
+              <View style={styles.healthGuardHeader}>
+                <View>
+                  <Text style={styles.healthGuardTitle}>主動健康守護</Text>
+                  <Text style={styles.healthGuardSubtitle}>自訂敏感度</Text>
                 </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={100}
-                  value={thresholds.asthma}
-                  onValueChange={(value) =>
-                    setThresholds((prev) => ({
-                      ...prev,
-                      asthma: Math.round(value),
-                    }))
-                  }
-                  minimumTrackTintColor="#E76595"
-                  maximumTrackTintColor="rgba(255,255,255,0.3)"
-                  thumbTintColor="white"
+                <CustomSwitch
+                  value={healthGuardEnabled}
+                  onValueChange={setHealthGuardEnabled}
+                  trackColor={{ false: "#E0E0E0", true: "#E76595" }}
+                  thumbColor="#FFFFFF"
                 />
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>嚴格</Text>
-                  <Text style={styles.sliderLabel}>寬鬆</Text>
-                </View>
               </View>
 
-              {/* Activity Intensity */}
-              <View style={styles.thresholdItem}>
-                <View style={styles.thresholdHeader}>
-                  <View style={styles.thresholdLabelContainer}>
-                    <Ionicons name="fitness" size={18} color="#E76595" />
-                    <Text style={styles.thresholdLabel}>活動強度</Text>
+              <View style={styles.thresholdSection}>
+                {/* 氣喘門檻 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="medical" size={18} color="#E76595" />
+                      <Text style={styles.thresholdLabel}>氣喘門檻</Text>
+                    </View>
+                    <Text style={styles.thresholdValue}>
+                      {getThresholdLabel("asthma", thresholds.asthma)}
+                    </Text>
                   </View>
-                  <Text style={styles.thresholdValue}>
-                    {getThresholdLabel("activity", thresholds.activity)}
-                  </Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={100}
+                    value={thresholds.asthma}
+                    onValueChange={(v) => setThresholds((p) => ({ ...p, asthma: Math.round(v) }))}
+                    minimumTrackTintColor="#E76595"
+                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    thumbTintColor="white"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>嚴格</Text>
+                    <Text style={styles.sliderLabel}>寬鬆</Text>
+                  </View>
                 </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={100}
-                  value={thresholds.activity}
-                  onValueChange={(value) =>
-                    setThresholds((prev) => ({
-                      ...prev,
-                      activity: Math.round(value),
-                    }))
-                  }
-                  minimumTrackTintColor="#E76595"
-                  maximumTrackTintColor="rgba(255,255,255,0.3)"
-                  thumbTintColor="white"
-                />
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>輕度</Text>
-                  <Text style={styles.sliderLabel}>劇烈</Text>
-                </View>
-              </View>
 
-              {/* Notification Urgency */}
-              <View style={styles.thresholdItem}>
-                <View style={styles.thresholdHeader}>
-                  <View style={styles.thresholdLabelContainer}>
-                    <Ionicons name="flash" size={18} color="#E76595" />
-                    <Text style={styles.thresholdLabel}>通知緊急度</Text>
+                {/* 活動強度 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="fitness" size={18} color="#E76595" />
+                      <Text style={styles.thresholdLabel}>活動強度</Text>
+                    </View>
+                    <Text style={styles.thresholdValue}>
+                      {getThresholdLabel("activity", thresholds.activity)}
+                    </Text>
                   </View>
-                  <Text style={styles.thresholdValue}>
-                    {getThresholdLabel("urgency", thresholds.urgency)}
-                  </Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={100}
+                    value={thresholds.activity}
+                    onValueChange={(v) => setThresholds((p) => ({ ...p, activity: Math.round(v) }))}
+                    minimumTrackTintColor="#E76595"
+                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    thumbTintColor="white"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>輕度</Text>
+                    <Text style={styles.sliderLabel}>劇烈</Text>
+                  </View>
                 </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={100}
-                  value={thresholds.urgency}
-                  onValueChange={(value) =>
-                    setThresholds((prev) => ({
-                      ...prev,
-                      urgency: Math.round(value),
-                    }))
-                  }
-                  minimumTrackTintColor="#E76595"
-                  maximumTrackTintColor="rgba(255,255,255,0.3)"
-                  thumbTintColor="white"
-                />
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>全部</Text>
-                  <Text style={styles.sliderLabel}>緊急</Text>
+
+                {/* 通知緊急度 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="flash" size={18} color="#E76595" />
+                      <Text style={styles.thresholdLabel}>通知緊急度</Text>
+                    </View>
+                    <Text style={styles.thresholdValue}>
+                      {getThresholdLabel("urgency", thresholds.urgency)}
+                    </Text>
+                  </View>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={100}
+                    value={thresholds.urgency}
+                    onValueChange={(v) => setThresholds((p) => ({ ...p, urgency: Math.round(v) }))}
+                    minimumTrackTintColor="#E76595"
+                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    thumbTintColor="white"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>全部</Text>
+                    <Text style={styles.sliderLabel}>緊急</Text>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
-        )}
 
-        {/* Governance Support Content */}
-        {activeTab === "GOV" && (
-          <>
-            {/* Analysis Workbench */}
-            <View style={styles.workbenchCard}>
-              <View style={styles.workbenchHeader}>
+          {/* 右欄：分析結果 */}
+          <View style={[!isMobile && styles.webColRight]}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>分析結果</Text>
+            </View>
+
+            {/* AI Cards */}
+            <View style={[styles.aiCardsContainer, !isMobile && { paddingHorizontal: 0, marginTop: 0 }]}>
+              <View style={styles.aiCard}>
+                <View style={styles.aiCardHeader}>
+                  <Text style={styles.aiCardTitle}>異常偵測</Text>
+                  <Text style={styles.aiCardSubtitle}>穩定指數: 92%</Text>
+                </View>
+                <View style={styles.radarContainer}>
+                  <PentagonRadar
+                    data={[0.9, 0.7, 0.8, 0.6, 0.75]}
+                    labels={['化學', '粉塵', '生物', '氣體', '氣候']}
+                    size={100}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.aiCard}>
+                <View style={styles.aiCardHeader}>
+                  <Text style={styles.aiCardTitle}>來源歸因</Text>
+                  <Text style={styles.aiCardSubtitle}>影響鄰近度</Text>
+                </View>
+                <View style={styles.chartContainer}>
+                  <View style={styles.donutChart}>
+                    <Text style={styles.donutValue}>70%</Text>
+                  </View>
+                </View>
+                <View style={styles.legendContainer}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#E76595" }]} />
+                    <Text style={styles.legendLabel}>工廠</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#7F5A6A" }]} />
+                    <Text style={styles.legendLabel}>交通</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Critical Thresholds */}
+            <View style={[styles.criticalSection, !isMobile && { paddingHorizontal: 0 }]}>
+              <View style={styles.sectionLabelRow}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.criticalTitle}>重要門檻</Text>
+              </View>
+              <View style={styles.criticalAlert}>
+                <View style={styles.criticalIcon}>
+                  <Ionicons name="medical" size={24} color="#F97316" />
+                </View>
+                <View style={styles.criticalContent}>
+                  <View style={styles.criticalHeader}>
+                    <Text style={styles.criticalAlertTitle}>PM2.5 注意</Text>
+                    <View style={styles.activeBadge}>
+                      <Text style={styles.activeBadgeText}>啟用</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.criticalDescription}>
+                    中壢區濃度超過 35µg/m³ 時通知
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* AI Health Tip */}
+            <View style={[styles.healthTipCard, !isMobile && { marginHorizontal: 0, marginTop: 16 }]}>
+              <View style={styles.healthTipIcon}>
+                <Ionicons name="bulb" size={20} color="#E76595" />
+              </View>
+              <View style={styles.healthTipContent}>
+                <Text style={styles.healthTipTitle}>AI 健康建議</Text>
+                <Text style={styles.healthTipText}>
+                  觀音區晨間空氣品質連續 4 天達到最佳狀態。適合晨跑。
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* ════════════════════════════════════════
+          治理支援頁面
+      ════════════════════════════════════════ */}
+      {activeTab === "GOV" && (
+        <View style={[!isMobile && styles.webTwoCol]}>
+
+          {/* 左欄：治理參數調整 */}
+          <View style={[!isMobile && styles.webColLeft]}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>治理參數調整</Text>
+            </View>
+
+            <View style={[styles.healthGuardCard, !isMobile && { marginHorizontal: 0 }]}>
+              <View style={styles.healthGuardHeader}>
                 <View>
-                  <Text style={styles.workbenchTitle}>分析工作台</Text>
-                  <Text style={styles.workbenchSubtitle}>區域影響矩陣</Text>
+                  <Text style={styles.healthGuardTitle}>政策模擬參數</Text>
+                  <Text style={styles.healthGuardSubtitle}>調整治理強度</Text>
                 </View>
                 <View style={styles.workbenchIcon}>
                   <Ionicons name="analytics" size={20} color="#E76595" />
                 </View>
               </View>
 
-              <View style={styles.analysisSection}>
-                <View style={styles.analysisRow}>
-                  <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>異常偵測</Text>
-                    <View style={styles.radarContainer}>
-                      <PentagonRadar 
-                        data={[0.8, 0.6, 0.7, 0.9, 0.5]}
-                        labels={['化學', '粉塵', '生物', '氣體', '氣候']}
-                        size={120}
-                      />
+              <View style={styles.thresholdSection}>
+                {/* 工業產出削減 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="business" size={18} color="#E76595" />
+                      <Text style={styles.thresholdLabel}>工業產出汙染物削減</Text>
                     </View>
+                    <Text style={styles.thresholdValue}>
+                      {getGovThresholdLabel("industrial", govThresholds.industrial)}
+                    </Text>
                   </View>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={50}
+                    value={govThresholds.industrial}
+                    onValueChange={(v) => setGovThresholds((p) => ({ ...p, industrial: Math.round(v) }))}
+                    minimumTrackTintColor="#E76595"
+                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    thumbTintColor="white"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>0%</Text>
+                    <Text style={styles.sliderLabel}>50%</Text>
+                  </View>
+                </View>
 
-                  <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>來源歸因</Text>
-                    <View style={styles.chartContainer}>
-                      <View style={styles.donutChart}>
-                        <Text style={styles.donutValue}>70%</Text>
-                      </View>
+                {/* 交通管制強度 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="car" size={18} color="#3B82F6" />
+                      <Text style={styles.thresholdLabel}>交通管制強度</Text>
                     </View>
-                    <View style={styles.legendContainer}>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: "#E76595" }]} />
-                        <Text style={styles.legendLabel}>工業</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: "#7F5A6A" }]} />
-                        <Text style={styles.legendLabel}>交通</Text>
-                      </View>
+                    <Text style={[styles.thresholdValue, { color: "#3B82F6" }]}>
+                      {govThresholds.traffic}
+                    </Text>
+                  </View>
+                  <View style={styles.trafficOptions}>
+                    {(["輕度", "中管制", "強管制", "極強管制"] as const).map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          styles.trafficOption,
+                          govThresholds.traffic === option && styles.trafficOptionActive,
+                        ]}
+                        onPress={() => setGovThresholds((p) => ({ ...p, traffic: option }))}
+                      >
+                        <Text style={[
+                          styles.trafficOptionText,
+                          govThresholds.traffic === option && styles.trafficOptionTextActive,
+                        ]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* 公眾警報門檻 */}
+                <View style={styles.thresholdItem}>
+                  <View style={styles.thresholdHeader}>
+                    <View style={styles.thresholdLabelContainer}>
+                      <Ionicons name="megaphone" size={18} color="#F97316" />
+                      <Text style={styles.thresholdLabel}>公眾警報門檻</Text>
                     </View>
+                    <Text style={[styles.thresholdValue, { color: "#F97316" }]}>
+                      {getGovThresholdLabel("alert", govThresholds.alert)}
+                    </Text>
+                  </View>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={200}
+                    value={govThresholds.alert}
+                    onValueChange={(v) => setGovThresholds((p) => ({ ...p, alert: Math.round(v) }))}
+                    minimumTrackTintColor="#F97316"
+                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    thumbTintColor="white"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>AQI 0</Text>
+                    <Text style={styles.sliderLabel}>AQI 200</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* 右欄：治理分析結果 */}
+          <View style={[!isMobile && styles.webColRight]}>
+            <View style={styles.sectionLabelRow}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>治理分析結果</Text>
+            </View>
+
+            {/* 區域影響矩陣 — 兩個獨立小卡 */}
+            <View style={[styles.aiCardsContainer, !isMobile && { paddingHorizontal: 0, marginTop: 0 }]}>
+              {/* 異常偵測 */}
+              <View style={styles.aiCard}>
+                <View style={styles.aiCardHeader}>
+                  <Text style={styles.aiCardTitle}>異常偵測</Text>
+                  <Text style={styles.aiCardSubtitle}>穩定指數: 85%</Text>
+                </View>
+                <View style={styles.radarContainer}>
+                  <PentagonRadar
+                    data={[0.8, 0.6, 0.7, 0.9, 0.5]}
+                    labels={['化學', '粉塵', '生物', '氣體', '氣候']}
+                    size={110}
+                  />
+                </View>
+              </View>
+
+              {/* 來源歸因 */}
+              <View style={styles.aiCard}>
+                <View style={styles.aiCardHeader}>
+                  <Text style={styles.aiCardTitle}>來源歸因</Text>
+                  <Text style={styles.aiCardSubtitle}>區域影響鄰近度</Text>
+                </View>
+                <View style={styles.chartContainer}>
+                  <View style={styles.donutChart}>
+                    <Text style={styles.donutValue}>70%</Text>
+                  </View>
+                </View>
+                <View style={styles.legendContainer}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#E76595" }]} />
+                    <Text style={styles.legendLabel}>工業</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#7F5A6A" }]} />
+                    <Text style={styles.legendLabel}>交通</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            {/* Policy Simulation */}
-            <View style={styles.policyCard}>
+            {/* 政策模擬結果 */}
+            <View style={[styles.policyCard, !isMobile && { marginHorizontal: 0, marginTop: 16 }]}>
               <View style={styles.policyHeader}>
-                <Text style={styles.policyTitle}>政策模擬</Text>
-                <Text style={styles.policyTarget}>-25% AQI 目標</Text>
+                <Text style={styles.policyTitle}>政策模擬結果</Text>
+                <Text style={styles.policyTarget}>-{govThresholds.industrial}% 工業 · AQI 目標</Text>
               </View>
               <View style={styles.policyContent}>
                 <Text style={styles.policyLabel}>工業產出削減</Text>
-                <Text style={styles.policyValue}>15%</Text>
+                <Text style={styles.policyValue}>{govThresholds.industrial}%</Text>
               </View>
               <View style={styles.outcomeSection}>
                 <Text style={styles.outcomeLabel}>預估結果</Text>
-                <Text style={styles.outcomeText}>大園區 48 小時內預計改善 12%</Text>
+                <Text style={styles.outcomeText}>
+                  大園區 48 小時內預計改善 {Math.round(govThresholds.industrial * 0.8)}%
+                </Text>
               </View>
             </View>
 
-            {/* AI Strategy Feed */}
-            <View style={styles.strategySection}>
-              <Text style={styles.strategyTitle}>AI 策略推薦</Text>
-              
+            {/* AI 策略推薦 */}
+            <View style={[styles.strategySection, !isMobile && { paddingHorizontal: 0, marginTop: 16 }]}>
+              <View style={styles.sectionLabelRow}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.strategyTitle}>AI 策略推薦</Text>
+              </View>
+
               <View style={styles.strategyCard}>
                 <View style={styles.strategyIcon}>
                   <Ionicons name="business" size={20} color="#E76595" />
@@ -310,19 +528,19 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
                     </View>
                   </View>
                   <Text style={styles.strategyDescription}>
-                    建議觀音工業區明日活動削減 10%，因預測風向停滯將持續至明日。
+                    建議觀音工業區明日活動削減 {govThresholds.industrial}%，因預測風向停滯將持續至明日。
                   </Text>
                 </View>
               </View>
 
               <View style={styles.strategyCard}>
-                <View style={[styles.strategyIcon, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
+                <View style={[styles.strategyIcon, { backgroundColor: "rgba(59,130,246,0.1)" }]}>
                   <Ionicons name="car" size={20} color="#3B82F6" />
                 </View>
                 <View style={styles.strategyContent}>
                   <View style={styles.strategyHeader}>
                     <Text style={styles.strategyItemTitle}>交通分流</Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: "rgba(59, 130, 246, 0.2)" }]}>
+                    <View style={[styles.priorityBadge, { backgroundColor: "rgba(59,130,246,0.2)" }]}>
                       <Text style={[styles.priorityText, { color: "#1D4ED8" }]}>例行</Text>
                     </View>
                   </View>
@@ -333,105 +551,28 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ scrollRef }) => {
               </View>
 
               <View style={styles.strategyCard}>
-                <View style={[styles.strategyIcon, { backgroundColor: "rgba(249, 115, 22, 0.1)" }]}>
+                <View style={[styles.strategyIcon, { backgroundColor: "rgba(249,115,22,0.1)" }]}>
                   <Ionicons name="megaphone" size={20} color="#F97316" />
                 </View>
                 <View style={styles.strategyContent}>
                   <View style={styles.strategyHeader}>
                     <Text style={styles.strategyItemTitle}>公眾健康通知</Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: "rgba(249, 115, 22, 0.2)" }]}>
+                    <View style={[styles.priorityBadge, { backgroundColor: "rgba(249,115,22,0.2)" }]}>
                       <Text style={[styles.priorityText, { color: "#C2410C" }]}>建議</Text>
                     </View>
                   </View>
                   <Text style={styles.strategyDescription}>
-                    針對中壢區 08:00-09:00 時段發布「低暴露」窗口警示給年長居民。
+                    門檻 AQI {'>'} {govThresholds.alert} 時，針對中壢區發布「低暴露」窗口警示給年長居民。
                   </Text>
                 </View>
               </View>
             </View>
-          </>
-        )}
-
-        {/* AI Analysis Cards */}
-        <View style={styles.aiCardsContainer}>
-          <View style={styles.aiCard}>
-            <View style={styles.aiCardHeader}>
-              <Text style={styles.aiCardTitle}>異常偵測</Text>
-              <Text style={styles.aiCardSubtitle}>穩定指數: 92%</Text>
-            </View>
-            <View style={styles.radarContainer}>
-              <PentagonRadar 
-                data={[0.9, 0.7, 0.8, 0.6, 0.75]}
-                labels={['化學', '粉塵', '生物', '氣體', '氣候']}
-                size={100}
-              />
-            </View>
-          </View>
-
-          <View style={styles.aiCard}>
-            <View style={styles.aiCardHeader}>
-              <Text style={styles.aiCardTitle}>來源歸因</Text>
-              <Text style={styles.aiCardSubtitle}>影響鄰近度</Text>
-            </View>
-            <View style={styles.chartContainer}>
-              <View style={styles.donutChart}>
-                <Text style={styles.donutValue}>70%</Text>
-              </View>
-            </View>
-            <View style={styles.legendContainer}>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendDot, { backgroundColor: "#E76595" }]}
-                />
-                <Text style={styles.legendLabel}>工廠</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendDot, { backgroundColor: "#7F5A6A" }]}
-                />
-                <Text style={styles.legendLabel}>交通</Text>
-              </View>
-            </View>
           </View>
         </View>
+      )}
 
-        {/* Critical Thresholds */}
-        <View style={styles.criticalSection}>
-          <Text style={styles.criticalTitle}>重要門檻</Text>
-          <View style={styles.criticalAlert}>
-            <View style={styles.criticalIcon}>
-              <Ionicons name="medical" size={24} color="#F97316" />
-            </View>
-            <View style={styles.criticalContent}>
-              <View style={styles.criticalHeader}>
-                <Text style={styles.criticalAlertTitle}>PM2.5 注意</Text>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>啟用</Text>
-                </View>
-              </View>
-              <Text style={styles.criticalDescription}>
-                中壢區濃度超過 35µg/m³ 時通知
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* AI Health Tip */}
-        <View style={styles.healthTipCard}>
-          <View style={styles.healthTipIcon}>
-            <Ionicons name="bulb" size={20} color="#E76595" />
-          </View>
-          <View style={styles.healthTipContent}>
-            <Text style={styles.healthTipTitle}>AI 健康建議</Text>
-            <Text style={styles.healthTipText}>
-              觀音區晨間空氣品質連續 4 天達到最佳狀態。適合晨跑。
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-    </LinearGradient>
+      <View style={styles.bottomSpacing} />
+    </View>
   );
 };
 
@@ -944,6 +1085,126 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#7F5A6A",
     lineHeight: 16,
+  },
+  webContainer: {
+    backgroundColor: '#FFF6F9',
+  },
+
+  // ── Web Tab Bar（左上角兩個按鈕）──
+  webTabBar: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",  // 佔滿整行，讓下面的 webTwoCol 從左排列
+  },
+  webTabBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.72)",
+    shadowColor: "rgba(180,140,160,0.14)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+  },
+  webTabBtnActive: {
+    backgroundColor: "rgba(212,86,122,0.12)",
+    borderColor: "rgba(212,86,122,0.30)",
+  },
+  webTabDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "rgba(180,140,160,0.30)",
+  },
+  webTabDotActive: {
+    backgroundColor: "#D4567A",
+  },
+  webTabText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#b0a0b8",
+    letterSpacing: 0.3,
+  },
+  webTabTextActive: {
+    color: "#D4567A",
+  },
+
+  // ── Web 頁面主結構 ──
+  webContentRow: {
+    flexDirection: "column",   // Tab Bar 佔第一行，內容佔第二行
+    paddingHorizontal: 40,
+    paddingBottom: 28,
+  },
+  webTwoCol: {
+    flexDirection: "row",
+    gap: 20,
+    alignItems: "flex-start",
+    marginTop: 8,
+  },
+  webColLeft: {
+    flex: 1,
+  },
+  webColRight: {
+    flex: 1.7,
+  },
+
+  // ── Section 標題列（玫瑰色小豎條） ──
+  sectionLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginBottom: 12,
+    marginLeft: 10,
+  },
+  sectionDot: {
+    width: 3,
+    height: 14,
+    backgroundColor: "#D4567A",
+    borderRadius: 2,
+    shadowColor: "rgba(212,86,122,0.22)",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1a1220",
+    letterSpacing: 0.2,
+  },
+  trafficOptions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  trafficOption: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.4)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.6)",
+  },
+  trafficOptionActive: {
+    backgroundColor: "rgba(59,130,246,0.12)",
+    borderColor: "rgba(59,130,246,0.35)",
+  },
+  trafficOptionText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#7F5A6A",
+  },
+  trafficOptionTextActive: {
+    color: "#3B82F6",
   },
 });
 

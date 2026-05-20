@@ -712,7 +712,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
               {/* AQI */}
               <View style={{ flex: 1 }}>
                 <SecLabel title="AQI 空氣品質指標" />
-                <View style={{ alignItems: "center", marginTop: 20 }}>
+                <View style={{ alignItems: "center", marginTop: 25 }}>
                   <AQIGauge aqi={locatedAqi} />
                   <Text style={S.aqiHint}>數值範圍 0–200，越低越好</Text>
                 </View>
