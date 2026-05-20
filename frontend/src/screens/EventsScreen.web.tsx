@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   filterScrollView: { paddingBottom: 20 },
-  filterContainer: { paddingHorizontal: 20, gap: 12, paddingTop: 20 },
+  filterContainer: { paddingHorizontal: 20, gap: 12, paddingTop: 20, marginLeft: 40, },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -607,11 +607,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   eventCardDesktop: {
-    width: '31%',
+    flexBasis: '31%',      // ← replace width: '31%' with this
+    flexGrow: 1,           // ← add this
+    maxWidth: '33.333%',   // ← add this to cap at 3-per-row
     borderRadius: 16,
     marginBottom: 20,
     minWidth: 320,
-    maxWidth: 400,
   },
   
   // 事件圖片 - 響應式
