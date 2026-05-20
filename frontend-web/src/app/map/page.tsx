@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useStore } from '@shared/store';
 import { getGrid, setScenario } from '@shared/api/index';
 import { palette } from '@shared/constants/theme';
+import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
 import { GridCell, Pollutant } from '@shared/types';
 
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
@@ -219,6 +220,169 @@ const formatTime = (iso?: string) => {
   return new Intl.DateTimeFormat('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 };
 
+type GridWithDistrict = GridCell & { district?: string; village?: string };
+type SearchResult = {
+  key: string;
+  label: string;
+  detail: string;
+  grid: GridWithDistrict;
+};
+
+type VillageCenter = {
+  district: string;
+  village: string;
+  latitude: number;
+  longitude: number;
+};
+
+const TAOYUAN_VILLAGE_CENTERS: VillageCenter[] = [
+  { district: '桃園區', village: '中正里', latitude: 24.9937, longitude: 121.3010 },
+  { district: '桃園區', village: '武陵里', latitude: 24.9896, longitude: 121.3136 },
+  { district: '桃園區', village: '龍鳳里', latitude: 24.9807, longitude: 121.2817 },
+  { district: '桃園區', village: '中路里', latitude: 24.9975, longitude: 121.2900 },
+  { district: '桃園區', village: '大林里', latitude: 24.9848, longitude: 121.3227 },
+  { district: '桃園區', village: '會稽里', latitude: 25.0060, longitude: 121.3195 },
+  { district: '中壢區', village: '石頭里', latitude: 24.9539, longitude: 121.2248 },
+  { district: '中壢區', village: '中原里', latitude: 24.9575, longitude: 121.2418 },
+  { district: '中壢區', village: '內壢里', latitude: 24.9726, longitude: 121.2589 },
+  { district: '中壢區', village: '青埔里', latitude: 25.0137, longitude: 121.2140 },
+  { district: '中壢區', village: '龍岡里', latitude: 24.9342, longitude: 121.2323 },
+  { district: '中壢區', village: '過嶺里', latitude: 24.9636, longitude: 121.1754 },
+  { district: '平鎮區', village: '北勢里', latitude: 24.9450, longitude: 121.2188 },
+  { district: '平鎮區', village: '東勢里', latitude: 24.9166, longitude: 121.2485 },
+  { district: '平鎮區', village: '宋屋里', latitude: 24.9446, longitude: 121.2060 },
+  { district: '平鎮區', village: '山峰里', latitude: 24.8974, longitude: 121.2130 },
+  { district: '八德區', village: '大成里', latitude: 24.9287, longitude: 121.2833 },
+  { district: '八德區', village: '大湳里', latitude: 24.9581, longitude: 121.3016 },
+  { district: '八德區', village: '瑞豐里', latitude: 24.9308, longitude: 121.3001 },
+  { district: '八德區', village: '興仁里', latitude: 24.9214, longitude: 121.2848 },
+  { district: '龜山區', village: '龜山里', latitude: 24.9925, longitude: 121.3375 },
+  { district: '龜山區', village: '大湖里', latitude: 25.0535, longitude: 121.3611 },
+  { district: '龜山區', village: '文化里', latitude: 25.0567, longitude: 121.3689 },
+  { district: '龜山區', village: '山頂里', latitude: 24.9878, longitude: 121.3280 },
+  { district: '蘆竹區', village: '南崁里', latitude: 25.0475, longitude: 121.2926 },
+  { district: '蘆竹區', village: '坑口里', latitude: 25.0843, longitude: 121.2658 },
+  { district: '蘆竹區', village: '海湖里', latitude: 25.1012, longitude: 121.2562 },
+  { district: '蘆竹區', village: '山腳里', latitude: 25.0916, longitude: 121.2875 },
+  { district: '大園區', village: '大園里', latitude: 25.0608, longitude: 121.2006 },
+  { district: '大園區', village: '埔心里', latitude: 25.0532, longitude: 121.2247 },
+  { district: '大園區', village: '菓林里', latitude: 25.0797, longitude: 121.2342 },
+  { district: '大園區', village: '竹圍里', latitude: 25.1041, longitude: 121.2440 },
+  { district: '大園區', village: '橫峰里', latitude: 25.0186, longitude: 121.2145 },
+  { district: '觀音區', village: '觀音里', latitude: 25.0354, longitude: 121.0823 },
+  { district: '觀音區', village: '草漯里', latitude: 25.0435, longitude: 121.1420 },
+  { district: '觀音區', village: '樹林里', latitude: 25.0545, longitude: 121.1245 },
+  { district: '觀音區', village: '崙坪里', latitude: 25.0005, longitude: 121.1512 },
+  { district: '觀音區', village: '新坡里', latitude: 25.0138, longitude: 121.1354 },
+  { district: '新屋區', village: '新屋里', latitude: 24.9697, longitude: 121.1063 },
+  { district: '新屋區', village: '永安里', latitude: 24.9869, longitude: 121.0315 },
+  { district: '新屋區', village: '後庄里', latitude: 24.9509, longitude: 121.0306 },
+  { district: '新屋區', village: '埔頂里', latitude: 24.9588, longitude: 121.0875 },
+  { district: '楊梅區', village: '楊梅里', latitude: 24.9175, longitude: 121.1460 },
+  { district: '楊梅區', village: '埔心里', latitude: 24.9127, longitude: 121.1838 },
+  { district: '楊梅區', village: '富岡里', latitude: 24.9348, longitude: 121.0832 },
+  { district: '楊梅區', village: '上湖里', latitude: 24.8970, longitude: 121.1152 },
+  { district: '龍潭區', village: '龍潭里', latitude: 24.8635, longitude: 121.2168 },
+  { district: '龍潭區', village: '中正里', latitude: 24.8675, longitude: 121.2125 },
+  { district: '龍潭區', village: '高原里', latitude: 24.8358, longitude: 121.1964 },
+  { district: '龍潭區', village: '三林里', latitude: 24.8518, longitude: 121.2322 },
+  { district: '大溪區', village: '一心里', latitude: 24.8838, longitude: 121.2681 },
+  { district: '大溪區', village: '仁善里', latitude: 24.9050, longitude: 121.2816 },
+  { district: '大溪區', village: '南興里', latitude: 24.8860, longitude: 121.2520 },
+  { district: '大溪區', village: '月眉里', latitude: 24.8972, longitude: 121.2923 },
+  { district: '復興區', village: '澤仁里', latitude: 24.8202, longitude: 121.3523 },
+  { district: '復興區', village: '三民里', latitude: 24.8335, longitude: 121.3165 },
+  { district: '復興區', village: '羅浮里', latitude: 24.7904, longitude: 121.3730 },
+  { district: '復興區', village: '華陵里', latitude: 24.6854, longitude: 121.3921 },
+];
+
+const SEARCH_PLACE_ALIASES: Array<{
+  label: string;
+  tokens: string[];
+  latitude: number;
+  longitude: number;
+}> = [
+  { label: '桃園市', tokens: ['桃園市', '全市'], latitude: 24.9936, longitude: 121.3010 },
+  { label: '桃園機場', tokens: ['桃園機場', '機場', 'taoyuanairport', 'airport'], latitude: 25.0797, longitude: 121.2342 },
+  { label: '高鐵桃園站', tokens: ['高鐵桃園', '桃園高鐵', '青埔', '高鐵站'], latitude: 25.0137, longitude: 121.2140 },
+  { label: '觀音工業區', tokens: ['觀音工業區', '觀音工業', '工業區'], latitude: 25.0384, longitude: 121.1138 },
+  { label: '中壢交流道', tokens: ['中壢交流道', '中壢'], latitude: 24.9681, longitude: 121.2231 },
+];
+
+const normalizeSearchText = (value: string) => value
+  .trim()
+  .toLowerCase()
+  .replace(/\s+/g, '')
+  .replace(/台/g, '臺');
+
+const getGridDistrict = (grid: GridCell) => (
+  (grid as GridWithDistrict).district ||
+  findNearestDistrict(grid.centerLatLng.latitude, grid.centerLatLng.longitude)
+);
+
+const getGridVillageLocation = (grid: GridCell) => {
+  const existing = grid as GridWithDistrict;
+  if (existing.district && existing.village) {
+    return { district: existing.district, village: existing.village };
+  }
+
+  const nearest = TAOYUAN_VILLAGE_CENTERS.reduce<VillageCenter | null>((best, village) => {
+    if (!best) return village;
+    return calculateDistance(
+      grid.centerLatLng.latitude,
+      grid.centerLatLng.longitude,
+      village.latitude,
+      village.longitude,
+    ) < calculateDistance(
+      grid.centerLatLng.latitude,
+      grid.centerLatLng.longitude,
+      best.latitude,
+      best.longitude,
+    )
+      ? village
+      : best;
+  }, null);
+
+  return nearest
+    ? { district: nearest.district, village: nearest.village }
+    : { district: getGridDistrict(grid), village: '' };
+};
+
+const getGridLocationName = (grid: GridCell) => {
+  const { district, village } = getGridVillageLocation(grid);
+  return village ? `${district}${village}` : district;
+};
+
+const withDistrict = (grid: GridCell): GridWithDistrict => ({
+  ...grid,
+  ...getGridVillageLocation(grid),
+});
+
+const getDistanceToPoint = (grid: GridCell, latitude: number, longitude: number) => (
+  calculateDistance(grid.centerLatLng.latitude, grid.centerLatLng.longitude, latitude, longitude)
+);
+
+const getNearestGridToDistrict = (grids: GridCell[], district: string) => {
+  const coords = DISTRICT_COORDINATES[district];
+  if (!coords) return null;
+  return grids.reduce<GridCell | null>((best, grid) => {
+    if (!best) return grid;
+    return getDistanceToPoint(grid, coords.latitude, coords.longitude) <
+      getDistanceToPoint(best, coords.latitude, coords.longitude)
+      ? grid
+      : best;
+  }, null);
+};
+
+const getNearestGridToPoint = (grids: GridCell[], latitude: number, longitude: number) => (
+  grids.reduce<GridCell | null>((best, grid) => {
+    if (!best) return grid;
+    return getDistanceToPoint(grid, latitude, longitude) < getDistanceToPoint(best, latitude, longitude)
+      ? grid
+      : best;
+  }, null)
+);
+
 const IconTemp = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -260,6 +424,9 @@ export default function MapPage() {
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchMessage, setSearchMessage] = useState('');
+  const [focusedGrid, setFocusedGrid] = useState<GridCell | null>(null);
   const Z = 1100;
 
   useEffect(() => {
@@ -269,12 +436,83 @@ export default function MapPage() {
       .then(setGridCells)
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, [selectedPollutant, selectedScenario]);
+  }, [selectedPollutant, selectedScenario, setGridCells, setIsLoading]);
 
   const handleGridPress = (grid: GridCell) => {
-    setSelectedGrid(grid);
+    setSelectedGrid(withDistrict(grid));
     setSelectedGridId(grid.gridId);
     setShowSheet(true);
+  };
+
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const query = normalizeSearchText(search);
+    if (!query || gridCells.length === 0) return [];
+
+    const results: SearchResult[] = [];
+    const usedGridIds = new Set<string>();
+    const matchedDistricts = DISTRICTS.filter((district) => {
+      const normalizedDistrict = normalizeSearchText(district);
+      const normalizedShort = normalizeSearchText(district.replace(/區$/, ''));
+      return normalizedDistrict.includes(query) || normalizedShort.includes(query);
+    });
+
+    matchedDistricts.forEach((district) => {
+      const grid = getNearestGridToDistrict(gridCells, district);
+      if (!grid) return;
+      usedGridIds.add(grid.gridId);
+      results.push({
+        key: `district-${district}`,
+        label: district,
+        detail: `前往 ${district} 附近網格 ${grid.gridId}`,
+        grid: withDistrict(grid),
+      });
+    });
+
+    SEARCH_PLACE_ALIASES
+      .filter((place) => place.tokens.some((token) => normalizeSearchText(token).includes(query)))
+      .forEach((place) => {
+        const grid = getNearestGridToPoint(gridCells, place.latitude, place.longitude);
+        if (!grid || usedGridIds.has(grid.gridId)) return;
+        usedGridIds.add(grid.gridId);
+        results.push({
+          key: `place-${place.label}`,
+          label: place.label,
+        detail: `前往 ${getGridLocationName(grid)} 附近網格 ${grid.gridId}`,
+          grid: withDistrict(grid),
+        });
+      });
+
+    gridCells
+      .filter((grid) => normalizeSearchText(grid.gridId).includes(query) && !usedGridIds.has(grid.gridId))
+      .slice(0, 4)
+      .forEach((grid) => {
+        const location = getGridLocationName(grid);
+        usedGridIds.add(grid.gridId);
+        results.push({
+          key: `grid-${grid.gridId}`,
+          label: grid.gridId,
+          detail: `${location} ｜ ${Math.round(grid.values.value)} ${grid.values.unit}`,
+          grid: withDistrict(grid),
+        });
+      });
+
+    return results.slice(0, 6);
+  }, [gridCells, search]);
+
+  const selectSearchResult = (result: SearchResult) => {
+    setSearch(result.label);
+    setSearchMessage('');
+    setSearchFocused(false);
+    setFocusedGrid(result.grid);
+    handleGridPress(result.grid);
+  };
+
+  const submitSearch = () => {
+    if (searchResults.length > 0) {
+      selectSearchResult(searchResults[0]);
+      return;
+    }
+    if (search.trim()) setSearchMessage('找不到符合的行政區或網格 ID');
   };
 
   const selectedMeta = pollutantMeta[selectedPollutant];
@@ -307,29 +545,82 @@ export default function MapPage() {
         </div>
 
         {/* Search bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, width: 300,
-          backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: 25,
-          padding: '9px 16px',
-          boxShadow: '0 2px 12px rgba(58,30,45,0.12)', border: `1px solid ${palette.borderSoft}`,
-        }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={palette.textSecondary} strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋行政區或地點…"
-            style={{
-              flex: 1, minWidth: 0, border: 'none', background: 'transparent',
-              fontSize: 13, color: palette.textMain, outline: 'none',
-            }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')} style={{
-              border: 'none', background: 'transparent', cursor: 'pointer',
-              color: palette.textSecondary, fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0,
-            }}>×</button>
+        <div style={{ position: 'relative', width: 300 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: 25,
+            padding: '9px 16px',
+            boxShadow: '0 2px 12px rgba(58,30,45,0.12)', border: `1px solid ${palette.borderSoft}`,
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={palette.textSecondary} strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSearchMessage('');
+              }}
+              onFocus={() => setSearchFocused(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitSearch();
+                }
+                if (e.key === 'Escape') setSearchFocused(false);
+              }}
+              placeholder="搜尋行政區或網格 ID…"
+              style={{
+                flex: 1, minWidth: 0, border: 'none', background: 'transparent',
+                fontSize: 13, color: palette.textMain, outline: 'none',
+              }}
+            />
+            {search && (
+              <button onClick={() => {
+                setSearch('');
+                setSearchMessage('');
+                setSearchFocused(false);
+              }} style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                color: palette.textSecondary, fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0,
+              }}>×</button>
+            )}
+          </div>
+
+          {(searchFocused && search.trim()) && (
+            <div style={{
+              position: 'absolute', top: 48, left: 0, right: 0,
+              background: 'rgba(255,255,255,0.98)', border: `1px solid ${palette.borderSoft}`,
+              borderRadius: 14, boxShadow: '0 12px 32px rgba(58,30,45,0.16)',
+              overflow: 'hidden', backdropFilter: 'blur(18px)',
+            }}>
+              {searchResults.length > 0 ? searchResults.map((result) => (
+                <button
+                  key={result.key}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectSearchResult(result)}
+                  style={{
+                    width: '100%', border: 'none', background: 'transparent',
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                    gap: 3, padding: '10px 14px', cursor: 'pointer', textAlign: 'left',
+                    borderBottom: `1px solid ${palette.borderSoft}`,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 800, color: palette.textMain }}>{result.label}</span>
+                  <span style={{ fontSize: 11, color: palette.textSecondary }}>{result.detail}</span>
+                </button>
+              )) : (
+                <div style={{ padding: '12px 14px', fontSize: 12, color: palette.textSecondary }}>
+                  找不到符合的行政區或網格 ID
+                </div>
+              )}
+            </div>
+          )}
+
+          {searchMessage && (
+            <div style={{ marginTop: 6, paddingLeft: 14, fontSize: 11, fontWeight: 700, color: '#9F1239' }}>
+              {searchMessage}
+            </div>
           )}
         </div>
       </div>
@@ -337,10 +628,10 @@ export default function MapPage() {
       {/* ── Map ──────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'none' : 'block' }}>
-          <LeafletMap gridCells={gridCells} mapMode={mapMode} onGridPress={handleGridPress} />
+          <LeafletMap gridCells={gridCells} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
         </div>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'block' : 'none' }}>
-          <TGOSMap gridCells={gridCells} onGridPress={handleGridPress} />
+          <TGOSMap gridCells={gridCells} onGridPress={handleGridPress} focusGrid={focusedGrid} />
         </div>
       </div>
 
@@ -455,7 +746,7 @@ export default function MapPage() {
               <div>
                 <p style={{ margin: 0, fontSize: 11, color: palette.textSecondary, fontWeight: 600 }}>點選網格</p>
                 <h2 style={{ margin: '2px 0 0', fontSize: 20, color: palette.textMain, fontWeight: 800 }}>
-                  {(selectedGrid as any).district || '桃園市'}
+                  {getGridLocationName(selectedGrid)}
                 </h2>
               </div>
               <button onClick={() => setShowSheet(false)} aria-label="關閉" style={{

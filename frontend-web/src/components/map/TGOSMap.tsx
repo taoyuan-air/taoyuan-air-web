@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { GridCell } from '@shared/types';
 
 interface TGOSMapProps {
   gridCells: GridCell[];
   onGridPress?: (grid: GridCell) => void;
+  focusGrid?: GridCell | null;
 }
 
 const getGridColor = (value: number) => {
@@ -22,15 +23,55 @@ const getGridColor = (value: number) => {
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 };
 
+type RuntimeWindow = Window & Record<string, unknown>;
+
+interface TGOSPoint {
+  x?: number;
+  y?: number;
+}
+
+interface TGOSMapInstance {
+  setCenter: (point: TGOSPoint) => void;
+  setZoom: (zoom: number) => void;
+}
+
+interface TGOSFillInstance {
+  destroy?: () => void;
+}
+
+interface TGOSEvent {
+  coord?: { x?: number; y?: number };
+  lonlat?: { lng?: number; lat?: number };
+}
+
+interface TGOSApi {
+  Point: new (longitude: number, latitude: number) => TGOSPoint;
+  LineString: new (points: TGOSPoint[]) => unknown;
+  LinearRing: new (lineString: unknown) => unknown;
+  Polygon: new (rings: unknown[]) => unknown;
+  Fill: new (map: TGOSMapInstance, polygon: unknown, options: Record<string, unknown>) => TGOSFillInstance;
+  OnlineMap: new (
+    container: HTMLElement,
+    projection: string,
+    options: Record<string, unknown>,
+    ready: () => void
+  ) => TGOSMapInstance;
+  Event: {
+    addListener: (target: TGOSMapInstance, event: 'click', handler: (event: TGOSEvent) => void) => void;
+  };
+}
+
+const getTGOS = () => (window as unknown as RuntimeWindow).TGOS as TGOSApi | undefined;
+
 let tgosInitialized = false;
 
-export default function TGOSMap({ gridCells, onGridPress }: TGOSMapProps) {
-  const tgosMapRef = useRef<any>(null);
-  const fillsRef = useRef<any[]>([]);
+export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapProps) {
+  const tgosMapRef = useRef<TGOSMapInstance | null>(null);
+  const fillsRef = useRef<TGOSFillInstance[]>([]);
   const apiKey = process.env.NEXT_PUBLIC_TGOS_API_KEY;
 
-  const renderPolygons = (cells: GridCell[], TGOS: any, map: any) => {
-    fillsRef.current.forEach((fill) => { try { fill.destroy?.(); } catch (_) {} });
+  const renderPolygons = useCallback((cells: GridCell[], TGOS: TGOSApi, map: TGOSMapInstance) => {
+    fillsRef.current.forEach((fill) => { try { fill.destroy?.(); } catch {} });
     fillsRef.current = [];
     cells.forEach((grid) => {
       const points = grid.polygonCoords.map((c) => new TGOS.Point(c.longitude, c.latitude));
@@ -41,7 +82,7 @@ export default function TGOSMap({ gridCells, onGridPress }: TGOSMapProps) {
       fillsRef.current.push(fill);
     });
     if (onGridPress) {
-      TGOS.Event.addListener(map, 'click', (event: any) => {
+      TGOS.Event.addListener(map, 'click', (event) => {
         const lng = event.coord?.x ?? event.lonlat?.lng;
         const lat = event.coord?.y ?? event.lonlat?.lat;
         if (lng == null || lat == null) return;
@@ -53,7 +94,7 @@ export default function TGOSMap({ gridCells, onGridPress }: TGOSMapProps) {
         if (hit) onGridPress(hit);
       });
     }
-  };
+  }, [onGridPress]);
 
   useEffect(() => {
     const loadScript = (src: string, id: string) => new Promise((resolve, reject) => {
@@ -69,7 +110,7 @@ export default function TGOSMap({ gridCells, onGridPress }: TGOSMapProps) {
       tgosInitialized = true;
       try {
         await loadScript(`https://api.tgos.tw/TGOS_MAP_API_3?APIKEY=${apiKey}`, 'tgos-sdk');
-        const TGOS = (window as any).TGOS;
+        const TGOS = getTGOS();
         if (!TGOS) return;
         const container = document.getElementById('tgos-map');
         if (!container) return;
@@ -84,13 +125,20 @@ export default function TGOSMap({ gridCells, onGridPress }: TGOSMapProps) {
       }
     };
     init();
-  }, [apiKey]);
+  }, [apiKey, gridCells, renderPolygons]);
 
   useEffect(() => {
-    const TGOS = (window as any).TGOS;
+    const TGOS = getTGOS();
     if (!tgosMapRef.current || !TGOS) return;
     renderPolygons(gridCells, TGOS, tgosMapRef.current);
-  }, [gridCells]);
+  }, [gridCells, renderPolygons]);
+
+  useEffect(() => {
+    const TGOS = getTGOS();
+    if (!focusGrid || !tgosMapRef.current || !TGOS) return;
+    tgosMapRef.current.setCenter(new TGOS.Point(focusGrid.centerLatLng.longitude, focusGrid.centerLatLng.latitude));
+    tgosMapRef.current.setZoom(13);
+  }, [focusGrid]);
 
   if (!apiKey) {
     return (
