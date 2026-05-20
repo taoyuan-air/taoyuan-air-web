@@ -441,6 +441,7 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
     if (b === selectedDistrict) return -1;
     return 0;
   });
+  const selectedLabelPos = selectedDistrict ? DISTRICT_LABEL_POS[selectedDistrict] : null;
 
   return (
     <svg
@@ -450,6 +451,15 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
       aria-label="桃園市行政區地圖"
       style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible' }}
     >
+      <defs>
+        <filter id="taoyuan-selected-glow" x="-12%" y="-12%" width="124%" height="124%">
+          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#d4567a" floodOpacity="0.16" />
+        </filter>
+        <filter id="taoyuan-marker-shadow" x="-60%" y="-50%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#9f3e60" floodOpacity="0.20" />
+        </filter>
+      </defs>
+
       <style>{`
         .taoyuan-district {
           cursor: pointer;
@@ -459,7 +469,13 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           stroke-linejoin: round;
           stroke-linecap: round;
           vector-effect: non-scaling-stroke;
-          transition: fill 0.18s ease, stroke 0.18s ease;
+          transform-box: fill-box;
+          transform-origin: center;
+          transition:
+            fill 0.18s ease,
+            stroke 0.18s ease,
+            transform 0.28s cubic-bezier(.2,.8,.2,1),
+            filter 0.28s ease;
         }
         .taoyuan-district:hover {
           fill: #f8d0da;
@@ -468,6 +484,8 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           fill: #f8d0da;
           stroke: #d4567a;
           stroke-width: 3;
+          filter: url(#taoyuan-selected-glow);
+          transform: scale(1.075);
         }
         .taoyuan-label {
           pointer-events: none;
@@ -480,9 +498,37 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           paint-order: stroke;
           stroke: rgba(255,255,255,0.4);
           stroke-width: 2;
+          transform-box: fill-box;
+          transform-origin: center;
+          transition:
+            fill 0.18s ease,
+            transform 0.28s cubic-bezier(.2,.8,.2,1),
+            stroke-width 0.18s ease;
         }
         .taoyuan-label.selected {
           fill: #d4567a;
+          stroke-width: 2.6;
+          transform: scale(1.18);
+        }
+        .taoyuan-selected-marker {
+          pointer-events: none;
+          filter: url(#taoyuan-marker-shadow);
+        }
+        .taoyuan-selected-marker-bounce {
+          animation: taoyuan-marker-bounce 1.35s ease-in-out infinite;
+        }
+        .taoyuan-selected-marker-pulse {
+          animation: taoyuan-marker-pulse 1.35s ease-in-out infinite;
+          transform-box: fill-box;
+          transform-origin: center;
+        }
+        @keyframes taoyuan-marker-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-13px); }
+        }
+        @keyframes taoyuan-marker-pulse {
+          0%, 100% { opacity: 0.26; transform: scale(0.9); }
+          50% { opacity: 0.08; transform: scale(1.22); }
         }
       `}</style>
 
@@ -505,6 +551,32 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           {name}
         </text>
       ))}
+
+      {selectedLabelPos && (
+        <g
+          className="taoyuan-selected-marker"
+          transform={`translate(${selectedLabelPos.x} ${selectedLabelPos.y - 92})`}
+        >
+          <g className="taoyuan-selected-marker-bounce">
+            <ellipse
+              className="taoyuan-selected-marker-pulse"
+              cx="0"
+              cy="33"
+              rx="20"
+              ry="8"
+              fill="#d4567a"
+            />
+            <path
+              d="M0 -29C-17 -29 -30 -16 -30 1c0 23 30 49 30 49S30 24 30 1C30 -16 17 -29 0 -29Z"
+              fill="#ffffff"
+              stroke="#d4567a"
+              strokeWidth="6"
+              strokeLinejoin="round"
+            />
+            <circle cx="0" cy="0" r="10" fill="#d4567a" />
+          </g>
+        </g>
+      )}
     </svg>
   );
 }

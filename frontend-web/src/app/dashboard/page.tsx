@@ -128,15 +128,16 @@ function SecLabel({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-const GAUGE_SIZE = 200;
-const STROKE_W = 11;
+const GAUGE_SIZE = 158;
+const STROKE_W = 9;
 const GAUGE_R = (GAUGE_SIZE - STROKE_W) / 2;
 const GAUGE_CIRC = 2 * Math.PI * GAUGE_R;
 
-function AQIGauge({ aqi }: { aqi: number }) {
+function AQIGauge({ aqi, animationKey }: { aqi: number; animationKey: string }) {
   const color = getAQIColor(aqi);
   const pct = Math.min(Math.max(aqi / 200, 0), 1);
   const offset = GAUGE_CIRC * (1 - pct);
+  const center = GAUGE_SIZE / 2;
 
   return (
     <div className="aqi-gauge">
@@ -148,8 +149,8 @@ function AQIGauge({ aqi }: { aqi: number }) {
           </linearGradient>
         </defs>
         <circle
-          cx={100}
-          cy={100}
+          cx={center}
+          cy={center}
           r={GAUGE_R}
           stroke={color}
           strokeOpacity={0.25}
@@ -157,17 +158,27 @@ function AQIGauge({ aqi }: { aqi: number }) {
           fill="none"
         />
         <circle
-          cx={100}
-          cy={100}
+          key={`aqi-ring-${animationKey}-${aqi}`}
+          cx={center}
+          cy={center}
           r={GAUGE_R}
           stroke="url(#aqi-ring-gradient)"
           strokeWidth={STROKE_W}
           fill="none"
           strokeDasharray={GAUGE_CIRC}
-          strokeDashoffset={offset}
+          strokeDashoffset={GAUGE_CIRC}
           strokeLinecap="round"
-          transform="rotate(-90, 100, 100)"
-        />
+          transform={`rotate(-90, ${center}, ${center})`}
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            from={GAUGE_CIRC}
+            to={offset}
+            dur="1.2s"
+            fill="freeze"
+            calcMode="linear"
+          />
+        </circle>
       </svg>
       <div className="aqi-gauge-inner">
         <span className="aqi-label">AQI</span>
@@ -196,12 +207,14 @@ function GaugeArc({
   markerVal,
   color,
   unit,
+  animationKey,
 }: {
   value: number;
   max: number;
   markerVal: number;
   color: string;
   unit: string;
+  animationKey: string;
 }) {
   const dashOffset = ARC_LEN * (1 - Math.min(value / max, 1));
   const markerAngle = Math.min(markerVal / max, 1) * 180;
@@ -214,14 +227,24 @@ function GaugeArc({
     <svg width={190} height={90} viewBox="-10 0 120 68" className="mini-arc" aria-hidden="true">
       <path d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={7} strokeLinecap="round" />
       <path
+        key={`mini-arc-${animationKey}-${value}-${unit}`}
         d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`}
         fill="none"
         stroke={color}
         strokeWidth={7}
         strokeLinecap="round"
         strokeDasharray={ARC_LEN}
-        strokeDashoffset={dashOffset}
-      />
+        strokeDashoffset={ARC_LEN}
+      >
+        <animate
+          attributeName="stroke-dashoffset"
+          from={ARC_LEN}
+          to={dashOffset}
+          dur="0.8s"
+          fill="freeze"
+          calcMode="linear"
+        />
+      </path>
       <line x1={mp.x} y1={mp.y} x2={lx} y2={ly} stroke="rgba(0,0,0,0.28)" strokeWidth={1.5} strokeLinecap="round" />
       <text x={lx} y={ly - 3} fontSize={9} fill="#aaa" textAnchor="middle">{markerVal}</text>
       <text x={ARC_CX} y={52} fontSize={20} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
@@ -231,9 +254,9 @@ function GaugeArc({
 }
 
 function TrendBars() {
-  const BAR_W = 14;
-  const BAR_GAP = 8;
-  const MAX_H = 56;
+  const BAR_W = 10;
+  const BAR_GAP = 5;
+  const MAX_H = 52;
   const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
   const slots = useMemo(() => {
@@ -350,26 +373,26 @@ function DashboardStyles() {
   return (
     <style>{`
       .dashboard-page {
-        min-height: calc(100vh - 80px);
+        height: calc(100vh - 80px);
         padding: 14px 44px 30px;
         display: grid;
-        grid-template-columns: minmax(420px, 40%) minmax(720px, 1fr);
-        gap: 28px;
+        grid-template-columns: minmax(380px, 36%) minmax(760px, 1fr);
+        gap: 22px;
         overflow: hidden;
       }
 
       .dashboard-map-pane {
         position: relative;
         min-height: calc(100vh - 124px);
-        padding: 54px 28px 38px 8px;
+        padding: 58px 18px 42px 0;
         display: flex;
         flex-direction: column;
         align-items: center;
       }
 
       .dashboard-map-wrap {
-        width: min(100%, 610px);
-        height: min(72vh, 650px);
+        width: min(100%, 560px);
+        height: min(68vh, 610px);
       }
 
       .dashboard-map-action {
@@ -390,57 +413,72 @@ function DashboardStyles() {
       }
 
       .dashboard-panel {
-        min-height: calc(100vh - 110px);
-        max-height: calc(100vh - 110px);
-        overflow-y: auto;
+        height: calc(100vh - 124px);
+        min-height: 0;
+        overflow: hidden;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
         border-radius: 20px;
         box-shadow: 0 4px 32px rgba(231, 101, 149, 0.08);
-        padding: 24px 28px 22px;
+        padding: 22px 30px 20px;
+        display: flex;
+        flex-direction: column;
       }
 
       .district-heading {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         color: #d4567a;
-        font-size: 30px;
+        font-size: 24px;
         font-weight: 900;
         letter-spacing: 0;
+        flex: 0 0 auto;
+        line-height: 1;
+      }
+
+      .district-heading h1 {
+        margin: 0;
+        font-size: inherit;
+        line-height: 1;
       }
 
       .dash-divider {
         height: 1px;
         background: rgba(0, 0, 0, 0.06);
-        margin: 14px 0 18px;
+        margin: 16px 0 18px;
+        flex: 0 0 auto;
       }
 
       .dashboard-first-row,
       .dashboard-second-row {
         display: grid;
-        gap: 18px;
+        gap: 20px;
       }
 
       .dashboard-first-row {
-        grid-template-columns: minmax(230px, 0.9fr) minmax(450px, 1.7fr);
+        grid-template-columns: minmax(190px, 0.78fr) minmax(430px, 1.9fr);
         align-items: start;
+        min-height: 0;
+        flex: 0 0 auto;
       }
 
       .dashboard-second-row {
-        grid-template-columns: minmax(360px, 1fr) 1px minmax(420px, 1.2fr);
+        grid-template-columns: minmax(310px, 1fr) 1px minmax(360px, 1.12fr);
         align-items: start;
-        margin-top: 20px;
+        margin-top: 14px;
+        min-height: 0;
+        flex: 0 0 auto;
       }
 
       .dash-section-label {
         display: flex;
         align-items: center;
         gap: 9px;
-        min-height: 18px;
-        margin-bottom: 16px;
+        min-height: 16px;
+        margin-bottom: 13px;
         color: ${C.text};
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 800;
       }
 
@@ -455,7 +493,7 @@ function DashboardStyles() {
 
       .dash-section-label small {
         color: #aaa;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
       }
 
@@ -463,7 +501,7 @@ function DashboardStyles() {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 18px;
+        padding-top: 8px;
       }
 
       .aqi-gauge {
@@ -479,11 +517,15 @@ function DashboardStyles() {
         inset: 0;
       }
 
+      .aqi-gauge circle {
+        transition: stroke 0.18s ease;
+      }
+
       .aqi-gauge-inner {
         position: relative;
         z-index: 1;
-        width: ${GAUGE_SIZE - 60}px;
-        height: ${GAUGE_SIZE - 60}px;
+        width: ${GAUGE_SIZE - 46}px;
+        height: ${GAUGE_SIZE - 46}px;
         border-radius: 50%;
         background: ${C.glass};
         border: 1px solid ${C.glassInner};
@@ -497,27 +539,27 @@ function DashboardStyles() {
       .aqi-label {
         color: ${C.hint};
         font-family: monospace;
-        font-size: 9px;
+        font-size: 8px;
         letter-spacing: 1.5px;
       }
 
       .aqi-gauge-inner strong {
-        font-size: 40px;
-        line-height: 44px;
+        font-size: 32px;
+        line-height: 34px;
         font-weight: 900;
       }
 
       .aqi-pill {
-        margin-top: 5px;
-        padding: 3px 10px;
+        margin-top: 4px;
+        padding: 2px 8px;
         border: 1.2px solid;
         border-radius: 999px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
       }
 
       .aqi-hint {
-        margin-top: 18px;
+        margin-top: 11px;
         color: ${C.hint};
         font-size: 10px;
         font-weight: 600;
@@ -536,34 +578,34 @@ function DashboardStyles() {
 
       .mini-gauge-row {
         grid-template-columns: 1fr 1px 1fr;
-        margin-bottom: 12px;
+        margin-bottom: 9px;
       }
 
       .mini-gauge-card {
         min-width: 0;
-        padding-top: 16px;
+        padding-top: 5px;
         text-align: center;
       }
 
       .mini-gauge-card h3 {
         margin: 0;
         color: #444;
-        font-size: 20px;
+        font-size: 17px;
         line-height: 1;
         font-weight: 800;
       }
 
       .mini-gauge-card p {
-        margin: 3px 0 4px;
+        margin: 2px 0 2px;
         color: ${C.muted};
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 600;
       }
 
       .mini-gauge-card small {
         display: block;
         color: #aaa;
-        font-size: 9px;
+        font-size: 8px;
       }
 
       .mini-divider,
@@ -573,13 +615,20 @@ function DashboardStyles() {
       }
 
       .mini-divider {
-        margin: 12px 0;
+        margin: 8px 0;
       }
 
       .mini-arc {
         display: block;
         margin: 0 auto;
         overflow: visible;
+        width: 152px;
+        height: 72px;
+      }
+
+      .mini-arc path,
+      .mini-arc text {
+        transition: fill 0.18s ease;
       }
 
       .mini-pollut-strip {
@@ -588,7 +637,7 @@ function DashboardStyles() {
 
       .mini-pollut-card {
         min-width: 0;
-        padding: 8px 8px;
+        padding: 7px 8px;
         text-align: center;
       }
 
@@ -600,15 +649,15 @@ function DashboardStyles() {
       .mini-pollut-card h4 {
         margin: 0;
         color: #555;
-        font-size: 17px;
+        font-size: 15px;
         line-height: 1.1;
         font-weight: 800;
       }
 
       .mini-pollut-card p {
-        margin: 3px 0 5px;
+        margin: 3px 0 6px;
         color: ${C.muted};
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 600;
       }
 
@@ -621,7 +670,7 @@ function DashboardStyles() {
 
       .mini-pollut-value strong {
         color: #e76595;
-        font-size: 18px;
+        font-size: 16px;
         line-height: 1;
         font-weight: 800;
       }
@@ -634,12 +683,12 @@ function DashboardStyles() {
 
       .advice-card,
       .insight-card {
-        min-height: 72px;
+        min-height: 60px;
         display: flex;
         align-items: center;
-        gap: 12px;
-        border-radius: 12px;
-        padding: 13px;
+        gap: 10px;
+        border-radius: 11px;
+        padding: 12px;
       }
 
       .advice-icon,
@@ -650,8 +699,8 @@ function DashboardStyles() {
       }
 
       .advice-icon {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border: 1px solid;
         border-radius: 10px;
       }
@@ -663,8 +712,8 @@ function DashboardStyles() {
 
       .advice-card p {
         color: ${C.muted};
-        font-size: 12px;
-        line-height: 1.7;
+        font-size: 11px;
+        line-height: 1.55;
       }
 
       .row-divider {
@@ -678,8 +727,8 @@ function DashboardStyles() {
       }
 
       .insight-icon {
-        width: 34px;
-        height: 34px;
+        width: 32px;
+        height: 32px;
         border-radius: 8px;
         background: rgba(212, 86, 122, 0.16);
         color: ${C.rose};
@@ -693,7 +742,7 @@ function DashboardStyles() {
       .insight-copy strong {
         display: block;
         color: ${C.rose};
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
       }
 
@@ -701,7 +750,7 @@ function DashboardStyles() {
         display: block;
         margin-top: 2px;
         color: ${C.muted};
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 600;
       }
 
@@ -709,15 +758,17 @@ function DashboardStyles() {
         flex: 0 0 auto;
         border: 1px solid ${C.roseBorder};
         border-radius: 999px;
-        padding: 3px 9px;
+        padding: 2px 8px;
         background: rgba(212, 86, 122, 0.14);
         color: ${C.rose};
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
       }
 
       .trend-section {
-        margin-top: 28px;
+        margin-top: 16px;
+        min-height: 0;
+        flex: 1 1 auto;
       }
 
       .trend-heading {
@@ -725,10 +776,11 @@ function DashboardStyles() {
         align-items: center;
         justify-content: space-between;
         gap: 14px;
+        height: 22px;
       }
 
       .scroll-hint {
-        display: inline-flex;
+        display: none;
         align-items: center;
         gap: 4px;
         border: 1px solid ${C.roseBorder};
@@ -742,17 +794,8 @@ function DashboardStyles() {
 
       .trend-scroll {
         width: 100%;
-        overflow-x: auto;
-        padding: 0 0 4px 20px;
-      }
-
-      .trend-scroll::-webkit-scrollbar {
-        height: 6px;
-      }
-
-      .trend-scroll::-webkit-scrollbar-thumb {
-        border-radius: 999px;
-        background: rgba(212, 86, 122, 0.18);
+        overflow: hidden;
+        padding: 0 0 0 8px;
       }
 
       .trend-inner {
@@ -761,28 +804,28 @@ function DashboardStyles() {
 
       .trend-date-row {
         position: relative;
-        height: 18px;
-        margin-bottom: 2px;
+        height: 20px;
+        margin-bottom: 0;
       }
 
       .trend-date-label {
         position: absolute;
         top: 0;
         color: ${C.rose};
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
         white-space: nowrap;
       }
 
       .trend-bars {
-        height: 60px;
+        height: 56px;
         display: flex;
         align-items: flex-end;
       }
 
       .trend-bar-wrap {
         position: relative;
-        height: 60px;
+        height: 56px;
         flex-shrink: 0;
         display: flex;
         align-items: flex-end;
@@ -794,7 +837,7 @@ function DashboardStyles() {
         bottom: 0;
         left: 50%;
         width: 1.5px;
-        height: 56px;
+        height: 54px;
         transform: translateX(-50%);
         background: ${C.rose};
       }
@@ -816,16 +859,16 @@ function DashboardStyles() {
       .trend-hour {
         position: absolute;
         top: 2px;
-        width: 24px;
+        width: 20px;
         text-align: center;
         color: rgba(93, 115, 137, 0.6);
-        font-size: 9px;
-        font-weight: 500;
+        font-size: 10px;
+        font-weight: 700;
       }
 
       .trend-hour.now {
         color: ${C.rose};
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
       }
 
@@ -836,20 +879,20 @@ function DashboardStyles() {
 
       .trend-footer {
         position: relative;
-        height: 16px;
-        margin-top: 4px;
+        height: 20px;
+        margin-top: 5px;
         display: flex;
         justify-content: space-between;
         color: ${C.hint};
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 12px;
+        font-weight: 800;
       }
 
       .trend-footer strong {
         position: absolute;
         top: 0;
         color: ${C.rose};
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 900;
       }
 
@@ -970,7 +1013,7 @@ export default function DashboardPage() {
   const pollutants = [
     { name: 'NO₂', sub: '二氧化氮', value: no2, unit: 'ppb' },
     { name: 'SO₂', sub: '二氧化硫', value: so2, unit: 'ppb' },
-    { name: 'CO', sub: '一氧化碳', value: co, unit: 'ppm' },
+    { name: 'CO', sub: '一氧化碳', value: co.toFixed(2), unit: 'ppm' },
     { name: 'PM10', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
   ];
 
@@ -1001,7 +1044,7 @@ export default function DashboardPage() {
             <div>
               <SecLabel title="AQI 空氣品質指標" />
               <div className="aqi-block">
-                <AQIGauge aqi={aqi} />
+                <AQIGauge key={`aqi-${district}-${aqi}`} aqi={aqi} animationKey={`${district}-${aqi}`} />
                 <span className="aqi-hint">數值範圍 0-200，越低越好</span>
               </div>
             </div>
@@ -1016,14 +1059,30 @@ export default function DashboardPage() {
                   <h3>PM2.5</h3>
                   <p>細懸浮微粒</p>
                   <small>標準日均值為 15.4 μg/m³</small>
-                  <GaugeArc value={pm25} max={150} markerVal={15.4} color={getPM25Color(pm25)} unit="μg/m³" />
+                  <GaugeArc
+                    key={`pm25-${district}-${pm25}`}
+                    value={pm25}
+                    max={150}
+                    markerVal={15.4}
+                    color={getPM25Color(pm25)}
+                    unit="μg/m³"
+                    animationKey={`${district}-pm25-${pm25}`}
+                  />
                 </div>
                 <div className="mini-divider" />
                 <div className="mini-gauge-card">
                   <h3>O₃</h3>
                   <p>臭氧</p>
                   <small>標準8小時均值為 54 ppb</small>
-                  <GaugeArc value={o3} max={200} markerVal={54} color={getO3Color(o3)} unit="ppb" />
+                  <GaugeArc
+                    key={`o3-${district}-${o3}`}
+                    value={o3}
+                    max={200}
+                    markerVal={54}
+                    color={getO3Color(o3)}
+                    unit="ppb"
+                    animationKey={`${district}-o3-${o3}`}
+                  />
                 </div>
               </div>
 
