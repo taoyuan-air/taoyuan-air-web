@@ -12,7 +12,10 @@ export interface MoeStationData {
   aqi: number;
   pm25: number;
   o3: number;
-  nox: number;
+  no2: number;
+  so2: number;
+  co: number;
+  pm10: number;
   datacreationdate?: string;
 }
 
@@ -78,7 +81,10 @@ export const fetchMoeStations = async (): Promise<MoeStationData[]> => {
       aqi: Number(record.aqi) || 0,
       pm25: Number(record['pm2.5']) || 0,
       o3: Number(record.o3) || 0,
-      nox: Number(record.nox) || 0,
+      no2: Number(record.no2) || 0,
+      so2: Number(record.so2) || 0,
+      co: Number(record.co) || 0,
+      pm10: Number(record.pm10) || 0,
       datacreationdate: record.publishtime ?? undefined,
     }));
   } catch (err) {

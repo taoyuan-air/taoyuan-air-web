@@ -28,26 +28,33 @@ const MOE_STATION_TO_DISTRICT: Record<string, string> = {
 
 // ─── 與 StationCarousel DISTRICTS 完全一致的靜態備援資料 ────────────────────
 // 用途：當某區域無對應 EPA 測站時，確保 Dashboard 與 Carousel 顯示相同數值
-const DISTRICT_STATIC_AQ: Record<
-  string,
-  { pm25: number; o3: number; aqi: number }
-> = {
-  桃園區: { pm25: 20, o3: 48, aqi: 75 },
-  中壢區: { pm25: 18, o3: 42, aqi: 72 },
-  八德區: { pm25: 16, o3: 40, aqi: 68 },
-  龜山區: { pm25: 19, o3: 44, aqi: 73 },
-  蘆竹區: { pm25: 14, o3: 36, aqi: 62 },
-  大園區: { pm25: 12, o3: 35, aqi: 58 },
-  大溪區: { pm25: 13, o3: 37, aqi: 60 },
-  平鎮區: { pm25: 16, o3: 40, aqi: 68 },
-  楊梅區: { pm25: 17, o3: 41, aqi: 70 },
-  龍潭區: { pm25: 15, o3: 38, aqi: 65 },
-  觀音區: { pm25: 22, o3: 45, aqi: 78 },
-  新屋區: { pm25: 21, o3: 43, aqi: 76 },
-  復興區: { pm25: 10, o3: 32, aqi: 52 },
+const DISTRICT_STATIC_AQ: Record<string, { pm25: number; o3: number; no2: number; so2: number; co: number; pm10: number; aqi: number }> = {
+  桃園區: { pm25: 20, o3: 48, no2: 15, so2: 2.5, co: 0.45, pm10: 45, aqi: 75 },
+  中壢區: { pm25: 18, o3: 42, no2: 14, so2: 2.3, co: 0.42, pm10: 40, aqi: 72 },
+  八德區: { pm25: 16, o3: 40, no2: 12, so2: 2.1, co: 0.38, pm10: 38, aqi: 30 },
+  龜山區: { pm25: 19, o3: 44, no2: 18, so2: 3.2, co: 0.55, pm10: 52, aqi: 350 },
+  蘆竹區: { pm25: 14, o3: 36, no2: 11, so2: 2.0, co: 0.35, pm10: 32, aqi: 132 },
+  大園區: { pm25: 12, o3: 35, no2: 10, so2: 2.8, co: 0.30, pm10: 30, aqi: 58 },
+  大溪區: { pm25: 13, o3: 37, no2: 9, so2: 1.8, co: 0.28, pm10: 28, aqi: 189 },
+  平鎮區: { pm25: 16, o3: 40, no2: 13, so2: 2.2, co: 0.40, pm10: 36, aqi: 68 },
+  楊梅區: { pm25: 17, o3: 65, no2: 200, so2: 200, co: 16, pm10: 150, aqi: 70 },
+  龍潭區: { pm25: 15, o3: 38, no2: 10, so2: 1.9, co: 0.36, pm10: 33, aqi: 65 },
+  觀音區: { pm25: 22, o3: 45, no2: 16, so2: 3.5, co: 0.48, pm10: 50, aqi: 78 },
+  新屋區: { pm25: 21, o3: 43, no2: 14, so2: 3.0, co: 0.46, pm10: 48, aqi: 76 },
+  復興區: { pm25: 10, o3: 32, no2: 5, so2: 1.2, co: 0.20, pm10: 20, aqi: 220 },
 };
 
-// ─── AQI Gauge ────────────────────────────────────────
+// ─── Color constants ──────────────────────────────────────────────────────────
+const COLORS = {
+  GOOD:                "#76c476", // 良好 (綠)
+  MODERATE:            "#edbb05", // 普通 (黃)
+  UNHEALTHY_SENSITIVE: "#ff9800", // 對敏感族群不健康 (橘)
+  UNHEALTHY:           "#f44336", // 不健康 (紅)
+  VERY_UNHEALTHY:      "#9c27b0", // 非常不健康 (紫)
+  HAZARDOUS:           "#7b241c", // 有害 (褐紫)
+};
+
+// ─── AQI Gauge ────────────────────────────────────────────────────────────────
 const GAUGE_SIZE = 200;
 const STROKE_WIDTH = 14;
 const GAUGE_RADIUS = (GAUGE_SIZE - STROKE_WIDTH) / 2;
@@ -55,10 +62,11 @@ const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
 const getAQIColor = (aqi: number) => {
   if (aqi <= 50) return "#E76595";
-  if (aqi <= 100) return "#f5c518";
-  if (aqi <= 150) return "#ff8c00";
-  if (aqi <= 200) return "#e53935";
-  return "#9c27b0";
+  if (aqi <= 100) return COLORS.MODERATE;
+  if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
+  if (aqi <= 200) return COLORS.UNHEALTHY;
+  if (aqi <= 300) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;
 };
 
 const getAQIStatus = (aqi: number) => {
@@ -66,6 +74,7 @@ const getAQIStatus = (aqi: number) => {
   if (aqi <= 100) return "普通";
   if (aqi <= 150) return "敏感族群";
   if (aqi <= 200) return "不健康";
+  if (aqi <= 300) return "非常不健康";
   return "危害";
 };
 
@@ -122,62 +131,76 @@ const AQIGauge: React.FC<{ aqi: number }> = ({ aqi }) => {
 };
 
 // ─── Air Quality Helpers ──────────────────────────────────────────────────────
-const getPM25Color = (v: number) => {
-  if (v <= 12) return "#E76595";
-  if (v <= 35) return "#f5c518";
-  if (v <= 55) return "#ff8c00";
-  return "#e53935";
+const getPM25StatusLabel = (v: number) => {
+  if (v <= 15.4)  return "良好";
+  if (v <= 35.4)  return "普通";
+  if (v <= 54.4)  return "敏感族群";
+  if (v <= 150.4) return "不健康";
+  if (v <= 250.4) return "非常不健康";
+  return "危害";
 };
 
-const getPM25StatusLabel = (v: number) => {
-  if (v <= 12) return "良好";
-  if (v <= 35) return "普通";
-  if (v <= 55) return "對敏感族群不健康";
-  return "不健康";
+const getPM25Color = (v: number) => {
+  if (v <= 15.4)  return "#E76595";
+  if (v <= 35.4)  return COLORS.MODERATE;
+  if (v <= 54.4)  return COLORS.UNHEALTHY_SENSITIVE; 
+  if (v <= 150.4) return COLORS.UNHEALTHY;
+  if (v <= 250.4) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;
 };
 
 const getO3Color = (v: number) => {
-  if (v <= 54) return "#E76595";
-  if (v <= 70) return "#f5c518";
-  return "#ff8c00";
+  if (v <= 54)  return "#E76595";
+  if (v <= 70)  return COLORS.MODERATE;
+  if (v <= 85)  return COLORS.UNHEALTHY_SENSITIVE;
+  if (v <= 105) return COLORS.UNHEALTHY;
+  if (v <= 200) return COLORS.VERY_UNHEALTHY;
+  return COLORS.HAZARDOUS;
 };
 
-const getNO2Color = (v: number) => {
-  if (v <= 53) return "#E76595";
-  if (v <= 100) return "#f5c518";
-  return "#ff8c00";
-};
-
-// 根據 PM2.5 決定活動建議 icon & 文字
+// 根據 AQI 決定活動建議
 const getActivityInfo = (
-  pm25: number,
+  aqi: number,
 ): {
   icon: React.ComponentProps<typeof Feather>["name"];
-  iconColor: string;
-  advice: string;
+  color: string;
+  generalAdvice: string;
 } => {
-  if (pm25 <= 12)
+  if (aqi <= 50)
     return {
-      icon: "activity",
-      iconColor: "#E76595",
-      advice: "空氣清新，非常適合戶外運動，盡情享受戶外活動！",
+      icon: "smile",
+      color: "#E76595",
+      generalAdvice: "正常戶外活動，無須特別注意。",
     };
-  if (pm25 <= 35)
+  if (aqi <= 100)
     return {
-      icon: "user",
-      iconColor: "#FBA7BC",
-      advice: "當前 PM2.5 濃度適合戶外運動，敏感族群無需特殊防護。",
+      icon: "meh",
+      color: COLORS.MODERATE,
+      generalAdvice: "正常戶外活動。",
     };
-  if (pm25 <= 55)
+  if (aqi <= 150)
     return {
-      icon: "shield",
-      iconColor: "#ff8c00",
-      advice: "空氣品質普通，敏感族群建議減少長時間戶外活動。",
+      icon: "frown", 
+      color: COLORS.UNHEALTHY_SENSITIVE,
+      generalAdvice: "若感不適（眼痛、咳嗽、喉嚨痛），考慮減少戶外活動；學生可進行戶外活動，但建議減少長時間劇烈運動。",
     };
+  if (aqi <= 200)
+    return {
+      icon: "frown",
+      color: COLORS.UNHEALTHY,
+      generalAdvice: "正常戶外活動。若感不適，減少體力消耗，特別是戶外活動；學生避免長時間劇烈運動，戶外活動時增加休息。",
+    };
+  if (aqi <= 300)
+    return {
+      icon: "frown",
+      color: COLORS.VERY_UNHEALTHY,
+      generalAdvice: "減少戶外活動；學生應立即停止戶外活動，課程調整至室內進行。",
+    };
+  
   return {
-    icon: "alert-triangle",
-    iconColor: "#e53935",
-    advice: "空氣品質不佳，建議外出配戴口罩，敏感族群避免戶外活動。",
+    icon: "frown", 
+    color: COLORS.HAZARDOUS,
+    generalAdvice: "避免所有戶外活動，緊閉門窗，外出必須配戴口罩等防護用具；學生立即停止戶外活動，課程移至室內。",
   };
 };
 
@@ -402,11 +425,8 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
 }) => {
   const {
     selectedScenario,
-    gridCells,
     setGridCells,
-    alerts,
     setAlerts,
-    events,
     setEvents,
     isLoading,
     setIsLoading,
@@ -415,25 +435,28 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   const [locatedAqi,      setLocatedAqi]      = useState<number>(65);
   const [locatedPm25,     setLocatedPm25]     = useState<number>(12);
   const [locatedO3,       setLocatedO3]       = useState<number>(48);
+  const [locatedNo2,      setLocatedNo2]      = useState(12);
+  const [locatedSo2,      setLocatedSo2]      = useState(2.1);
+  const [locatedCo,       setLocatedCo]       = useState(0.38);
+  const [locatedPm10,     setLocatedPm10]     = useState(35);
   const [currentDistrict, setCurrentDistrict] = useState<string>('中壢區');
   const [currentWeather,  setCurrentWeather]  = useState<CurrentWeatherData>(MOCK_CURRENT);
   const [forecast,        setForecast]        = useState<ForecastDay[]>(generateMockForecast());
   const [past1hrRain,     setPast1hrRain]     = useState<string>('0.0');
-  const [todayPrecipProb, setTodayPrecipProb] = useState<string>('--');
+
 
   useEffect(() => {
     loadData();
   }, [selectedScenario]);
 
   // 天氣 & 雨量：隨定位區域更新
- useEffect(() => {
-  fetchCurrentWeather(currentDistrict).then(setCurrentWeather);
-  fetchWeatherForecast(currentDistrict).then(({ days, todayPrecipProb }) => {
-    setForecast(days);
-    setTodayPrecipProb(todayPrecipProb);
-  });
-  fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
-}, [currentDistrict]);
+  useEffect(() => {
+    fetchCurrentWeather(currentDistrict).then(setCurrentWeather);
+    fetchWeatherForecast(currentDistrict).then(({ days, todayPrecipProb }) => {
+      setForecast(days);
+    });
+    fetchPast1hrRainfall(currentDistrict).then(setPast1hrRain);
+  }, [currentDistrict]);
 
   // 空氣品質：先以靜態資料同步 Carousel，有 MOE 測站時再以即時值覆蓋
   useEffect(() => {
@@ -442,6 +465,11 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
     if (staticData) {
       setLocatedPm25(staticData.pm25);
       setLocatedO3(staticData.o3);
+      setLocatedAqi(staticData.aqi);
+      setLocatedNo2(staticData.no2);
+      setLocatedSo2(staticData.so2);
+      setLocatedCo(staticData.co);
+      setLocatedPm10(staticData.pm10);
     }
     // Step 2：若該區有 MOE 測站，以即時值覆蓋
     fetchMoeStations()
@@ -454,6 +482,10 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
         if (station) {
           setLocatedPm25(station.pm25);
           setLocatedO3(station.o3);
+          setLocatedNo2(station.no2);
+          setLocatedSo2(station.so2);
+          setLocatedCo(station.co);
+          setLocatedPm10(station.pm10);
           // AQI 已由 StationCarousel 的 onAqiResolved 負責更新
         }
       })
@@ -480,14 +512,9 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
     }
   };
 
-  // 空氣品質數值：優先使用 EPA 測站即時資料
-  const pm25 = locatedPm25;
-  const o3 = locatedO3;
-  const no2 = Math.round(pm25 * 0.3);
-
-  const pm25Color = getPM25Color(pm25);
-  const activityInfo = getActivityInfo(pm25);
-  const pm25Progress = Math.min((pm25 / 75) * 100, 100);
+  const pm25Color = getPM25Color(locatedPm25);
+  const activ = getActivityInfo(locatedAqi);
+  const pm25Progress = Math.min((locatedPm25 / 250) * 100, 100);
 
   if (isLoading) {
     return (
@@ -583,7 +610,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                 <Text style={styles.pm25Tag}>PM2.5</Text>
                 <View style={styles.pm25ValueRow}>
                   <Text style={[styles.pm25BigNum, { color: pm25Color }]}>
-                    {pm25}
+                    {locatedPm25}
                   </Text>
                   <Text style={styles.pm25UnitText}>μg/m³</Text>
                   <View
@@ -595,9 +622,14 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                     <Text
                       style={[styles.pm25StatusLabel, { color: pm25Color }]}
                     >
-                      {getPM25StatusLabel(pm25)}
+                      {getPM25StatusLabel(locatedPm25)}
                     </Text>
                   </View>
+
+                  <Text style={{ fontSize: 10, color: "#bbb", marginBottom: 14, marginTop: -10, marginLeft: 10 }}>
+                    標準日均值為 15.4 μg/m³
+                  </Text>
+
                 </View>
               </View>
             </View>
@@ -615,7 +647,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
               />
             </View>
             <View style={styles.hProgressScale}>
-              {["0", "12", "35", "55", "75+"].map((v, i) => (
+              {["0", "15", "35", "54", "150", "250+"].map((v, i) => (
                 <Text key={i} style={styles.hScaleText}>
                   {v}
                 </Text>
@@ -623,31 +655,20 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
             </View>
 
             {/* Activity advice */}
-            <View
-              style={[
-                styles.adviceRow,
-                {
-                  backgroundColor: `${activityInfo.iconColor}0D`,
-                  borderColor: `${activityInfo.iconColor}28`,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.adviceIconBg,
-                  { backgroundColor: `${activityInfo.iconColor}20` },
-                ]}
-              >
-                <Feather
-                  name={activityInfo.icon}
-                  size={18}
-                  color={activityInfo.iconColor}
-                />
+            <View style={{ marginBottom: 4 }}>
+              <View style={[styles.cardTitleGroup, { marginTop: 20 }]}>
+                <Feather name="alert-circle" size={15} color="#E76595" />
+                <Text style={styles.cardSectionTitle}>活動建議</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.insightTitle}>活動建議</Text>
-                <Text style={[styles.adviceText]}>{activityInfo.advice}</Text>
+
+              {/* 一般民眾 */}
+              <View style={[styles.adviceRow, { marginBottom: 8, marginTop: 15, backgroundColor: activ.color + "20", borderColor: activ.color }]}>
+                <View style={[styles.adviceIcon, { backgroundColor: activ.color + "30", borderColor: activ.color }]}>
+                  <Feather name={activ.icon} size={18} color={activ.color} />
+                </View>
+                <Text style={styles.adviceText}>{activ.generalAdvice}</Text>
               </View>
+
             </View>
 
             {/* Divider */}
@@ -660,52 +681,79 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                 <Text style={styles.miniPollutSub}>臭氧</Text>
               </View>
               <View style={styles.miniPollutBar}>
-                <View style={styles.miniBarTrack}>
-                  <View
-                    style={[
-                      styles.miniBarFill,
-                      {
-                        width: `${Math.min((o3 / 100) * 100, 100)}%`,
-                        backgroundColor: getO3Color(o3),
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
+  {/* 包一層 relative wrapper */}
+  <View style={{ position: "relative", marginTop: 14 }}>
+    {/* 標準說明文字，對齊 54% 位置 */}
+    <Text style={{
+      position: "absolute",
+      left: "54%",
+      bottom: 10,
+      fontSize: 9,
+      color: "#888",
+      transform: [{ translateX: -28 }], // 微調讓文字置中對齊線
+    }}>
+      標準 8 小時均為 54 ppb
+    </Text>
+    <View style={[styles.miniBarTrack, { position: "relative", overflow: "hidden" }]}>
+      <View style={[styles.miniBarFill, {
+        width: `${Math.min((locatedO3 / 100) * 100, 100)}%`,
+        backgroundColor: getO3Color(locatedO3),
+      }]} />
+      <View style={{
+        position: "absolute",
+        left: "54%",
+        top: -3,
+        bottom: -3,
+        width: 1.5,
+        backgroundColor: "#888",
+        borderRadius: 1,
+      }} />
+    </View>
+  </View>
+</View>
               <View style={styles.miniPollutRight}>
-                <Text style={[styles.miniPollutVal, { color: getO3Color(o3) }]}>
-                  {o3}
+                <Text style={[styles.miniPollutVal, { color: getO3Color(locatedO3) }]}>
+                  {locatedO3}
                 </Text>
                 <Text style={styles.miniPollutUnit}>ppb</Text>
               </View>
             </View>
 
-            {/* NO2 row */}
-            <View style={[styles.miniPollutRow, { marginBottom: 0 }]}>
-              <View style={styles.miniPollutLeft}>
-                <Text style={styles.miniPollutName}>NO₂</Text>
-                <Text style={styles.miniPollutSub}>二氧化氮</Text>
+            <View style={styles.miniPollutStrip}>
+              <View style={styles.miniPillCard}>
+                <Text style={styles.miniPillName}>NO₂</Text>
+                <Text style={styles.miniPillSub}>二氧化氮</Text>
+                <View style={styles.miniPillValRow}>
+                  <Text style={styles.miniPillVal}>{locatedNo2}</Text>
+                  <Text style={styles.miniPillUnit}>ppb</Text>
+                </View>   
               </View>
-              <View style={styles.miniPollutBar}>
-                <View style={styles.miniBarTrack}>
-                  <View
-                    style={[
-                      styles.miniBarFill,
-                      {
-                        width: `${Math.min((no2 / 100) * 100, 100)}%`,
-                        backgroundColor: getNO2Color(no2),
-                      },
-                    ]}
-                  />
+              <View style={styles.miniPillDivider} />
+              <View style={styles.miniPillCard}>
+                <Text style={styles.miniPillName}>SO₂</Text>
+                <Text style={styles.miniPillSub}>二氧化硫</Text>
+                <View style={styles.miniPillValRow}>
+                  <Text style={styles.miniPillVal}>{locatedSo2}</Text>
+                  <Text style={styles.miniPillUnit}>ppb</Text>
+                </View> 
+              </View>
+              <View style={styles.miniPillDivider} />
+              <View style={styles.miniPillCard}>
+                <Text style={styles.miniPillName}>CO</Text>
+                <Text style={styles.miniPillSub}>一氧化碳</Text>
+                <View style={styles.miniPillValRow} >
+                  <Text style={styles.miniPillVal}>{locatedCo}</Text>
+                  <Text style={styles.miniPillUnit}>ppm</Text>
                 </View>
               </View>
-              <View style={styles.miniPollutRight}>
-                <Text
-                  style={[styles.miniPollutVal, { color: getNO2Color(no2) }]}
-                >
-                  {no2}
-                </Text>
-                <Text style={styles.miniPollutUnit}>ppb</Text>
+              <View style={styles.miniPillDivider} />
+              <View style={styles.miniPillCard}>
+                <Text style={styles.miniPillName}>PM10</Text>
+                <Text style={styles.miniPillSub}>懸浮微粒</Text>
+                <View style={styles.miniPillValRow}>
+                  <Text style={styles.miniPillVal}>{locatedPm10}</Text>
+                  <Text style={styles.miniPillUnit}>μg/m³</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -752,7 +800,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
               </View>
             </View>
 
-            {/* Stats row — UV 移除，降水改為過去一小時雨量 */}
+            {/* Stats row */}
             <View style={styles.weatherStatsRow}>
               {[
                 { icon: 'droplet',    val: `${currentWeather.humidity}%`,    label: '濕度' },
@@ -830,405 +878,111 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF6F9",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF6F9",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#E76595",
-  },
-  scrollView: { flex: 1 },
+  container:              { flex: 1, backgroundColor: "#FFF6F9" },
+  loadingContainer:       { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF6F9" },
+  loadingText:            { marginTop: 16, fontSize: 16, color: "#E76595" },
+  scrollView:             { flex: 1 },
 
   // ── Gauge ──
-  gaugeSection: {
-    alignItems: "center",
-    paddingTop: 35,
-    paddingVertical: 20,
-    paddingBottom: 8,
-  },
-  gaugeInnerCircle: {
-    width: 158,
-    height: 158,
-    borderRadius: 79,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  gaugeLabel: {
-    fontSize: 10,
-    color: "#9ca3af",
-    fontWeight: "500",
-    letterSpacing: 2,
-    marginBottom: 6,
-  },
-  gaugeValue: {
-    fontSize: 48,
-    fontWeight: "bold",
-    lineHeight: 48,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  gaugePill: { 
-    marginTop: 5, 
-    paddingHorizontal: 10, 
-    paddingVertical: 3, 
-    borderRadius: 999, 
-    borderWidth: 1, 
-  },
-  gaugeBadgeText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  gaugeSection:           { alignItems: "center", paddingTop: 35, paddingVertical: 20, paddingBottom: 8 },
+  gaugeInnerCircle:       { width: 158, height: 158, borderRadius: 79, backgroundColor: "white", justifyContent: "center", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
+  gaugeLabel:             { fontSize: 10, color: "#9ca3af", fontWeight: "500", letterSpacing: 2, marginBottom: 6 },
+  gaugeValue:             { fontSize: 48, fontWeight: "bold", lineHeight: 48, marginTop: 4, marginBottom: 4 },
+  gaugePill:              { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
+  gaugeBadgeText:         { fontSize: 14, fontWeight: "500" },
 
   // ── Insight ──
-  insightSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  insightCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  insightIconContainer: { marginTop: 2 },
-  insightIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(231, 101, 149, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  insightContent: { flex: 1 },
-  insightTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#666",
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  insightText: { fontSize: 15, color: "#374151", lineHeight: 22 },
-  highlightText: { color: "#E76595", fontWeight: "bold" },
+  insightSection:         { paddingHorizontal: 24, marginBottom: 24 },
+  insightCard:            { backgroundColor: "rgba(255, 255, 255, 0.8)", borderRadius: 20, padding: 20, flexDirection: "row", gap: 16, alignItems: "flex-start", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)" },
+  insightIconContainer:   { marginTop: 2 },
+  insightIconBg:          { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(231, 101, 149, 0.15)", justifyContent: "center", alignItems: "center" },
+  insightContent:         { flex: 1 },
+  insightTitle:           { fontSize: 14, fontWeight: "bold", color: "#666", letterSpacing: 1, marginBottom: 8 },
+  insightText:            { fontSize: 15, color: "#374151", lineHeight: 22 },
+  highlightText:          { color: "#E76595", fontWeight: "bold" },
 
   // ── Shared card container ──
-  sectionPad: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: "rgba(255, 255, 255, 0.82)",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  cardTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  cardSectionTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#666",
-    letterSpacing: 1.2,
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.06)",
-    marginVertical: 16,
-  },
+  sectionPad:             { paddingHorizontal: 24, marginBottom: 20 },
+  card:                   { backgroundColor: "rgba(255, 255, 255, 0.82)", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.35)", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
+  cardHeaderRow:          { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  cardTitleGroup:         { flexDirection: "row", alignItems: "center", gap: 7 },
+  cardSectionTitle:       { fontSize: 13, fontWeight: "bold", color: "#666", letterSpacing: 1.2 },
+  dividerLine:            { height: 1, backgroundColor: "rgba(0,0,0,0.06)", marginVertical: 16 },
 
   // ── AQI badge ──
-  aqiBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  aqiBadgeLabelText: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
-  aqiBadgeValueText: { fontSize: 14, fontWeight: "bold" },
+  aqiBadge:               { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  aqiBadgeLabelText:      { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
+  aqiBadgeValueText:      { fontSize: 14, fontWeight: "bold" },
 
   // ── PM2.5 prominent ──
-  pm25Row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  pm25Tag: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#888",
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  pm25ValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  pm25BigNum: {
-    fontSize: 52,
-    fontWeight: "bold",
-    lineHeight: 54,
-  },
-  pm25UnitText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#9ca3af",
-    marginBottom: 4,
-    marginRight: 6,
-  },
-  pm25StatusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 6,
-  },
-  pm25StatusLabel: { fontSize: 12, fontWeight: "600" },
+  pm25Row:                { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },
+  pm25Tag:                { fontSize: 12, fontWeight: "700", color: "#888", letterSpacing: 0.8, marginBottom: 4 },
+  pm25ValueRow:           { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  pm25BigNum:             { fontSize: 52, fontWeight: "bold", lineHeight: 54 },
+  pm25UnitText:           { fontSize: 12, fontWeight: "600", color: "#9ca3af", marginBottom: 4, marginRight: 6 },
+  pm25StatusPill:         { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginTop: 6 },
+  pm25StatusLabel:        { fontSize: 12, fontWeight: "600" },
 
   // ── Horizontal progress bar ──
-  hProgressTrack: {
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.07)",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 6,
-  },
-  hProgressFill: { height: "100%", borderRadius: 3 },
-  hProgressScale: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  hScaleText: { fontSize: 10, color: "#bbb" },
+  hProgressTrack:         { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden", marginBottom: 6 },
+  hProgressFill:          { height: "100%", borderRadius: 3 },
+  hProgressScale:         { flexDirection: "row", justifyContent: "space-between", marginBottom: 14 },
+  hScaleText:             { fontSize: 10, color: "#bbb" },
 
   // ── Advice row ──
-  adviceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 4,
-  },
-  adviceIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  adviceText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#374151",
-    lineHeight: 19,
-  },
+  adviceRow:              { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, borderWidth: 0.5 },
+  adviceIcon:             { width: 36, height: 36, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center", flexShrink: 0, marginTop: 2, marginRight: 3 },
+  // adviceLabel:         { fontSize: 13, fontWeight: "600", marginBottom: 4 }, // 未使用
+  adviceText:             { fontSize: 13, color: "#7a6880", lineHeight: 20 },
 
-  // ── Mini pollutant rows (O3, NO2) ──
-  miniPollutRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    gap: 10,
-  },
-  miniPollutLeft: { width: 44 },
-  miniPollutName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#444",
-  },
-  miniPollutSub: {
-    fontSize: 10,
-    color: "#aaa",
-    marginTop: 1,
-  },
-  miniPollutBar: { flex: 1 },
-  miniBarTrack: {
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.07)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  miniBarFill: { height: "100%", borderRadius: 3 },
-  miniPollutRight: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 3,
-    width: 52,
-    justifyContent: "flex-end",
-  },
-  miniPollutVal: { fontSize: 15, fontWeight: "700" },
-  miniPollutUnit: { fontSize: 10, color: "#aaa" },
+  // ── Mini pollutant rows ──
+  miniPollutRow:          { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 10 },
+  miniPollutLeft:         { width: 44 },
+  miniPollutName:         { fontSize: 13, fontWeight: "700", color: "#444" },
+  miniPollutSub:          { fontSize: 10, color: "#aaa", marginTop: 1 },
+  miniPollutBar:          { flex: 1 },
+  miniBarTrack:           { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" },
+  miniBarFill:            { backgroundColor: "#E76595", height: "100%", borderRadius: 3 },
+  miniPollutRight:        { flexDirection: "row", alignItems: "baseline", gap: 3, width: 52, justifyContent: "flex-end" },
+  miniPollutVal:          { color: "#E76595", fontSize: 15, fontWeight: "700" },
+  miniPollutUnit:         { fontSize: 10, color: "#aaa" },
+
+  miniPollutStrip:   { flexDirection: "row", overflow: "hidden" },
+  miniPillCard:      { flex: 1, paddingVertical: 8, alignItems: "center", gap: 2 },
+  miniPillDivider:   { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 8 },
+  miniPillName:      { fontSize: 15, fontWeight: "700", color: "#555" },
+  miniPillSub:       { fontSize: 10, color: "#7a6880", marginBottom: 4 },
+  miniPillVal:       { color: "#E76595",fontSize: 14, fontWeight: "700" },
+  miniPillValRow:    { flexDirection: "row", justifyContent: "center", alignItems: "center" , gap: 8 },
+  miniPillUnit:      { fontSize: 9, color: "#aaa" },
 
   // ── Weather card ──
-  districtBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "rgba(251, 167, 188, 0.12)",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(251, 167, 188, 0.25)",
-  },
-  districtBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FBA7BC",
-  },
-  weatherCurrentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  weatherTempBig: {
-    fontSize: 54,
-    fontWeight: "bold",
-    color: "#222",
-    lineHeight: 58,
-  },
-  weatherDesc: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
-  },
-  weatherIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(231, 101, 149, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  weatherStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.025)",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  weatherStatItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 3,
-  },
-  weatherStatVal: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#333",
-    marginTop: 2,
-  },
-  weatherStatLabel: {
-    fontSize: 10,
-    color: "#aaa",
-  },
-  weatherStatSep: {
-    width: 1,
-    height: 28,
-    backgroundColor: "rgba(0,0,0,0.07)",
-  },
+  districtBadge:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "rgba(251, 167, 188, 0.12)", borderRadius: 10, borderWidth: 1, borderColor: "rgba(251, 167, 188, 0.25)" },
+  districtBadgeText:      { fontSize: 12, fontWeight: "600", color: "#FBA7BC" },
+  weatherCurrentRow:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  weatherTempBig:         { fontSize: 54, fontWeight: "bold", color: "#222", lineHeight: 58 },
+  weatherDesc:            { fontSize: 14, color: "#666", marginTop: 2 },
+  weatherIconCircle:      { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(231, 101, 149, 0.1)", justifyContent: "center", alignItems: "center" },
+  weatherStatsRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(0,0,0,0.025)", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 8 },
+  weatherStatItem:        { flex: 1, alignItems: "center", gap: 3 },
+  weatherStatVal:         { fontSize: 12, fontWeight: "700", color: "#333", marginTop: 2 },
+  weatherStatLabel:       { fontSize: 10, color: "#aaa" },
+  weatherStatSep:         { width: 1, height: 28, backgroundColor: "rgba(0,0,0,0.07)" },
 
   // ── 3-day forecast ──
-  forecastTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#999",
-    letterSpacing: 0.6,
-    marginBottom: 12,
-  },
-  forecastRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  forecastDayCol: {
-    flex: 1,
-    alignItems: "center",
-  },
-  forecastDayColBorder: {
-    borderRightWidth: 1,
-    borderRightColor: "rgba(0,0,0,0.07)",
-    marginRight: 0,
-  },
-  forecastLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#444",
-  },
-  forecastDate: {
-    fontSize: 10,
-    color: "#bbb",
-    marginTop: 2,
-  },
-  forecastTempRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  forecastTempHigh: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#e05c2a",
-  },
-  forecastTempLow: {
-    fontSize: 13,
-    color: "#FBA7BC",
-    fontWeight: "600",
-  },
-  forecastPopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  forecastPopText: {
-    fontSize: 11,
-    color: "#bbb",
-    fontWeight: "600",
-  },
-  weatherHighLow: {
-    fontSize: 12, color: '#999', marginTop: 2,
-  },
+  forecastTitle:          { fontSize: 11, fontWeight: "700", color: "#999", letterSpacing: 0.6, marginBottom: 12 },
+  forecastRow:            { flexDirection: "row", justifyContent: "space-between" },
+  forecastDayCol:         { flex: 1, alignItems: "center" },
+  forecastDayColBorder:   { borderRightWidth: 1, borderRightColor: "rgba(0,0,0,0.07)", marginRight: 0 },
+  forecastLabel:          { fontSize: 12, fontWeight: "700", color: "#444" },
+  forecastDate:           { fontSize: 10, color: "#bbb", marginTop: 2 },
+  forecastTempRow:        { flexDirection: "row", alignItems: "baseline" },
+  forecastTempHigh:       { fontSize: 13, fontWeight: "700", color: "#e05c2a" },
+  forecastTempLow:        { fontSize: 13, color: "#FBA7BC", fontWeight: "600" },
+  forecastPopRow:         { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
+  forecastPopText:        { fontSize: 11, color: "#bbb", fontWeight: "600" },
+  // weatherHighLow:      { fontSize: 12, color: "#999", marginTop: 2 }, // 未使用
 
-  bottomSpacing: { height: 100 },
+  bottomSpacing:          { height: 100 },
 });
