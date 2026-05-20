@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Noto Sans TC', 'Noto Sans', system-ui, sans-serif;
+  background-color: #FFF6F9;
+  color: #3A1E2D;
+}
+
+button {
+  font-family: inherit;
+}
+
+input:focus {
+  outline: none;
+}
+
+a {
+  color: inherit;
+}
