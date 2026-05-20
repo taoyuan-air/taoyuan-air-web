@@ -36,8 +36,25 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# Previously we ignored large data files under data/,
-# gitkeep design removed so data files are tracked now.
+# Data files (keep structure, ignore large data files)
+data/raw/**/*
+data/processed/**/*
+data/exports/**/*
+!data/raw/**/.gitkeep
+!data/processed/.gitkeep
+!data/exports/.gitkeep
+!data/README.md
+
+# CWA stations - keep folder structure, ignore files inside
+data/raw/cwa-stations/*
+!data/raw/cwa-stations/
+!data/raw/cwa-stations/*/
+
+# TEDS point - keep folder structure, ignore files inside
+data/raw/teds-point/*
+!data/raw/teds-point/
+!data/raw/teds-point/*/
+!data/raw/teds-point/.gitkeep
 
 # Database
 *.sql.backup
