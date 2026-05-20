@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 TYDEP 測站資料匯入腳本（原 TEPA）
-讀取 data/processed/tydep-stations/<station_id>/<YYYY_MM>.json
+讀取 data/raw/tydep-stations/json/<station_id>/<YYYY_MM>.json
 並批次匯入 PostgreSQL 的 tydep_hourly_data 分區表
 """
 
@@ -38,7 +38,7 @@ if not DB_CONFIG['password']:
     sys.exit(1)
 
 ROOT_DIR    = Path(__file__).parent.parent
-PROCESSED_DIR = ROOT_DIR / 'data' / 'processed' / 'tydep-stations'
+JSON_DIR = ROOT_DIR / 'data' / 'raw' / 'tydep-stations' / 'json'
 
 POLLUTANT_MAP = {
     'so2':  {'id': '1',  'name': '二氧化硫',   'eng': 'SO2',   'unit': 'ppb'},
@@ -146,15 +146,15 @@ def main():
     print("TYDEP 測站資料匯入工具")
     print("=" * 60)
 
-    if not PROCESSED_DIR.exists():
-        print(f"[ERROR] 找不到 processed 目錄：{PROCESSED_DIR}")
+    if not JSON_DIR.exists():
+        print(f"[ERROR] 找不到 TYDEP JSON 目錄：{JSON_DIR}")
         sys.exit(1)
 
     conn = connect_db()
     if not conn:
         sys.exit(1)
 
-    station_dirs = sorted([d for d in PROCESSED_DIR.iterdir() if d.is_dir()])
+    station_dirs = sorted([d for d in JSON_DIR.iterdir() if d.is_dir()])
     if not station_dirs:
         print("[ERROR] 找不到任何測站目錄")
         conn.close()

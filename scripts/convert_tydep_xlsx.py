@@ -4,7 +4,7 @@ TYDEP（桃園市環保局）測站資料轉換腳本（原 TEPA）
 將 Excel 原始資料轉換為按測站+月份分割的 JSON 檔
 
 輸入：data/raw/tydep-stations/桃園市空氣品質測站監測數據(108-115).xlsx
-輸出：data/processed/tydep-stations/<station_id>/<YYYY_MM>.json
+輸出：data/raw/tydep-stations/json/<station_id>/<YYYY_MM>.json
 
 保留污染物（對齊 MOE/CWA 六項）：
   SO2, CO, O3, NO2, PM10, PM2.5
@@ -12,26 +12,19 @@ TYDEP（桃園市環保局）測站資料轉換腳本（原 TEPA）
 時間範圍：2019-03-01 起
 """
 
+import argparse
 import json
-import os
 import sys
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 DATA_START = datetime(2019, 3, 1)
 
-try:
-    import openpyxl
-except ImportError:
-    print("請先安裝 openpyxl：pip3 install openpyxl")
-    sys.exit(1)
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR   = os.path.dirname(SCRIPT_DIR)
-INPUT_FILE = os.path.join(ROOT_DIR, "data", "raw", "tydep-stations",
-                          "桃園市空氣品質測站監測數據(108-115).xlsx")
-OUTPUT_DIR = os.path.join(ROOT_DIR, "data", "processed", "tydep-stations")
+ROOT_DIR = Path(__file__).parent.parent
+INPUT_FILE = ROOT_DIR / "data" / "raw" / "tydep-stations" / "桃園市空氣品質測站監測數據(108-115).xlsx"
+OUTPUT_DIR = ROOT_DIR / "data" / "raw" / "tydep-stations" / "json"
 
 STATION_MAP = {
     "(局)新興國小": {"id": "0604616A0002", "name": "新興國小", "district": "蘆竹區"},
@@ -105,18 +98,19 @@ def parse_row(row: tuple) -> Optional[dict]:
     }
 
 
-def main():
-    print(f"讀取：{INPUT_FILE}")
-    if not os.path.exists(INPUT_FILE):
-        print(f"[錯誤] 找不到輸入檔案：{INPUT_FILE}")
+def parse_xlsx_to_records(filepath: Path) -> tuple[list[dict], int]:
+    """Parse the TYDEP Excel source into normalized records."""
+    try:
+        import openpyxl
+    except ImportError:
+        print("請先安裝 openpyxl：pip3 install openpyxl")
         sys.exit(1)
 
-    wb = openpyxl.load_workbook(INPUT_FILE, read_only=True, data_only=True)
+    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb.active
     print(f"工作表：{ws.title}")
 
-    buckets: dict = defaultdict(lambda: defaultdict(list))
-    total = 0
+    records = []
     skipped = 0
 
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -124,20 +118,35 @@ def main():
         if record is None:
             skipped += 1
             continue
+        records.append(record)
+
+    wb.close()
+    return records, skipped
+
+
+def bucket_records(records: list[dict]) -> dict:
+    buckets: dict = defaultdict(lambda: defaultdict(list))
+    for record in records:
         dt = datetime.fromisoformat(record["monitor_date"])
         month_key = dt.strftime("%Y_%m")
         buckets[record["station_id"]][month_key].append(record)
-        total += 1
+    return buckets
 
-    wb.close()
-    print(f"解析完成：{total:,} 筆有效，{skipped:,} 筆跳過")
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+def write_json(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def write_monthly_json_files(records: list[dict], output_dir: Path) -> tuple[dict, int]:
+    buckets = bucket_records(records)
     file_count = 0
 
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     for station_id, months in sorted(buckets.items()):
-        station_dir = os.path.join(OUTPUT_DIR, station_id)
-        os.makedirs(station_dir, exist_ok=True)
+        station_dir = output_dir / station_id
         station_meta = next(v for v in STATION_MAP.values() if v["id"] == station_id)
 
         for month_key, records in sorted(months.items()):
@@ -155,13 +164,13 @@ def main():
                 "records": records,
             }
 
-            out_path = os.path.join(station_dir, f"{month_key}.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(output, f, ensure_ascii=False, indent=2)
+            write_json(station_dir / f"{month_key}.json", output)
             file_count += 1
 
-    print(f"輸出完成：{file_count} 個 JSON 檔 → {OUTPUT_DIR}")
+    return buckets, file_count
 
+
+def write_stations_meta(buckets: dict, output_dir: Path) -> Path:
     stations_meta = []
     for raw_name, info in STATION_MAP.items():
         station_id = info["id"]
@@ -179,10 +188,35 @@ def main():
                 "total_records": sum(len(r) for r in buckets[station_id].values()),
             })
 
-    meta_path = os.path.join(OUTPUT_DIR, "stations_meta.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(stations_meta, f, ensure_ascii=False, indent=2)
+    meta_path = output_dir / "stations_meta.json"
+    write_json(meta_path, stations_meta)
+    return meta_path
+
+
+def process_file(filepath: Path, output_dir: Path) -> dict:
+    print(f"讀取：{filepath}")
+    if not filepath.exists():
+        print(f"[錯誤] 找不到輸入檔案：{filepath}")
+        sys.exit(1)
+
+    records, skipped = parse_xlsx_to_records(filepath)
+    print(f"解析完成：{len(records):,} 筆有效，{skipped:,} 筆跳過")
+
+    buckets, file_count = write_monthly_json_files(records, output_dir)
+    print(f"輸出完成：{file_count} 個 JSON 檔 → {output_dir}")
+
+    meta_path = write_stations_meta(buckets, output_dir)
     print(f"測站 meta：{meta_path}")
+    return {"raw": len(records), "skipped": skipped, "files": file_count}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="TYDEP Excel to JSON converter")
+    parser.add_argument("--file", type=Path, default=INPUT_FILE, help="單一 Excel 檔案路徑")
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="JSON 輸出目錄")
+    args = parser.parse_args()
+
+    process_file(args.file, args.output_dir)
 
 
 if __name__ == "__main__":
