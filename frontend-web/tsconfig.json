@@ -20,7 +20,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/src/*"],
+      "zustand": ["./node_modules/zustand"],
+      "zustand/*": ["./node_modules/zustand/*"]
     }
   },
   "include": [
