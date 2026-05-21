@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@taoyuan-air/shared'],
   turbopack: {
     root: path.resolve(__dirname, '..'),
+    resolveAlias: {
+      zustand: './node_modules/zustand',
+    },
   },
 };
 
