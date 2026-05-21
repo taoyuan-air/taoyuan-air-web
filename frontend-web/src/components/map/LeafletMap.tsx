@@ -79,6 +79,8 @@ const getRuntimeWindyCallback = () => {
 
 const getRuntimeWindyInit = () => new Function('return window.windyInit')() as WindyInit | undefined;
 
+const createScriptLoadError = (src: string) => new Error(`Failed to load map script: ${src}`);
+
 const getGridColor = (value: number) => {
   const stops = [[0,0,228,0],[50,255,255,0],[100,255,126,0],[150,255,0,0],[200,126,0,35]];
   const clamped = Math.max(0, Math.min(200, value));
@@ -172,6 +174,17 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
   }, []);
 
   useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason instanceof Error) return;
+      console.error('Map SDK rejected with a non-Error value:', event.reason);
+      event.preventDefault();
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
+
+  useEffect(() => {
     const loadScript = (src: string, id: string) => new Promise((resolve, reject) => {
       const existingScript = document.getElementById(id) as HTMLScriptElement | null;
       if (existingScript?.dataset.loaded === 'true') return resolve(true);
@@ -182,7 +195,7 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
             existingScript.dataset.loaded = 'true';
             loaderResolve(true);
           }, { once: true });
-          existingScript.addEventListener('error', loaderReject, { once: true });
+          existingScript.addEventListener('error', () => loaderReject(createScriptLoadError(src)), { once: true });
         });
         scriptLoaders.set(id, loader);
         return loader.then(resolve).catch(reject);
@@ -194,7 +207,7 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
           s.dataset.loaded = 'true';
           loaderResolve(true);
         };
-        s.onerror = loaderReject;
+        s.onerror = () => loaderReject(createScriptLoadError(src));
       });
       scriptLoaders.set(id, loader);
       loader.then(resolve).catch(reject);

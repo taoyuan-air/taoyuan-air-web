@@ -65,6 +65,8 @@ const getTGOS = () => (window as unknown as RuntimeWindow).TGOS as TGOSApi | und
 
 let tgosInitialized = false;
 
+const createScriptLoadError = (src: string) => new Error(`Failed to load map script: ${src}`);
+
 export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapProps) {
   const tgosMapRef = useRef<TGOSMapInstance | null>(null);
   const fillsRef = useRef<TGOSFillInstance[]>([]);
@@ -100,7 +102,7 @@ export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapPr
     const loadScript = (src: string, id: string) => new Promise((resolve, reject) => {
       if (document.getElementById(id)) return resolve(true);
       const s = document.createElement('script'); s.id = id; s.src = src; s.charset = 'utf-8';
-      s.onload = () => resolve(true); s.onerror = reject;
+      s.onload = () => resolve(true); s.onerror = () => reject(createScriptLoadError(src));
       document.head.appendChild(s);
     });
 
