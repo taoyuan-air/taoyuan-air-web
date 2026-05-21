@@ -419,7 +419,9 @@ function SecLabel({ title, sub }: { title: string; sub?: string }) {
 
 // ── Map page ─────────────────────────────────────────────────────
 export default function MapPage() {
-  const { selectedPollutant, setSelectedPollutant, mode, setMode, gridCells, setGridCells, setSelectedGridId, selectedScenario, isLoading, setIsLoading } = useStore();
+  const store = useStore();
+  const { selectedPollutant, setSelectedPollutant, mode, setMode, setGridCells, setSelectedGridId, selectedScenario, isLoading, setIsLoading } = store;
+  const gridCells: GridCell[] = store.gridCells;
   const [mapMode, setMapMode] = useState<'2D' | 'Satellite'>('2D');
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showSheet, setShowSheet] = useState(false);
