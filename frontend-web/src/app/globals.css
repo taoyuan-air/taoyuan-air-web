@@ -14,6 +14,7 @@ html, body {
   background: var(--app-bg-gradient);
   background-attachment: fixed;
   color: #3A1E2D;
+  overscroll-behavior-x: none;
 }
 
 button {

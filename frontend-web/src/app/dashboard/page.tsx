@@ -257,9 +257,9 @@ function GaugeArc({
 }
 
 function TrendBars() {
-  const BAR_W = 10;
-  const BAR_GAP = 5;
-  const MAX_H = 52;
+  const BAR_W = 12;
+  const BAR_GAP = 8;
+  const MAX_H = 74;
   const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
   const slots = useMemo(() => {
@@ -376,17 +376,21 @@ function DashboardStyles() {
   return (
     <style>{`
       .dashboard-page {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
         min-height: calc(100vh - 80px);
-        padding: 14px 44px 30px;
+        padding: 28px 40px 32px;
         display: grid;
         grid-template-columns: minmax(380px, 36%) minmax(760px, 1fr);
         gap: 22px;
-        overflow: visible;
+        overflow-x: hidden;
       }
 
       .dashboard-map-pane {
         position: relative;
         min-height: calc(100vh - 124px);
+        min-width: 0;
         padding: 58px 18px 42px 0;
         display: flex;
         flex-direction: column;
@@ -418,12 +422,16 @@ function DashboardStyles() {
       .dashboard-panel {
         height: auto;
         min-height: 0;
-        overflow: auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        align-self: start;
+        margin-top: 28px;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
         border-radius: 20px;
         box-shadow: 0 4px 32px rgba(231, 101, 149, 0.08);
-        padding: 22px 30px 20px;
+        padding: 26px 36px 24px;
         display: flex;
         flex-direction: column;
       }
@@ -433,7 +441,7 @@ function DashboardStyles() {
         align-items: center;
         gap: 10px;
         color: #d4567a;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 900;
         letter-spacing: 0;
         flex: 0 0 auto;
@@ -449,19 +457,22 @@ function DashboardStyles() {
       .dash-divider {
         height: 1px;
         background: rgba(0, 0, 0, 0.06);
-        margin: 16px 0 18px;
+        margin: 14px 0 18px;
         flex: 0 0 auto;
       }
 
       .dashboard-first-row,
-      .dashboard-second-row {
+      .dashboard-second-row,
+      .dashboard-lower-row {
         display: grid;
         gap: 20px;
+        min-width: 0;
       }
 
       .dashboard-first-row {
         grid-template-columns: minmax(190px, 0.78fr) minmax(430px, 1.9fr);
         align-items: start;
+        gap: 30px;
         min-height: 0;
         flex: 0 0 auto;
       }
@@ -474,12 +485,35 @@ function DashboardStyles() {
         flex: 0 0 auto;
       }
 
+      .dashboard-lower-row {
+        grid-template-columns: minmax(220px, 2fr) minmax(360px, 3fr);
+        align-items: stretch;
+        gap: 30px;
+        margin-top: 24px;
+        min-height: 0;
+        flex: 0 0 auto;
+      }
+
+      .dashboard-side-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        height: 100%;
+        min-width: 0;
+      }
+
+      .dashboard-first-row > *,
+      .dashboard-second-row > *,
+      .dashboard-lower-row > * {
+        min-width: 0;
+      }
+
       .dash-section-label {
         display: flex;
         align-items: center;
         gap: 9px;
         min-height: 16px;
-        margin-bottom: 13px;
+        margin-bottom: 16px;
         color: ${C.text};
         font-size: 12px;
         font-weight: 800;
@@ -504,7 +538,7 @@ function DashboardStyles() {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 8px;
+        padding-top: 6px;
       }
 
       .aqi-gauge {
@@ -562,7 +596,7 @@ function DashboardStyles() {
       }
 
       .aqi-hint {
-        margin-top: 11px;
+        margin-top: 12px;
         color: ${C.hint};
         font-size: 10px;
         font-weight: 600;
@@ -581,12 +615,13 @@ function DashboardStyles() {
 
       .mini-gauge-row {
         grid-template-columns: 1fr 1px 1fr;
-        margin-bottom: 9px;
+        gap: 0 18px;
+        margin-bottom: 18px;
       }
 
       .mini-gauge-card {
         min-width: 0;
-        padding-top: 5px;
+        padding: 6px 4px 2px;
         text-align: center;
       }
 
@@ -599,7 +634,7 @@ function DashboardStyles() {
       }
 
       .mini-gauge-card p {
-        margin: 2px 0 2px;
+        margin: 6px 0 4px;
         color: ${C.muted};
         font-size: 9px;
         font-weight: 600;
@@ -607,6 +642,7 @@ function DashboardStyles() {
 
       .mini-gauge-card small {
         display: block;
+        margin-bottom: 4px;
         color: #aaa;
         font-size: 8px;
       }
@@ -636,11 +672,12 @@ function DashboardStyles() {
 
       .mini-pollut-strip {
         grid-template-columns: repeat(7, auto);
+        gap: 0 10px;
       }
 
       .mini-pollut-card {
         min-width: 0;
-        padding: 7px 8px;
+        padding: 10px 12px;
         text-align: center;
       }
 
@@ -658,7 +695,7 @@ function DashboardStyles() {
       }
 
       .mini-pollut-card p {
-        margin: 3px 0 6px;
+        margin: 6px 0 9px;
         color: ${C.muted};
         font-size: 9px;
         font-weight: 600;
@@ -686,12 +723,12 @@ function DashboardStyles() {
 
       .advice-card,
       .insight-card {
-        min-height: 60px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        border-radius: 11px;
-        padding: 12px;
+        gap: 14px;
+        border-radius: 12px;
+        padding: 16px 18px;
+        min-width: 0;
       }
 
       .advice-icon,
@@ -699,13 +736,13 @@ function DashboardStyles() {
         flex: 0 0 auto;
         display: grid;
         place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
       }
 
       .advice-icon {
-        width: 32px;
-        height: 32px;
         border: 1px solid;
-        border-radius: 10px;
       }
 
       .advice-card p,
@@ -715,8 +752,11 @@ function DashboardStyles() {
 
       .advice-card p {
         color: ${C.muted};
-        font-size: 11px;
-        line-height: 1.55;
+        font-size: 13px;
+        line-height: 1.5;
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .row-divider {
@@ -730,9 +770,6 @@ function DashboardStyles() {
       }
 
       .insight-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
         background: rgba(212, 86, 122, 0.16);
         color: ${C.rose};
       }
@@ -745,33 +782,39 @@ function DashboardStyles() {
       .insight-copy strong {
         display: block;
         color: ${C.rose};
-        font-size: 11px;
+        font-size: 13px;
         font-weight: 800;
+        overflow-wrap: anywhere;
       }
 
       .insight-copy span {
         display: block;
-        margin-top: 2px;
+        margin-top: 6px;
         color: ${C.muted};
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 600;
+        overflow-wrap: anywhere;
       }
 
       .insight-chip {
         flex: 0 0 auto;
         border: 1px solid ${C.roseBorder};
         border-radius: 999px;
-        padding: 2px 8px;
+        padding: 5px 11px;
         background: rgba(212, 86, 122, 0.14);
         color: ${C.rose};
-        font-size: 11px;
+        font-size: 13px;
         font-weight: 800;
       }
 
       .trend-section {
-        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        margin-top: 0;
         min-height: 0;
-        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .trend-heading {
@@ -797,10 +840,35 @@ function DashboardStyles() {
 
       .trend-scroll {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
         overflow-x: auto;
         overflow-y: hidden;
-        padding: 0 0 0 8px;
+        padding: 0 0 8px 0;
+        overscroll-behavior-inline: contain;
+        -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
+        scrollbar-color: rgba(212, 86, 122, 0.28) transparent;
+      }
+
+      .trend-scroll::-webkit-scrollbar {
+        height: 3px;
+      }
+
+      .trend-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .trend-scroll::-webkit-scrollbar-thumb {
+        background: rgba(212, 86, 122, 0.28);
+        border-radius: 99px;
+      }
+
+      .trend-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(212, 86, 122, 0.55);
       }
 
       .trend-inner {
@@ -809,7 +877,7 @@ function DashboardStyles() {
 
       .trend-date-row {
         position: relative;
-        height: 20px;
+        height: 32px;
         margin-bottom: 0;
       }
 
@@ -823,14 +891,14 @@ function DashboardStyles() {
       }
 
       .trend-bars {
-        height: 56px;
+        height: 80px;
         display: flex;
         align-items: flex-end;
       }
 
       .trend-bar-wrap {
         position: relative;
-        height: 56px;
+        height: 80px;
         flex-shrink: 0;
         display: flex;
         align-items: flex-end;
@@ -842,7 +910,7 @@ function DashboardStyles() {
         bottom: 0;
         left: 50%;
         width: 1.5px;
-        height: 54px;
+        height: 76px;
         transform: translateX(-50%);
         background: ${C.rose};
       }
@@ -852,13 +920,13 @@ function DashboardStyles() {
         z-index: 1;
         display: block;
         border: 1px solid transparent;
-        border-radius: 2px;
+        border-radius: 4px;
       }
 
       .trend-hour-row {
         position: relative;
         height: 22px;
-        margin-top: 4px;
+        margin-top: 6px;
       }
 
       .trend-hour {
@@ -867,14 +935,14 @@ function DashboardStyles() {
         width: 20px;
         text-align: center;
         color: rgba(93, 115, 137, 0.6);
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 700;
       }
 
       .trend-hour.now {
         color: ${C.rose};
-        font-size: 11px;
-        font-weight: 800;
+        font-size: 9px;
+        font-weight: 900;
       }
 
       .trend-hour.prediction {
@@ -884,12 +952,12 @@ function DashboardStyles() {
 
       .trend-footer {
         position: relative;
-        height: 20px;
-        margin-top: 5px;
+        height: 22px;
+        margin-top: 10px;
         display: flex;
         justify-content: space-between;
         color: ${C.hint};
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
       }
 
@@ -897,56 +965,84 @@ function DashboardStyles() {
         position: absolute;
         top: 0;
         color: ${C.rose};
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 900;
       }
 
       @media (max-width: 1280px) {
         .dashboard-page {
           grid-template-columns: 1fr;
-          overflow: visible;
           height: auto;
         }
 
-        .dashboard-map-pane,
+        .dashboard-map-pane {
+          min-height: auto;
+          height: auto;
+          max-height: none;
+          padding: 20px 0 16px;
+        }
+
         .dashboard-panel {
           min-height: auto;
           height: auto;
           max-height: none;
+          margin-top: 0;
         }
 
         .dashboard-map-wrap {
-          height: 520px;
+          height: min(52vh, 520px);
+          width: min(100%, 520px);
         }
 
         .dashboard-map-action {
           position: static;
-          margin-top: 18px;
+          margin-top: 14px;
           align-self: flex-start;
         }
       }
 
       @media (max-width: 820px) {
         .dashboard-page {
-          padding: 14px 18px 28px;
+          padding: 16px 20px 28px;
         }
 
         .dashboard-panel {
           padding: 20px 18px;
         }
 
-        .dashboard-first-row,
-        .dashboard-second-row {
+        .dashboard-map-wrap {
+          height: min(44vh, 420px);
+        }
+
+        .dashboard-first-row {
           grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .dashboard-second-row,
+        .dashboard-lower-row {
+          grid-template-columns: 1fr;
+        }
+
+        .dashboard-lower-row {
+          align-items: start;
+        }
+
+        .insight-card {
+          align-items: flex-start;
         }
 
         .row-divider {
           display: none;
         }
 
+        .mini-gauge-row {
+          grid-template-columns: 1fr 1px 1fr;
+        }
+
         .mini-pollut-strip {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px 0;
+          gap: 14px 12px;
         }
 
         .metric-divider {
@@ -958,13 +1054,121 @@ function DashboardStyles() {
         }
       }
 
-      @media (max-height: 760px) and (min-width: 1281px) {
+      @media (max-width: 480px) {
         .dashboard-page {
-          overflow: auto;
+          padding: 12px 16px 24px;
         }
 
         .dashboard-panel {
-          max-height: calc(100vh - 124px);
+          padding: 18px 14px;
+          border-radius: 16px;
+        }
+
+        .dashboard-map-wrap {
+          height: min(38vh, 320px);
+        }
+
+        .dashboard-first-row {
+          gap: 12px;
+        }
+
+        .mini-gauge-row {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .mini-divider {
+          display: none;
+        }
+
+        .insight-card {
+          flex-wrap: wrap;
+        }
+
+        .insight-chip {
+          margin-left: 48px;
+        }
+
+        .aqi-block {
+          padding-top: 0;
+        }
+
+        .dashboard-lower-row {
+          gap: 16px;
+        }
+
+        .dashboard-side-stack {
+          gap: 14px;
+        }
+      }
+
+      @media (max-height: 760px) and (min-width: 1281px) {
+        .dashboard-page {
+          overflow: auto;
+          padding-top: 8px;
+          padding-bottom: 14px;
+        }
+
+        .dashboard-map-pane {
+          padding-top: 34px;
+          padding-bottom: 24px;
+        }
+
+        .dashboard-map-wrap {
+          height: min(60vh, 540px);
+        }
+
+        .dashboard-panel {
+          margin-top: 12px;
+          padding: 14px 24px 12px;
+        }
+
+        .dash-divider {
+          margin: 9px 0 11px;
+        }
+
+        .dashboard-first-row {
+          gap: 16px;
+        }
+
+        .dashboard-lower-row {
+          gap: 16px;
+          margin-top: 12px;
+        }
+
+        .dash-section-label {
+          margin-bottom: 8px;
+        }
+
+        .mini-gauge-row {
+          margin-bottom: 8px;
+        }
+
+        .mini-pollut-card {
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
+
+        .advice-card,
+        .insight-card {
+          padding: 10px 13px;
+        }
+
+        .trend-date-row {
+          height: 22px;
+        }
+
+        .trend-bars,
+        .trend-bar-wrap {
+          height: 62px;
+        }
+
+        .trend-day-line {
+          height: 58px;
+        }
+
+        .trend-footer {
+          margin-top: 5px;
         }
       }
     `}</style>
@@ -1133,44 +1337,44 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="dashboard-second-row">
-            <div>
-              <SecLabel title="活動建議" />
-              <div className="advice-card" style={{ backgroundColor: `${activity.color}20`, border: `1px solid ${activity.color}` }}>
-                <span className="advice-icon" style={{ backgroundColor: `${activity.color}30`, borderColor: activity.color }}>
-                  <ActivityIcon size={18} color={activity.color} />
-                </span>
-                <p>{activity.advice}</p>
+          <div className="dashboard-lower-row">
+            <div className="dashboard-side-stack">
+              <div>
+                <SecLabel title="活動建議" />
+                <div className="advice-card" style={{ backgroundColor: `${activity.color}18`, border: `1px solid ${activity.color}55` }}>
+                  <span className="advice-icon" style={{ backgroundColor: `${activity.color}28`, borderColor: `${activity.color}88` }}>
+                    <ActivityIcon size={18} color={activity.color} />
+                  </span>
+                  <p>{activity.advice}</p>
+                </div>
+              </div>
+
+              <div>
+                <SecLabel title="AI 趨勢分析" />
+                <div className="insight-card">
+                  <span className="insight-icon">
+                    <TrendingDown size={16} />
+                  </span>
+                  <p className="insight-copy">
+                    <strong>PM2.5 濃度預計下降</strong>
+                    <span>未來 3 小時因海風輻合影響</span>
+                  </p>
+                  <span className="insight-chip">-12%</span>
+                </div>
               </div>
             </div>
 
-            <div className="row-divider" />
-
-            <div>
-              <SecLabel title="AI 趨勢分析" />
-              <div className="insight-card">
-                <span className="insight-icon">
-                  <TrendingDown size={15} />
+            <section className="trend-section">
+              <div className="trend-heading">
+                <SecLabel title="PM2.5 趨勢" />
+                <span className="scroll-hint">
+                  <ChevronsRight size={13} />
+                  左右滑動查看
                 </span>
-                <p className="insight-copy">
-                  <strong>PM2.5 濃度預計下降</strong>
-                  <span>未來 3 小時因海風輻合影響下降 12%</span>
-                </p>
-                <span className="insight-chip">-12%</span>
               </div>
-            </div>
+              <TrendBars />
+            </section>
           </div>
-
-          <section className="trend-section">
-            <div className="trend-heading">
-              <SecLabel title="PM2.5 趨勢" />
-              <span className="scroll-hint">
-                <ChevronsRight size={13} />
-                左右滑動查看
-              </span>
-            </div>
-            <TrendBars />
-          </section>
         </section>
       </main>
     </>
