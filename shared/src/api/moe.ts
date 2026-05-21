@@ -7,12 +7,16 @@ const MOE_TARGET_STATIONS = ['中壢', '桃園', '大園', '觀音', '平鎮', '
 
 export function parseMoeRecords(records: any[]): MoeStationData[] {
   return records.map(record => ({
-    sitename:         record.sitename ?? '',
-    aqi:              Number(record.aqi)             || 0,
-    pm25:             Number(record['pm2.5'])         || 0,
-    o3:               Number(record.o3)               || 0,
-    nox:              Number(record.nox ?? record.no2) || 0,
-    datacreationdate: record.publishtime ?? undefined,
+    sitename:         record.sitename          ?? '',
+    aqi:              Number(record.aqi)        || 0,
+    pm25:             Number(record['pm2.5'])   || 0,
+    pm10:             Number(record.pm10)       || 0,
+    o3:               Number(record.o3)         || 0,
+    nox:              Number(record.nox)        || 0,
+    so2:              Number(record.so2)        || 0,
+    co:               Number(record.co)         || 0,
+    no2:              Number(record.no2)        || 0,
+    datacreationdate: record.publishtime        ?? undefined,
   }));
 }
 
@@ -28,8 +32,8 @@ export const fetchMoeStations = async (apiKey?: string): Promise<MoeStationData[
 
   const buildUrl = (station: string) => {
     const params = new URLSearchParams({ format: 'json', offset: '0', limit: '10', api_key: key });
-    params.append('filters', `SiteName,EQ,${station}`);
-    return `https://data.moenv.gov.tw/api/v2/aqx_p_432?${params.toString()}`;
+    // Append filters manually to keep commas literal — MOE API does not accept %2C
+    return `https://data.moenv.gov.tw/api/v2/aqx_p_432?${params.toString()}&filters=SiteName,EQ,${encodeURIComponent(station)}`;
   };
 
   try {

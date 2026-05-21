@@ -26,12 +26,12 @@ const C = {
 };
 
 const COLORS = {
-  good: '#76c476',
+  good: '#4caf50',
   moderate: '#edbb05',
   unhealthySensitive: '#ff9800',
   unhealthy: '#f44336',
   veryUnhealthy: '#9c27b0',
-  hazardous: '#7b241c',
+  hazardous: '#1a0028',
 };
 
 const DISTRICT_EXTENDED: Record<string, { no2: number; so2: number; co: number; pm10: number }> = {
@@ -58,7 +58,7 @@ const TREND_DATA = [
 ];
 
 const getAQIColor = (aqi: number) => {
-  if (aqi <= 50) return '#E76595';
+  if (aqi <= 50) return COLORS.good;
   if (aqi <= 100) return COLORS.moderate;
   if (aqi <= 150) return COLORS.unhealthySensitive;
   if (aqi <= 200) return COLORS.unhealthy;
@@ -977,7 +977,11 @@ export default function DashboardPage() {
     district: string;
     aqi: number;
     pm25: number;
+    pm10: number;
     o3: number;
+    no2: number;
+    so2: number;
+    co: number;
   } | null>(null);
 
   useEffect(() => {
@@ -1006,9 +1010,13 @@ export default function DashboardPage() {
 
         setRemoteMetrics({
           district,
+          aqi:  station.aqi  || base.aqi,
           pm25: station.pm25 || base.pm25,
-          o3: station.o3 || base.o3,
-          aqi: station.aqi || base.aqi,
+          pm10: station.pm10,
+          o3:   station.o3   || base.o3,
+          no2:  station.no2,
+          so2:  station.so2,
+          co:   station.co,
         });
       })
       .catch(console.warn);
@@ -1024,10 +1032,10 @@ export default function DashboardPage() {
   const aqi = live?.aqi ?? base.aqi;
   const pm25 = live?.pm25 ?? base.pm25;
   const o3 = live?.o3 ?? base.o3;
-  const no2 = ext.no2;
-  const so2 = ext.so2;
-  const co = ext.co;
-  const pm10 = ext.pm10;
+  const no2  = live?.no2  ?? ext.no2;
+  const so2  = live?.so2  ?? ext.so2;
+  const co   = live?.co   ?? ext.co;
+  const pm10 = live?.pm10 ?? ext.pm10;
   const activity = getActivityInfo(aqi);
   const ActivityIcon = activity.icon;
 

@@ -59,8 +59,12 @@ export interface MoeStationData {
   sitename: string;
   aqi: number;
   pm25: number;
+  pm10: number;
   o3: number;
   nox: number;
+  so2: number;
+  co: number;
+  no2: number;
   datacreationdate?: string;
 }
 
