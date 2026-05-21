@@ -517,7 +517,7 @@ export default function MapPage() {
     if (search.trim()) setSearchMessage('找不到符合的行政區或網格 ID');
   };
 
-  const selectedMeta = pollutantMeta[selectedPollutant];
+  const selectedMeta = pollutantMeta[selectedPollutant as Pollutant];
   const gridValues   = useMemo(() => gridCells.map((g) => g.values.value), [gridCells]);
   const gridAverage  = gridValues.length ? Math.round(gridValues.reduce((s, v) => s + v, 0) / gridValues.length) : 0;
   const gridMaximum  = gridValues.length ? Math.round(Math.max(...gridValues)) : 0;
