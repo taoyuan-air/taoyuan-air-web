@@ -1,94 +1,102 @@
-# Taoyuan Air
-
-Taoyuan Air 是桃園空氣品質監測與視覺化專案。專案目前拆成 Next.js 網頁版、Expo/React Native app 版，以及共用的 `shared/` 資料層，讓網頁與手機 app 可以共用 API、型別、store 與常數資料。
-
 ## 專案結構
 
 ```text
 taoyuan-air/
-├─ frontend-web/      # Next.js + React，主要網頁版
-├─ frontend-mobile/   # Expo + React Native，手機 app 版
-├─ shared/            # 共用 API、types、store、constants
-├─ database/          # 資料庫相關檔案
-├─ data/              # 原始與處理後資料
-├─ scripts/           # 資料轉換、資料庫輔助腳本
-├─ docs/              # 專案文件
-└─ docker-compose.yml # PostgreSQL/PostGIS/Redis 開發環境
+├─ frontend-web/       # Next.js + React，桌面版與網頁版儀表板
+├─ frontend-mobile/    # Expo + React Native，手機 App
+├─ shared/             # 共用 API、types、store、constants
+├─ database/           # 資料庫 schema 與初始化相關檔案
+├─ data/               # 原始資料與匯入資料
+├─ scripts/            # 資料庫檢查、備份、匯入與轉換工具
+├─ docs/               # 專案文件與資料來源說明
+└─ docker-compose.yml  # PostgreSQL + PostGIS + Redis
 ```
 
-## 技術棧
+## 快速開始
 
-- Web：Next.js 16、React 19、TypeScript
-- Mobile：Expo 54、React Native 0.81、TypeScript
-- Shared：TypeScript、Zustand、共用 API/mock data/types
-- Database：PostgreSQL、PostGIS、Redis
-- Maps/Data：Leaflet、TGOS、Windy、MOENV、CWA
+### 環境需求
 
-## 需求
+- **Node.js 18+**
+- **Docker Desktop** (用於資料庫)
+- **npm**
+- **手機** 或 **模擬器** (用於 Mobile App)
 
-- Node.js 18+
-- npm
-- Docker Desktop
-- Expo Go app，若要用實機測試 mobile app
+### 手機準備
 
-## 環境變數
+在手機上安裝 **Expo Go** 應用程式：
 
-Root `.env` 用於資料庫：
+- [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
+- [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+### 安裝與運行
+
+#### 1. 環境配置
 
 ```bash
+# 複製資料庫環境變數
 cp .env.example .env
+
+# 複製 Mobile 環境變數
+cp frontend-mobile/.env.example frontend-mobile/.env
 ```
 
-內容範例：
+Web 端使用 `frontend-web/.env.local`。如果尚未建立，可依照 `frontend-web/.env.example` 新增：
+
+```bash
+cp frontend-web/.env.example frontend-web/.env.local
+```
+
+編輯環境變數檔案：
 
 ```env
+# .env
 POSTGRES_USER=your_username
 POSTGRES_PASSWORD=your_password
 POSTGRES_DB=taoyuan_air
 ```
 
-Web 使用 `frontend-web/.env.local`：
-
 ```env
-NEXT_PUBLIC_MOE_API_KEY=
-NEXT_PUBLIC_CWA_API_KEY=
-NEXT_PUBLIC_WINDY_API_KEY=
-NEXT_PUBLIC_TGOS_API_KEY=
+# frontend-web/.env.local
+NEXT_PUBLIC_MOE_API_KEY=your_moe_api_key_here
+NEXT_PUBLIC_WINDY_API_KEY=your_windy_api_key_here
+NEXT_PUBLIC_TGOS_API_KEY=your_tgos_api_key_here
 ```
 
-Mobile 使用 `frontend-mobile/.env`：
-
-```bash
-cp frontend-mobile/.env.example frontend-mobile/.env
-```
-
-內容範例：
-
 ```env
+# frontend-mobile/.env
 EXPO_PUBLIC_MOE_API_KEY=your_api_key_here
 EXPO_PUBLIC_WINDY_API_KEY=your_windy_api_key_here
 EXPO_PUBLIC_CWA_API_KEY=your_cwa_api_key_here
 EXPO_PUBLIC_TGOS_API_KEY=your_TGOS_api_key_here
 ```
 
-## 安裝
-
-目前各前端有自己的 `package.json` 與 lockfile：
+#### 2. 安裝依賴
 
 ```bash
+# 安裝 root scripts 依賴
+npm install
+
+# 安裝 Web 端依賴
 npm install --prefix frontend-web
+
+# 安裝 Mobile 端依賴
 npm install --prefix frontend-mobile
 ```
 
-Root 也有簡單啟動 script：
+#### 3. 啟動資料庫服務
 
 ```bash
-npm install
+# 啟動 PostgreSQL + PostGIS + Redis
+docker-compose up -d
+
+# 檢查服務狀態
+docker-compose ps
+
+# 檢查資料庫（可選）
+scripts\check_db.bat
 ```
 
-## 啟動
-
-啟動網頁版：
+#### 4. 啟動 Web 應用
 
 在 repo root 執行：
 
@@ -96,19 +104,16 @@ npm install
 npm run web
 ```
 
-或同樣在 repo root：
+或進入 Web 目錄執行：
 
 ```bash
-npm run dev --prefix frontend-web
-```
-
-如果你已經在 `frontend-web/` 資料夾內：
-
-```bash
+cd frontend-web
 npm run dev
 ```
 
-啟動 mobile app：
+預設會啟動 Next.js 開發伺服器，通常位於 `http://localhost:3000`。
+
+#### 5. 啟動 Mobile App
 
 在 repo root 執行：
 
@@ -116,105 +121,151 @@ npm run dev
 npm run mobile
 ```
 
-或同樣在 repo root：
+或進入 Mobile 目錄執行：
 
 ```bash
-npm run start --prefix frontend-mobile
-```
-
-如果你已經在 `frontend-mobile/` 資料夾內：
-
-```bash
+cd frontend-mobile
 npm run start
 ```
 
-Expo 開啟後可以用 Expo Go 掃描 QR code，或執行：
+使用 Expo Go 掃描終端機中的 QR code 即可在手機上運行。
 
-從 repo root：
+也可以使用模擬器：
 
 ```bash
 npm run android --prefix frontend-mobile
 npm run ios --prefix frontend-mobile
+npm run web --prefix frontend-mobile
 ```
 
-如果你已經在 `frontend-mobile/` 資料夾內：
+## 技術架構
 
-```bash
-npm run android
-npm run ios
+### 主要技術棧
+
+```json
+{
+  "Web": "Next.js 16 + React 19",
+  "Mobile": "Expo 54 + React Native 0.81",
+  "Shared": "TypeScript + Zustand",
+  "語言": "TypeScript 5.x",
+  "資料庫": "PostgreSQL + PostGIS",
+  "快取": "Redis",
+  "地圖與資料": "Leaflet + TGOS + MOE + CWA + Windy",
+  "容器化": "Docker + Docker Compose"
+}
 ```
 
-## 資料庫
+### 重構後模組
 
-啟動 PostgreSQL/PostGIS/Redis：
+- **frontend-web/** - Next.js Web 端，包含空氣總覽、監測地圖、資料檢索、事件記錄、警報通知與設定頁面。
+- **frontend-mobile/** - Expo / React Native 手機端，保留行動裝置瀏覽與 Expo Go 測試流程。
+- **shared/** - Web 與 Mobile 共用的 API client、mock data、types、store 與 constants。
+
+### Shared 使用方式
+
+`shared/` 集中放置跨平台邏輯：
+
+- `shared/src/api/` - MOE、CWA、TYDEP、事件與警報相關 API / mock data
+- `shared/src/types/` - 共用 TypeScript 型別
+- `shared/src/store/` - Zustand store
+- `shared/src/constants/` - 桃園行政區、靜態空品資料與共用常數
+
+`frontend-web` 透過 `@shared/*` alias 引用共用模組。  
+`frontend-mobile` 透過 `src/api`、`src/store`、`src/types` wrapper 轉接到 `shared/`，並由 `metro.config.js` 設定 Metro 讀取 repo 內的 shared package。
+
+## 資料庫管理
+
+### 連線資訊
 
 ```bash
-docker-compose up -d
-docker-compose ps
+Host: localhost
+Port: 5432
+Database: taoyuan_air
+User: (見 .env 檔案)
+Password: (見 .env 檔案)
 ```
 
-常用腳本：
+### 管理指令
 
 ```bash
-scripts\check_db.bat
+# 備份資料庫
 scripts\backup_db.bat
-scripts\restore_db.bat
-scripts\setup_epa_db.bat
-```
 
-停止服務：
+# 還原資料庫
+scripts\restore_db.bat [備份檔案路徑]
 
-```bash
+# 檢查資料庫狀態
+scripts\check_db.bat
+
+# 設定 MOE 資料庫
+scripts\setup_moe_db.bat
+
+# 設定 TYDEP 資料庫
+scripts\setup_tydep_db.bat
+
+# 停止服務
 docker-compose down
-```
 
-若要連 volume 一起清掉：
-
-```bash
+# 停止並刪除資料（危險！）
 docker-compose down -v
 ```
 
-## Shared 層
-
-`shared/` 是 web 與 mobile 共用資料層，包含：
-
-- `shared/src/api/`：MOENV/mock grid/events/alerts API
-- `shared/src/types/`：共用 TypeScript 型別
-- `shared/src/store/`：Zustand store
-- `shared/src/constants/`：主題、行政區、測站對照
-
-`frontend-web` 透過 `@shared/*` alias 使用 shared。`frontend-mobile` 透過 `src/api`、`src/store`、`src/types` wrapper 轉接到 shared，並由 `frontend-mobile/metro.config.js` 讓 Expo/Metro 正確解析 repo 外的 shared 目錄。
-
-## 驗證
-
-建議改動 shared 或前端後執行：
+### 資料匯入與轉換
 
 ```bash
+# 匯入 MOE 測站
+python scripts\import_moe_stations.py
+
+# 匯入 CWA 測站
+python scripts\import_cwa_stations.py
+
+# 匯入 TYDEP 測站
+python scripts\import_tydep_stations.py
+
+# 匯入 TEDS 點源資料
+python scripts\import_teds_point.py
+```
+
+Python 匯入工具的依賴可參考：
+
+```bash
+pip install -r scripts\requirements.txt
+```
+
+## 檢查與建置
+
+```bash
+# 檢查 shared 型別
 npx tsc --noEmit -p shared/tsconfig.json
+
+# 檢查 Web 型別
+npx tsc --noEmit -p frontend-web/tsconfig.json
+
+# 檢查 Mobile 型別
 npx tsc --noEmit -p frontend-mobile/tsconfig.json
+
+# Web lint
+npm run lint --prefix frontend-web
+
+# Web build
 npm run build --prefix frontend-web
-```
 
-若你已經在 `frontend-web/` 資料夾內，build 指令改用：
-
-```bash
-npm run build
-```
-
-若仍需要驗證 Expo web fallback：
-
-```bash
+# Mobile web export
 npm run build:web --prefix frontend-mobile
 ```
 
-目前 `frontend-web` 的 lint 還有既有規則問題需要後續整理，但 Next.js build 可正常通過。
+## 常用開發指令
 
-## 文件
+```bash
+# 從 repo root 啟動 Web
+npm run web
 
-更多設計與規劃文件在 `docs/`：
+# 從 repo root 啟動 Mobile
+npm run mobile
 
-- `docs/GET_STARTED.md`
-- `docs/API_DATABASE_DESIGN.md`
-- `docs/DATA_SOURCES.md`
-- `docs/FRONTEND_CLEANUP_AUDIT.md`
-- `docs/DEVELOPMENT_ROADMAP.md`
+# 只啟動資料庫
+docker-compose up -d
+
+# 查看資料庫服務
+docker-compose ps
+```
