@@ -649,19 +649,14 @@ export default function MapPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
             {(['PM25', 'O3', 'NOX', 'VOCs'] as Pollutant[]).map((p) => {
               const on = selectedPollutant === p;
               const m  = pollutantMeta[p];
               return (
-                <button key={p} onClick={() => setSelectedPollutant(p)} style={{
-                  padding: '9px 10px', borderRadius: 11, textAlign: 'left', cursor: 'pointer',
-                  border: `1.5px solid ${on ? palette.primaryDeep : 'transparent'}`,
-                  backgroundColor: on ? 'rgba(231,101,149,0.09)' : 'rgba(248,208,218,0.22)',
-                  transition: 'all 0.18s',
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: on ? palette.primaryDeep : palette.textMain, lineHeight: 1.2 }}>{m.short}</div>
-                  <div style={{ fontSize: 10, color: on ? palette.primaryDeep : palette.textSecondary, marginTop: 2, opacity: 0.85 }}>{m.label}</div>
+                <button key={p} onClick={() => setSelectedPollutant(p)} className={`pollutant-btn${on ? ' selected' : ''}`}>
+                  <div className="pollutant-btn-name">{m.short}</div>
+                  <div className="pollutant-btn-label">{m.label}</div>
                 </button>
               );
             })}
@@ -893,6 +888,43 @@ export default function MapPage() {
         }
         .card-body::-webkit-scrollbar-thumb:hover {
           background: ${palette.primaryDeep};
+        }
+        .pollutant-btn {
+          min-width: 0;
+          padding: 8px 6px;
+          border-radius: 11px;
+          text-align: center;
+          cursor: pointer;
+          border: 1.5px solid transparent;
+          background-color: rgba(248,208,218,0.22);
+          transition: all 0.18s;
+        }
+        .pollutant-btn.selected {
+          border-color: ${palette.primaryDeep};
+          background-color: rgba(231,101,149,0.09);
+        }
+        .pollutant-btn-name {
+          font-size: 12px;
+          font-weight: 800;
+          color: ${palette.textMain};
+          line-height: 1.2;
+          white-space: nowrap;
+        }
+        .pollutant-btn.selected .pollutant-btn-name {
+          color: ${palette.primaryDeep};
+        }
+        .pollutant-btn-label {
+          margin-top: 2px;
+          font-size: 9px;
+          color: ${palette.textSecondary};
+          line-height: 1.2;
+          opacity: 0.85;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .pollutant-btn.selected .pollutant-btn-label {
+          color: ${palette.primaryDeep};
         }
       `}</style>
     </div>

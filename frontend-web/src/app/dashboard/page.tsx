@@ -2,7 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
-import { fetchMoeStations } from '@shared/api/moe';
+import type { MoeStationData } from '@shared/api/moe';
+
+const fetchMoeStations = (): Promise<MoeStationData[]> =>
+  fetch('/api/moe').then(r => r.json());
 import {
   DISTRICT_STATIC_AQ,
   EPA_STATION_TO_DISTRICT,
@@ -373,12 +376,12 @@ function DashboardStyles() {
   return (
     <style>{`
       .dashboard-page {
-        height: calc(100vh - 80px);
+        min-height: calc(100vh - 80px);
         padding: 14px 44px 30px;
         display: grid;
         grid-template-columns: minmax(380px, 36%) minmax(760px, 1fr);
         gap: 22px;
-        overflow: hidden;
+        overflow: visible;
       }
 
       .dashboard-map-pane {
@@ -413,9 +416,9 @@ function DashboardStyles() {
       }
 
       .dashboard-panel {
-        height: calc(100vh - 124px);
+        height: auto;
         min-height: 0;
-        overflow: hidden;
+        overflow: auto;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
         border-radius: 20px;
@@ -794,8 +797,10 @@ function DashboardStyles() {
 
       .trend-scroll {
         width: 100%;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         padding: 0 0 0 8px;
+        scrollbar-width: thin;
       }
 
       .trend-inner {
@@ -896,15 +901,17 @@ function DashboardStyles() {
         font-weight: 900;
       }
 
-      @media (max-width: 1180px) {
+      @media (max-width: 1280px) {
         .dashboard-page {
           grid-template-columns: 1fr;
           overflow: visible;
+          height: auto;
         }
 
         .dashboard-map-pane,
         .dashboard-panel {
           min-height: auto;
+          height: auto;
           max-height: none;
         }
 
@@ -944,6 +951,20 @@ function DashboardStyles() {
 
         .metric-divider {
           display: none;
+        }
+
+        .trend-heading .scroll-hint {
+          display: inline-flex;
+        }
+      }
+
+      @media (max-height: 760px) and (min-width: 1281px) {
+        .dashboard-page {
+          overflow: auto;
+        }
+
+        .dashboard-panel {
+          max-height: calc(100vh - 124px);
         }
       }
     `}</style>

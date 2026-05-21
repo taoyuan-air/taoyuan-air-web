@@ -28,6 +28,53 @@ a {
   color: inherit;
 }
 
+/* ── Map pollutant selector buttons ── */
+.pollutant-btn {
+  padding: 9px 4px;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background-color: rgba(248, 208, 218, 0.22);
+  transition: background-color 0.25s ease, border-color 0.25s ease,
+              transform 0.22s ease, box-shadow 0.25s ease;
+}
+
+.pollutant-btn:hover:not(.selected) {
+  background-color: rgba(231, 101, 149, 0.12);
+  border-color: rgba(231, 101, 149, 0.38);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(231, 101, 149, 0.18);
+}
+
+.pollutant-btn.selected {
+  background-color: rgba(231, 101, 149, 0.09);
+  border-color: #E76595;
+}
+
+.pollutant-btn-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #3A1E2D;
+  line-height: 1.2;
+  transition: color 0.25s ease;
+}
+
+.pollutant-btn-label {
+  font-size: 9px;
+  color: #7F5A6A;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.pollutant-btn.selected .pollutant-btn-name,
+.pollutant-btn.selected .pollutant-btn-label {
+  color: #E76595;
+}
+
 /* ── TopNav ── */
 .top-nav {
   position: fixed;
