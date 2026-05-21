@@ -140,21 +140,6 @@ npm run web --prefix frontend-mobile
 
 ## 技術架構
 
-### 主要技術棧
-
-```json
-{
-  "Web": "Next.js 16 + React 19",
-  "Mobile": "Expo 54 + React Native 0.81",
-  "Shared": "TypeScript + Zustand",
-  "語言": "TypeScript 5.x",
-  "資料庫": "PostgreSQL + PostGIS",
-  "快取": "Redis",
-  "地圖與資料": "Leaflet + TGOS + MOE + CWA + Windy",
-  "容器化": "Docker + Docker Compose"
-}
-```
-
 ### 重構後模組
 
 - **frontend-web/** - Next.js Web 端，包含空氣總覽、監測地圖、資料檢索、事件記錄、警報通知與設定頁面。
