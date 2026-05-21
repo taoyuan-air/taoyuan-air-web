@@ -1,0 +1,484 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import {
+  Bell, Check, CheckCircle2, ChevronRight,
+  Heart, Key, LogOut, Settings, Shield,
+  Star, UserCheck, Wind,
+} from 'lucide-react';
+
+/* ─── Design tokens ──────────────────────────────────────────── */
+const C = {
+  primary:       '#D4567A',
+  primaryAlpha:  'rgba(212,86,122,0.12)',
+  primaryBorder: 'rgba(212,86,122,0.30)',
+  coral:         '#C4614A',
+  coralAlpha:    'rgba(196,97,74,0.10)',
+  coralBorder:   'rgba(196,97,74,0.25)',
+  glass:         'rgba(255,255,255,0.52)',
+  glassBorder:   'rgba(255,255,255,0.72)',
+  glassShadow:   '0 4px 16px rgba(180,140,160,0.10)',
+  text:          '#1a1220',
+  muted:         '#7a6880',
+  hint:          '#b0a0b8',
+};
+
+const card: React.CSSProperties = {
+  backgroundColor: C.glass,
+  border: `1px solid ${C.glassBorder}`,
+  borderRadius: 20,
+  boxShadow: C.glassShadow,
+};
+
+type Section = '帳戶安全' | '身份驗證' | '健康檔案' | '通知偏好';
+
+const NAV: { key: Section; Icon: React.ElementType; desc: string }[] = [
+  { key: '帳戶安全', Icon: Shield,    desc: '密碼與登入方式' },
+  { key: '身份驗證', Icon: UserCheck, desc: '帳號驗證狀態' },
+  { key: '健康檔案', Icon: Heart,     desc: '個人健康資訊' },
+  { key: '通知偏好', Icon: Bell,      desc: '警報與推播設定' },
+];
+
+/* ─── Toggle ─────────────────────────────────────────────────── */
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div
+      role="switch" aria-checked={value} tabIndex={0}
+      onClick={() => onChange(!value)}
+      onKeyDown={(e) => e.key === ' ' && onChange(!value)}
+      style={{
+        width: 44, height: 26, borderRadius: 13, cursor: 'pointer',
+        position: 'relative', flexShrink: 0, outline: 'none',
+        backgroundColor: value ? C.primary : 'rgba(180,140,160,0.25)',
+        transition: 'background-color 0.2s',
+        boxShadow: value ? `0 0 0 3px ${C.primaryAlpha}` : 'none',
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 3, left: value ? 21 : 3,
+        width: 20, height: 20, borderRadius: 10,
+        backgroundColor: '#fff', transition: 'left 0.2s',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+      }} />
+    </div>
+  );
+}
+
+/* ─── Section label ──────────────────────────────────────────── */
+function SectionLabel({ title }: { title: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingLeft: 2 }}>
+      <div style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.primary, boxShadow: `0 0 6px ${C.primaryAlpha}` }} />
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: 0.2 }}>{title}</span>
+    </div>
+  );
+}
+
+/* ─── Field row ──────────────────────────────────────────────── */
+function FieldRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>{label}</span>
+      <div style={{
+        padding: '11px 14px', borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.6)',
+        border: `1px solid ${C.glassBorder}`,
+        fontSize: 14, color: C.text, fontWeight: 500,
+      }}>{value}</div>
+    </div>
+  );
+}
+
+/* ─── Toggle row ─────────────────────────────────────────────── */
+function ToggleRow({
+  Icon, iconColor, iconBg, title, desc, value, onChange,
+}: {
+  Icon: React.ElementType; iconColor: string; iconBg: string;
+  title: string; desc: string; value: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{
+        width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+        backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={17} color={iconColor} strokeWidth={2} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>{title}</p>
+        <p style={{ fontSize: 12, color: C.hint }}>{desc}</p>
+      </div>
+      <Toggle value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+const INIT = {
+  twoFactor: false,
+  conditions: { asthma: true, elderly: false, child: false },
+  notifs: { pm25: true, aqi: true, health: false, system: true },
+};
+
+/* ═══════════════════════════════════════════════════════════════ */
+export default function SettingsPage() {
+  const [activeSection, setActiveSection] = useState<Section>('帳戶安全');
+  const [saved, setSaved] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  /* 帳戶安全 state */
+  const [twoFactor, setTwoFactor] = useState(INIT.twoFactor);
+
+  /* 健康檔案 state */
+  const [conditions, setConditions] = useState(INIT.conditions);
+
+  /* 通知偏好 state */
+  const [notifs, setNotifs] = useState(INIT.notifs);
+
+  const isDirty =
+    twoFactor !== INIT.twoFactor ||
+    JSON.stringify(conditions) !== JSON.stringify(INIT.conditions) ||
+    JSON.stringify(notifs) !== JSON.stringify(INIT.notifs);
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
+      <div style={{ padding: isMobile ? '20px 16px 80px' : '28px 40px 32px' }}>
+
+        {/* ── Page header ──────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12,
+              backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Settings size={18} color={C.primary} strokeWidth={2} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0, lineHeight: 1.2 }}>用戶設定</h1>
+              <p style={{ fontSize: 12, color: C.hint, margin: 0, marginTop: 2 }}>管理帳號、健康資訊與通知偏好</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={!isDirty && !saved}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default',
+              backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
+              border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
+              fontSize: 13, fontWeight: 700,
+              color: saved ? '#5C8A76' : isDirty ? C.primary : C.hint,
+              transition: 'all 0.18s',
+            }}
+          >
+            <Check size={15} strokeWidth={2.5} />
+            {saved ? '已儲存' : '儲存變更'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexDirection: isMobile ? 'column' : 'row' }}>
+
+          {/* ── Left: profile + nav ──────────────────────── */}
+          <div style={{ width: isMobile ? '100%' : 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Profile card */}
+            <div style={{
+              ...card, padding: isMobile ? '16px 20px' : 24,
+              display: 'flex', flexDirection: isMobile ? 'row' : 'column',
+              alignItems: isMobile ? 'center' : 'center',
+              gap: isMobile ? 16 : 12,
+            }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{
+                  width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
+                  backgroundColor: '#D4B896', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: isMobile ? 20 : 26, fontWeight: 800,
+                  boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
+                }}>
+                  陳
+                </div>
+                <div style={{
+                  position: 'absolute', bottom: -4,
+                  left: '50%', transform: 'translateX(-50%)',
+                  display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
+                  padding: '3px 10px', borderRadius: 12,
+                  backgroundColor: C.primary, border: '2px solid #fff',
+                  color: '#fff', fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+                }}>
+                  <Star size={9} fill="white" strokeWidth={0} />
+                  PREMIUM
+                </div>
+              </div>
+              <div style={{ flex: isMobile ? 1 : undefined, textAlign: isMobile ? 'left' : 'center' }}>
+                <p style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 2 }}>陳曉明</p>
+                <p style={{ fontSize: 12, color: C.hint, marginBottom: isMobile ? 0 : 4 }}>wei-ting.chen@taoyuan.io</p>
+              </div>
+              {!isMobile && (
+                <div style={{
+                  width: '100%', padding: '8px 14px', borderRadius: 12,
+                  backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: C.muted }}>會員方案</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.primary }}>Premium</span>
+                </div>
+              )}
+            </div>
+
+            {/* Nav items */}
+            {isMobile ? (
+              <div style={{
+                display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+                scrollbarWidth: 'none',
+              }}>
+                {NAV.map(({ key, Icon }) => {
+                  const active = activeSection === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setActiveSection(key)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7,
+                        padding: '9px 16px', borderRadius: 99, flexShrink: 0,
+                        cursor: 'pointer', border: `1px solid ${active ? C.primaryBorder : C.glassBorder}`,
+                        backgroundColor: active ? C.primaryAlpha : C.glass,
+                        fontSize: 13, fontWeight: active ? 700 : 500,
+                        color: active ? C.primary : C.muted,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <Icon size={14} strokeWidth={2} />
+                      {key}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ ...card, padding: 8 }}>
+                {NAV.map(({ key, Icon, desc }) => {
+                  const active = activeSection === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setActiveSection(key)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '11px 14px', borderRadius: 12, cursor: 'pointer',
+                        border: 'none', textAlign: 'left',
+                        backgroundColor: active ? C.primaryAlpha : 'transparent',
+                        transition: 'background-color 0.15s',
+                      }}
+                    >
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                        backgroundColor: active ? C.primaryBorder : 'rgba(180,140,160,0.10)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background-color 0.15s',
+                      }}>
+                        <Icon size={16} color={active ? C.primary : C.muted} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? C.primary : C.text, marginBottom: 1 }}>{key}</p>
+                        <p style={{ fontSize: 11, color: C.hint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</p>
+                      </div>
+                      <ChevronRight size={14} color={active ? C.primary : C.hint} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Logout */}
+            <button style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              padding: '13px 0', borderRadius: 14, cursor: 'pointer',
+              backgroundColor: 'rgba(196,97,74,0.14)', border: '1.5px solid rgba(196,97,74,0.32)',
+              fontSize: 14, fontWeight: 700, color: C.coral,
+              transition: 'all 0.15s',
+            }}>
+              <LogOut size={16} strokeWidth={2} />
+              登出帳號
+            </button>
+          </div>
+
+          {/* ── Right: section content ────────────────────── */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+
+            {/* ── 帳戶安全 ── */}
+            {activeSection === '帳戶安全' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <SectionLabel title="帳戶安全" />
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本資料</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <FieldRow label="用戶名稱" value="陳曉明" />
+                    <FieldRow label="電子信箱" value="wei-ting.chen@taoyuan.io" />
+                    <FieldRow label="帳號建立日期" value="2024 年 3 月 12 日" />
+                  </div>
+                </div>
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>登入安全</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <ToggleRow
+                      Icon={Key} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="雙因素驗證" desc="使用驗證器 App 進行第二步驟確認"
+                      value={twoFactor} onChange={setTwoFactor}
+                    />
+                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>登入密碼</p>
+                        <p style={{ fontSize: 12, color: C.hint }}>上次變更：90 天前</p>
+                      </div>
+                      <button style={{
+                        padding: '9px 18px', borderRadius: 99, cursor: 'pointer',
+                        backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+                        fontSize: 13, fontWeight: 700, color: C.primary,
+                      }}>變更密碼</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 身份驗證 ── */}
+            {activeSection === '身份驗證' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <SectionLabel title="身份驗證" />
+                <div style={{ ...card, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {[
+                    { label: '電子信箱驗證', sub: 'wei-ting.chen@taoyuan.io', done: true },
+                    { label: '手機號碼綁定', sub: '+886 9xx-xxx-xxx', done: true },
+                    { label: '政府機關身份認證', sub: '桃園市政府環保局人員', done: false },
+                  ].map(({ label, sub, done }) => (
+                    <div key={label} style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '16px 18px', borderRadius: 14,
+                      backgroundColor: done ? C.primaryAlpha : 'rgba(180,140,160,0.07)',
+                      border: `1px solid ${done ? C.primaryBorder : 'rgba(180,140,160,0.15)'}`,
+                    }}>
+                      <CheckCircle2
+                        size={22} strokeWidth={2}
+                        color={done ? C.primary : C.hint}
+                        fill={done ? C.primaryAlpha : 'none'}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: done ? C.text : C.muted, marginBottom: 2 }}>{label}</p>
+                        <p style={{ fontSize: 12, color: C.hint }}>{sub}</p>
+                      </div>
+                      {!done && (
+                        <button style={{
+                          padding: '7px 16px', borderRadius: 99, cursor: 'pointer',
+                          backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+                          fontSize: 12, fontWeight: 700, color: C.primary,
+                        }}>前往驗證</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── 健康檔案 ── */}
+            {activeSection === '健康檔案' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <SectionLabel title="健康檔案設定" />
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本健康資訊</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                    <FieldRow label="年齡區間" value="25–34 歲" />
+                    <FieldRow label="性別" value="男性" />
+                    <FieldRow label="所在行政區" value="桃園區" />
+                    <FieldRow label="敏感度預設" value="一般民眾" />
+                  </div>
+                </div>
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>特殊健康狀況</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <ToggleRow
+                      Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="氣喘 / 呼吸道疾病" desc="調低 PM2.5 警報門檻至 15 µg/m³"
+                      value={conditions.asthma} onChange={(v) => setConditions(p => ({ ...p, asthma: v }))}
+                    />
+                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <ToggleRow
+                      Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="年長者 (65 歲以上)" desc="啟用額外健康警示與建議"
+                      value={conditions.elderly} onChange={(v) => setConditions(p => ({ ...p, elderly: v }))}
+                    />
+                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <ToggleRow
+                      Icon={Star} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="兒童 (12 歲以下)" desc="針對兒童調整戶外活動建議"
+                      value={conditions.child} onChange={(v) => setConditions(p => ({ ...p, child: v }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 通知偏好 ── */}
+            {activeSection === '通知偏好' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <SectionLabel title="通知偏好設定" />
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>警報通知</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <ToggleRow
+                      Icon={Shield} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="PM2.5 超標警報" desc="濃度超過設定門檻時即時通知"
+                      value={notifs.pm25} onChange={(v) => setNotifs(p => ({ ...p, pm25: v }))}
+                    />
+                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <ToggleRow
+                      Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="AQI 每日摘要" desc="每天早上 7:00 發送空氣品質報告"
+                      value={notifs.aqi} onChange={(v) => setNotifs(p => ({ ...p, aqi: v }))}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ ...card, padding: 28 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>其他通知</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <ToggleRow
+                      Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="健康建議推播" desc="AI 根據空氣狀況提供活動建議"
+                      value={notifs.health} onChange={(v) => setNotifs(p => ({ ...p, health: v }))}
+                    />
+                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <ToggleRow
+                      Icon={Bell} iconColor={C.primary} iconBg={C.primaryAlpha}
+                      title="系統更新通知" desc="版本更新與新功能上線通報"
+                      value={notifs.system} onChange={(v) => setNotifs(p => ({ ...p, system: v }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
