@@ -388,8 +388,8 @@ function DashboardStyles() {
       }
 
       .dashboard-map-pane {
+      align-self: start;
         position: relative;
-        min-height: calc(100vh - 124px);
         min-width: 0;
         padding: 58px 18px 42px 0;
         display: flex;
@@ -405,7 +405,7 @@ function DashboardStyles() {
       .dashboard-map-action {
         position: absolute;
         left: 32px;
-        bottom: 28px;
+        bottom: 16px;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -425,7 +425,7 @@ function DashboardStyles() {
         min-width: 0;
         max-width: 100%;
         overflow: hidden;
-        align-self: start;
+        align-self: start;    
         margin-top: 28px;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
@@ -488,8 +488,8 @@ function DashboardStyles() {
       .dashboard-lower-row {
         grid-template-columns: minmax(220px, 2fr) minmax(360px, 3fr);
         align-items: stretch;
-        gap: 30px;
-        margin-top: 24px;
+        gap: 40px;
+        margin-top: 35px;
         min-height: 0;
         flex: 0 0 auto;
       }
@@ -826,7 +826,7 @@ function DashboardStyles() {
       }
 
       .scroll-hint {
-        display: none;
+        display: inline-flex;
         align-items: center;
         gap: 4px;
         border: 1px solid ${C.roseBorder};
@@ -877,7 +877,7 @@ function DashboardStyles() {
 
       .trend-date-row {
         position: relative;
-        height: 32px;
+        height: 20px;
         margin-bottom: 0;
       }
 
@@ -910,7 +910,7 @@ function DashboardStyles() {
         bottom: 0;
         left: 50%;
         width: 1.5px;
-        height: 76px;
+        height: 70px;
         transform: translateX(-50%);
         background: ${C.rose};
       }
@@ -1049,8 +1049,12 @@ function DashboardStyles() {
           display: none;
         }
 
-        .trend-heading .scroll-hint {
-          display: inline-flex;
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
         }
       }
 
@@ -1099,6 +1103,23 @@ function DashboardStyles() {
 
         .dashboard-side-stack {
           gap: 14px;
+        }
+
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
+        }
+
+        .trend-bars,
+        .trend-bar-wrap {
+          height: 55px;
+        }
+
+        .trend-day-line {
+          height: 50px;
         }
       }
 
