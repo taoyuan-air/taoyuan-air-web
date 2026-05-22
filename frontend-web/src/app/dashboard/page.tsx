@@ -3,15 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
 import type { MoeStationData } from '@shared/api/moe';
-
-const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe').then(r => r.json());
 import {
   DISTRICT_STATIC_AQ,
   EPA_STATION_TO_DISTRICT,
   findNearestDistrict,
 } from '@shared/constants/districts';
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
+
+const fetchMoeStations = (): Promise<MoeStationData[]> =>
+  fetch('/api/moe').then(r => r.json());
 
 const C = {
   rose: '#D4567A',
@@ -1233,6 +1233,9 @@ export default function DashboardPage() {
         const station = stations.find((s) => s.sitename === sitename);
         if (!station || !alive) return;
 
+        console.log('[MOE] 取得站點數:', stations.length, stations);
+        console.log('[MOE] 對應站點名:', sitename);
+
         setRemoteMetrics({
           district,
           aqi:  station.aqi  || base.aqi,
@@ -1244,7 +1247,7 @@ export default function DashboardPage() {
           co:   station.co,
         });
       })
-      .catch(console.warn);
+      .catch((err) => console.error('[MOE] fetch 失敗:', err));
 
     return () => {
       alive = false;
