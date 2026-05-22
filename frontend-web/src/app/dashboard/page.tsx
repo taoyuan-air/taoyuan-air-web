@@ -1198,16 +1198,7 @@ function DashboardStyles() {
 
 export default function DashboardPage() {
   const [district, setDistrict] = useState('中壢區');
-  const [remoteMetrics, setRemoteMetrics] = useState<{
-    district: string;
-    aqi: number;
-    pm25: number;
-    pm10: number;
-    o3: number;
-    no2: number;
-    so2: number;
-    co: number;
-  } | null>(null);
+  const [allStations, setAllStations] = useState<MoeStationData[]>([]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1223,36 +1214,36 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
-
     fetchMoeStations()
-      .then((stations) => {
-        const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === district)?.[0];
-        if (!sitename || !alive) return;
-        const station = stations.find((s) => s.sitename === sitename);
-        if (!station || !alive) return;
-
-        console.log('[MOE] 取得站點數:', stations.length, stations);
-        console.log('[MOE] 對應站點名:', sitename);
-
-        setRemoteMetrics({
-          district,
-          aqi:  station.aqi  || base.aqi,
-          pm25: station.pm25 || base.pm25,
-          pm10: station.pm10,
-          o3:   station.o3   || base.o3,
-          no2:  station.no2,
-          so2:  station.so2,
-          co:   station.co,
-        });
+      .then((data) => {
+        console.log('[MOE] stations 數量:', data.length, data);
+        setAllStations(data);
       })
-      .catch((err) => console.error('[MOE] fetch 失敗:', err));
+      .catch(console.error);
+  }, []);
 
-    return () => {
-      alive = false;
+  const remoteMetrics = useMemo(() => {
+    if (!allStations.length) return null;
+
+    const sitename = Object.entries(EPA_STATION_TO_DISTRICT)
+      .find(([, d]) => d === district)?.[0];
+    if (!sitename) return null;
+
+    const station = allStations.find((s) => s.sitename === sitename);
+    if (!station) return null;
+
+    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
+    return {
+      district,
+      aqi:  station.aqi  || base.aqi,
+      pm25: station.pm25 || base.pm25,
+      pm10: station.pm10,
+      o3:   station.o3   || base.o3,
+      no2:  station.no2,
+      so2:  station.so2,
+      co:   station.co,
     };
-  }, [district]);
+  }, [district, allStations]);
 
   const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
   const ext = DISTRICT_EXTENDED[district] ?? DISTRICT_EXTENDED.中壢區;
