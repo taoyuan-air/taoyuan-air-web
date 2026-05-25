@@ -40,9 +40,11 @@ yarn-error.*
 data/raw/**/*
 data/processed/**/*
 data/exports/**/*
+data/models/**/*
 !data/raw/**/.gitkeep
 !data/processed/.gitkeep
 !data/exports/.gitkeep
+!data/models/.gitkeep
 !data/README.md
 
 # CWA stations - keep folder structure, ignore files inside

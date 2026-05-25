@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS tydep_hourly_data (
     UNIQUE (station_id, monitor_date, pollutant_id)
 ) PARTITION BY RANGE (monitor_date);
 
--- (partitions omitted for brevity; original tepa schema included monthly partitions)
+-- Monthly partitions 2019-2026 (see database/tydep_partitions.sql)
 
 CREATE INDEX IF NOT EXISTS idx_tydep_hourly_station      ON tydep_hourly_data(station_id);
 CREATE INDEX IF NOT EXISTS idx_tydep_hourly_date         ON tydep_hourly_data(monitor_date);
@@ -102,7 +102,7 @@ SELECT
 FROM tydep_stations s
 JOIN tydep_hourly_data h ON s.station_id = h.station_id
 WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
-GROUP BY s.station_id, s.station_name, s.county, s.district, h.monitor_date
+GROUP BY s.station_id, s.station_name, s.county, h.monitor_date
 ORDER BY h.monitor_date DESC;
 
 CREATE OR REPLACE VIEW tydep_monthly_stats AS
