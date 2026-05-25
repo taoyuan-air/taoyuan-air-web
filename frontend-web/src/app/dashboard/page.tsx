@@ -1087,6 +1087,7 @@ function DashboardStyles() {
 
         .insight-card {
           flex-wrap: wrap;
+          margin-bottom: 10px;
         }
 
         .insight-chip {
