@@ -20,7 +20,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
-from config import EXPORTS_DIR, MODELS_DIR, TRAIN_END_DATE, XGB_PARAMS
+from config import EXPORTS_DIR, MODELS_DIR, TRAIN_CUTOFF_DATE, XGB_PARAMS
 from impute.features import FEATURE_COLS, TARGET_COL, add_features
 
 
@@ -34,7 +34,8 @@ def load_data() -> pd.DataFrame:
 
 
 def split(df: pd.DataFrame):
-    mask = df['monitor_date'] <= TRAIN_END_DATE
+    cutoff = pd.Timestamp(TRAIN_CUTOFF_DATE)
+    mask = df['monitor_date'] < cutoff
     return df[mask], df[~mask]
 
 

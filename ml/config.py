@@ -39,5 +39,6 @@ XGB_PARAMS = {
     'n_jobs':           -1,
 }
 
-# Train / validation split date
-TRAIN_END_DATE = '2025-06-30'
+# Train / validation split cutoff. Rows before this timestamp are used for
+# training; rows at or after this timestamp are used for validation.
+TRAIN_CUTOFF_DATE = '2025-07-01'

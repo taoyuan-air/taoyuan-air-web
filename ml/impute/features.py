@@ -22,12 +22,17 @@ TARGET_COL = 'pm25'
 
 
 def add_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Return df with lag + time features appended. Rows with NaN lags are dropped."""
+    """Return df with exact hourly lag + time features appended."""
     df = df.sort_values(['station_id', 'monitor_date']).copy()
+    df['monitor_date'] = pd.to_datetime(df['monitor_date'])
 
-    # Lag features per station
+    # Exact timestamp lags per station. Missing hours remain NaN and are dropped,
+    # so lag_1h always means the observation exactly one hour earlier.
     for h in LAG_HOURS:
-        df[f'lag_{h}h'] = df.groupby('station_id')['pm25'].shift(h)
+        lagged = df[['station_id', 'monitor_date', 'pm25']].copy()
+        lagged['monitor_date'] = lagged['monitor_date'] + pd.Timedelta(hours=h)
+        lagged = lagged.rename(columns={'pm25': f'lag_{h}h'})
+        df = df.merge(lagged, on=['station_id', 'monitor_date'], how='left')
 
     # Calendar features
     dt = df['monitor_date']
