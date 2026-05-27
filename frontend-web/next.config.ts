@@ -2,11 +2,13 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@taoyuan-air/shared'],
+  basePath: "/tyair",
+  assetPrefix: "/tyair",
+  transpilePackages: ["@taoyuan-air/shared"],
   turbopack: {
-    root: path.resolve(__dirname, '..'),
+    root: path.resolve(__dirname, ".."),
     resolveAlias: {
-      zustand: './node_modules/zustand',
+      zustand: "./node_modules/zustand",
     },
   },
 };
