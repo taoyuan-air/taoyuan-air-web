@@ -22,6 +22,24 @@ except ModuleNotFoundError:
             'grid_size_km': 3.0
         }
     }
+STATION_COORDS = {
+    '桃園': {'lon': 121.3148, 'lat': 24.9947},
+    '中壢': {'lon': 121.2214, 'lat': 24.9636},
+    '平鎮': {'lon': 121.2040, 'lat': 24.9419},
+    '觀音': {'lon': 121.0847, 'lat': 25.0357},
+    '大園': {'lon': 121.2015, 'lat': 25.0623},
+    '龍潭': {'lon': 121.2164, 'lat': 24.8633}
+}
+
+# 空間距離特徵計算函式
+def inject_distance_features(target_df):
+    for s_name, coords in STATION_COORDS.items():
+        # 歐幾里得距離公式：sqrt((Δlon)^2 + (Δlat)^2)
+        target_df[f'dist_{s_name}'] = np.sqrt(
+            (target_df['lon'] - coords['lon'])**2 + 
+            (target_df['lat'] - coords['lat'])**2
+        )
+    return target_df
 
 # %% [1] 資料載入與基礎清理
 print(">>> 階段 1：載入歷史資料快照...")
@@ -41,8 +59,8 @@ df['day_of_week'] = df['time'].dt.dayofweek
 df['month'] = df['time'].dt.month
 df['season'] = df['month'].apply(lambda x: 1 if x in [3,4,5] else (2 if x in [6,7,8] else (3 if x in [9,10,11] else 4)))
 
-# 加入測站 One-Hot Encoding（讓模型能學習不同測站的特性）
-df = pd.get_dummies(df, columns=['station_name'], prefix='station', dtype=int)
+# 【進化：注入 6 個測站的距離特徵】
+df = inject_distance_features(df)
 
 df_cleaned = df.dropna().copy()
 print(f"原始有效紀錄數：{len(df_cleaned)}")
@@ -55,20 +73,30 @@ split_date = '2025-11-30 23:00:00'
 train_data = df_cleaned[df_cleaned['time'] <= split_date]
 test_data = df_cleaned[df_cleaned['time'] > split_date]
 
-# 動態抓取特徵欄位（包含 One-Hot 的測站欄位）
-station_cols = [col for col in df_cleaned.columns if col.startswith('station_')]
-feature_cols = ['lon', 'lat', 'hour', 'day_of_week', 'season', 'pm25_lag_1h', 'pm25_lag_2h', 'pm25_lag_24h'] + station_cols
+# 確立最終特徵欄位清單（包含 6 個 dist 欄位）
+dist_cols = [f'dist_{s}' for s in STATION_COORDS.keys()]
+feature_cols = ['lon', 'lat', 'hour', 'day_of_week', 'season', 'pm25_lag_1h', 'pm25_lag_2h', 'pm25_lag_24h'] + dist_cols
 
 X_train, y_train = train_data[feature_cols], train_data['pm25']
 X_test, y_test = test_data[feature_cols], test_data['pm25']
 
 print(f"  - 訓練集包含特徵欄位共 {len(feature_cols)} 個。")
+print(f"  - 訓練集範圍: {train_data['time'].min()} ~ {train_data['time'].max()} ({len(train_data)} 筆)")
+print(f"  - 測試集範圍: {test_data['time'].min()} ~ {test_data['time'].max()} ({len(test_data)} 筆)")
 
 # 對目標值進行對數轉換 np.log1p (y = log(x+1))
 y_train_log = np.log1p(y_train)
 
 # 訓練模型（優化目標改為 MAE，對低濃度更敏感）
-xgb_model = XGBRegressor(objective='reg:absoluteerror', n_estimators=100, max_depth=6, random_state=42)
+xgb_model = XGBRegressor(
+    objective='reg:absoluteerror', 
+    n_estimators=250,       # 讓樹的棵數變多，捕捉更細緻的時序波動
+    max_depth=9,            # 樹深拉到 9 層，讓模型有能力交叉辨識 6 個測站距離的空間複雜度
+    learning_rate=0.05,     # 調小學習率，搭配更多的樹，防止過擬合
+    subsample=0.8,          # 隨機採樣 80% 資料訓練，增加泛化能力
+    colsample_bytree=0.8,   # 隨機採樣 80% 特徵
+    random_state=42
+)
 xgb_model.fit(X_train, y_train_log)
 print("  - XGBoost 趨勢對數模型訓練成功！")
 
@@ -77,7 +105,7 @@ y_pred_log = xgb_model.predict(X_test)
 y_pred = np.expm1(y_pred_log)
 y_pred = np.clip(y_pred, 0, None) # 確保沒有負數
 
-# --- 嚴謹的多指標評估學術成果區 ---
+# --- 多指標評估學術成果 ---
 valid_idx = (y_test != 0)
 y_test_safe = y_test[valid_idx]
 y_pred_safe = y_pred[valid_idx]
@@ -134,16 +162,12 @@ grid_points = pd.DataFrame({
     'season': 1 if target_time.month in [3,4,5] else (2 if target_time.month in [6,7,8] else (3 if target_time.month in [9,10,11] else 4))
 })
 
-# 💡【關鍵解卡】：幫無測站的虛擬網格點，補上 One-Hot 欄位並全部填 0
-for col in station_cols:
-    grid_points[col] = 0
+# 讓這 221 個虛擬網格點，也各自動態算出到 6 個實體測站的真實距離！
+grid_points = inject_distance_features(grid_points)
 
 # 克利金 1：為無測站網格生成 Lag 特徵
 for lag_t, lag_col in zip([lag_time_1h, lag_time_2h, lag_time_24h], ['pm25_lag_1h', 'pm25_lag_2h', 'pm25_lag_24h']):
     station_lag_data = df_cleaned[df_cleaned['time'] == lag_t]
-    
-    # 這裡因為 station_lag_data 包含重複的網格點（因為經緯度一模一樣），先做個簡單的 groupby 平均防呆
-    # 由於經過 one-hot 展開，要確保傳給克利金的點是唯一的
     station_lag_uniq = station_lag_data.groupby(['lon', 'lat'])['pm25'].mean().reset_index()
     
     ok_lag = OrdinaryKriging(
@@ -153,16 +177,16 @@ for lag_t, lag_col in zip([lag_time_1h, lag_time_2h, lag_time_24h], ['pm25_lag_1
     z_grid, _ = ok_lag.execute('grid', grid_lon, grid_lat)
     grid_points[lag_col] = z_grid.ravel()
 
-# 使用模型預測底圖 (因為模型是用 Log 訓練的，預測出來要用 expm1 轉回來！)
+# 使用模型預測底圖 (因為模型是用 Log 訓練的，預測出來要用 expm1 轉回來)
 grid_trend_pred_log = loaded_xgb_model.predict(grid_points[feature_cols])
 grid_trend_pred = np.expm1(grid_trend_pred_log)
 
-# 計算 5 測站殘差
+# 計算 6 測站殘差
 current_stations = df_cleaned[df_cleaned['time'] == target_time]
 station_preds_log = loaded_xgb_model.predict(current_stations[feature_cols])
 station_preds = np.expm1(station_preds_log)
 
-# 因為現有觀測站在同一時間可能有多筆（如前述），依測站位置合併殘差
+# 因為現有觀測站在同一時間可能有多筆，依測站位置合併殘差
 current_stations_clean = current_stations.copy()
 current_stations_clean['pred_pm25'] = station_preds
 station_uniq = current_stations_clean.groupby(['lon', 'lat']).agg({'pm25':'mean', 'pred_pm25':'mean'}).reset_index()
