@@ -11,7 +11,7 @@ import csv
 import os
 import sys
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -49,13 +49,13 @@ STATION_ID = 'TMA_328'
 
 # ── 參數對照（txt 欄位名 → parameter_id）────────────────────────────────────
 PARAM_MAP = {
-    'Hsp':       'hsp',
-    'Vsp':       'vsp',
-    'Wdir':      'wdir',
-    'Turb':      'turb',
-    'Min int.':  'min_int',
-    'Mean int.': 'mean_int',
-    'n':         'n_samples',
+    'Hsp':       'Hsp',
+    'Vsp':       'Vsp',
+    'Wdir':      'Wdir',
+    'Turb':      'Turb',
+    'Min int.':  'Min_int.',   # ← key 是 txt header，value 是 DB parameter_id
+    'Mean int.': 'Mean_int.',
+    'n':         'n',
 }
 
 INTEGER_PARAMS = {'n_samples'}
@@ -89,37 +89,26 @@ def parse_value(raw: str, param_id: str) -> Optional[float]:
 
 
 def parse_txt_file(filepath: Path):
-    """
-    解析單一 txt 檔，yield INSERT tuple。
-    先按 measure_time 分組判斷整列是否無效，再逐筆 yield。
-    """
-    # 先讀入全部，按時間分組判斷品質
-    time_groups: dict[str, list] = defaultdict(list)
-
     with open(filepath, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
             t = row.get('Date/time', '').strip()
-            if t:
-                time_groups[t].append(row)
+            if not t:
+                continue
+            try:
+                measure_time = datetime.strptime(
+                    t, '%Y-%m-%d %H:%M'
+                ).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
 
-    for measure_time_str, rows in time_groups.items():
-        try:
-            measure_time = datetime.strptime(measure_time_str, '%Y-%m-%d %H:%M')
-        except ValueError:
-            continue
+            period_end   = measure_time
+            period_start = measure_time - timedelta(minutes=10)
 
-        period_end   = measure_time
-        period_start = measure_time - timedelta(minutes=10)
+            # 逐列（每個 height）判斷品質
+            hsp_zero = float(row.get('Hsp', '0') or '0') == 0.0
+            quality  = 'invalid' if hsp_zero else 'good'
 
-        # 整列無效：該時間點所有高度的 Hsp 都是 0
-        all_hsp_zero = all(
-            float(r.get('Hsp', '0') or '0') == 0.0
-            for r in rows
-        )
-        quality = 'invalid' if all_hsp_zero else 'good'
-
-        for row in rows:
             try:
                 height_m = float(row['Height'])
             except (ValueError, KeyError):
@@ -128,18 +117,10 @@ def parse_txt_file(filepath: Path):
             for field_name, param_id in PARAM_MAP.items():
                 raw_val = row.get(field_name, '').strip()
                 value   = None if quality == 'invalid' else parse_value(raw_val, param_id)
-
                 yield (
-                    STATION_ID,
-                    measure_time,
-                    height_m,
-                    param_id,
-                    value,
-                    raw_val,
-                    quality,
-                    period_start,
-                    period_end,
-                    'history',
+                    STATION_ID, measure_time, height_m, param_id,
+                    value, raw_val, quality,
+                    period_start, period_end, 'history',
                 )
 
 
