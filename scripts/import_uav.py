@@ -54,7 +54,7 @@ RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
 PARAM_COLS = [
     'agl', 'asl', 'P', 'T', 'RH', 'PM1', 'PM25', 'PM10',
     'ws', 'wd', 'theta', 'Td', 'q', 'mixR', 'Tv', 'thetav',
-    'O3', 'CO', 'SO2', 'NO2', 'NH3', 'H2S', 'TVOC',
+    'O3', 'CO', 'CO2', 'SO2', 'NO2', 'NH3', 'H2S', 'TVOC',
 ]
 
 # ── 各飛行任務最高有效高度（超過此高度的層直接跳過）────────────────────────
