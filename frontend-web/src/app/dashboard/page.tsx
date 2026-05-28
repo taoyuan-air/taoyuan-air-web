@@ -1111,12 +1111,13 @@ function DashboardStyles() {
         }
 
         .mini-gauge-row {
-          grid-template-columns: 1fr;
-          gap: 16px;
+          grid-template-columns: 1fr 1px 1fr;
+          gap: 0 8px;
         }
 
-        .mini-divider {
-          display: none;
+        .mini-arc {
+          width: 120px;
+          height: 60px;
         }
 
         .insight-card {
