@@ -13,21 +13,21 @@ const TGOSMap = dynamic(() => import('@/components/map/TGOSMap'), { ssr: false }
 
 // ── Pollutant metadata ───────────────────────────────────────────
 const pollutantMeta: Record<Pollutant, {
-  short: string; label: string; unit: string; description: string;
+  short: React.ReactNode; label: string; unit: string; description: string;
   range: [string, string, string, string]; arcMax: number; arcStandard: number;
 }> = {
   PM25: {
-    short: 'PM2.5', label: '細懸浮微粒', unit: 'µg/m³',
+    short: <>PM<sub className="text-xs">2.5</sub></>, label: '細懸浮微粒', unit: 'µg/m³',
     description: '極細小的懸浮顆粒，容易被吸入肺部深處，來源包括車輛廢氣與工業排放。',
     range: ['0', '15', '35', '54+'], arcMax: 100, arcStandard: 15.4,
   },
   O3: {
-    short: 'O₃', label: '臭氧', unit: 'ppb',
+    short: <>O<sub className="text-xs">3</sub></>, label: '臭氧', unit: 'ppb',
     description: '陽光照射下產生的氣體，午後濃度較高，對眼睛和呼吸道有刺激性。',
     range: ['0', '55', '125', '165+'], arcMax: 200, arcStandard: 54,
   },
   NOX: {
-    short: 'NOₓ', label: '氮氧化物', unit: 'ppb',
+    short: <>NO<sub className="text-xs">x</sub></>, label: '氮氧化物', unit: 'ppb',
     description: '主要來自交通與燃燒排放，是城市空氣污染的重要指標。',
     range: ['0', '30', '80', '150+'], arcMax: 200, arcStandard: 30,
   },

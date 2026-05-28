@@ -121,7 +121,7 @@ const getActivityInfo = (aqi: number) => {
   };
 };
 
-function SecLabel({ title, sub }: { title: string; sub?: string }) {
+function SecLabel({ title, sub }: { title: React.ReactNode; sub?: string }) {
   return (
     <div className="dash-section-label">
       <div className="dash-section-dot" />
@@ -1302,10 +1302,10 @@ export default function DashboardPage() {
   const ActivityIcon = activity.icon;
 
   const pollutants = [
-    { name: 'NO₂', sub: '二氧化氮', value: no2, unit: 'ppb' },
-    { name: 'SO₂', sub: '二氧化硫', value: so2, unit: 'ppb' },
+    { name: <>NO<sub className="text-xs">2</sub></>, sub: '二氧化氮', value: no2, unit: 'ppb' },
+    { name: <>SO<sub className="text-xs">2</sub></>, sub: '二氧化硫', value: so2, unit: 'ppb' },
     { name: 'CO', sub: '一氧化碳', value: co.toFixed(2), unit: 'ppm' },
-    { name: 'PM10', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
+    { name: <>PM<sub className="text-xs">10</sub></>, sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
   ];
 
   return (
@@ -1347,7 +1347,7 @@ export default function DashboardPage() {
 
               <div className="mini-gauge-row">
                 <div className="mini-gauge-card">
-                  <h3>PM2.5</h3>
+                  <h3>PM<sub className="text-xs">2.5</sub></h3>
                   <p>細懸浮微粒</p>
                   <small>標準日均值為 15.4 μg/m³</small>
                   <GaugeArc
@@ -1362,7 +1362,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="mini-divider" />
                 <div className="mini-gauge-card">
-                  <h3>O₃</h3>
+                  <h3>O<sub className="text-xs">3</sub></h3>
                   <p>臭氧</p>
                   <small>標準8小時均值為 54 ppb</small>
                   <GaugeArc
@@ -1379,7 +1379,7 @@ export default function DashboardPage() {
 
               <div className="mini-pollut-strip">
                 {pollutants.map((item, index) => (
-                  <React.Fragment key={item.name}>
+                  <React.Fragment key={index}>
                     {index > 0 && <div className="metric-divider" />}
                     <div className="mini-pollut-card">
                       <h4>{item.name}</h4>
@@ -1414,7 +1414,7 @@ export default function DashboardPage() {
                     <TrendingDown size={16} />
                   </span>
                   <p className="insight-copy">
-                    <strong>PM2.5 濃度預計下降</strong>
+                    <strong>PM<sub className="text-xs">2.5</sub> 濃度預計下降</strong>
                     <span>未來 3 小時因海風輻合影響</span>
                   </p>
                   <span className="insight-chip">-12%</span>
@@ -1424,7 +1424,7 @@ export default function DashboardPage() {
 
             <section className="trend-section">
               <div className="trend-heading">
-                <SecLabel title="PM2.5 趨勢" />
+                <SecLabel title={<>PM<sub className="text-xs">2.5</sub> 趨勢</>} />
                 <span className="scroll-hint">
                   <ChevronsRight size={13} />
                   左右滑動查看

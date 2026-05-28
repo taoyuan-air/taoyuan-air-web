@@ -33,14 +33,14 @@ const C = {
 const GAUGE_PARAMS: Record<string, { max: number; marker: number }> = {
   'PM2.5': { max: 150, marker: 15.4 },
   'O3':    { max: 200, marker: 54   },
-  'NOX':   { max: 200, marker: 100  },
+  'NOx':   { max: 200, marker: 100  },
   'VOCs':  { max: 200, marker: 50   },
 };
 
 function pollutantColor(pollutant: string, value: number): string {
   if (pollutant === 'PM2.5') return value <= 15.4 ? C.primary : value <= 35.4 ? C.amber : C.red;
   if (pollutant === 'O3')    return value <= 54   ? C.primary : value <= 70   ? C.amber : C.red;
-  if (pollutant === 'NOX')   return value <= 100  ? C.primary : value <= 150  ? C.amber : C.red;
+  if (pollutant === 'NOx')   return value <= 100  ? C.primary : value <= 150  ? C.amber : C.red;
   if (pollutant === 'VOCs')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
   return C.primary;
 }
@@ -82,10 +82,11 @@ function GaugeArc({ value, pollutant, unit }: { value: number; pollutant: string
 }
 
 /* ─── Dropdown ───────────────────────────────────────────────── */
-function Dropdown({ id, value, options, onSelect, openId, setOpenId }: {
+function Dropdown({ id, value, options, onSelect, openId, setOpenId, renderOption }: {
   id: string; value: string; options: string[];
   onSelect: (v: string) => void;
   openId: string | null; setOpenId: (v: string | null) => void;
+  renderOption?: (opt: string) => React.ReactNode;
 }) {
   const isOpen = openId === id;
   const isActive = value !== options[0];
@@ -104,7 +105,7 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId }: {
           transition: 'all 0.15s',
         }}
       >
-        {value}
+        {renderOption ? renderOption(value) : value}
         <ChevronDown
           size={14} strokeWidth={2.5}
           style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
@@ -128,7 +129,7 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId }: {
               backgroundColor: value === opt ? C.primaryAlpha : 'transparent',
               borderBottom: i < options.length - 1 ? '1px solid rgba(180,140,160,0.08)' : 'none',
             }}>
-              {opt}
+              {renderOption ? renderOption(opt) : opt}
             </button>
           ))}
         </div>
@@ -162,23 +163,32 @@ const allMonitoringData: StationData[] = [
   { id: 2,  district: '蘆竹工業區',   station: 'Grid Alpha-4',     time: '13:45', passed: false, pollutant: 'PM2.5', value: 48, unit: 'μg/m³', source: '微感測', version: 'v2.0', timeCategory: '近24小時', region: '蘆竹區', trend: '上升中', aqi: 128, temperature: 28, humidity: 72 },
   { id: 3,  district: '觀音海岸',     station: 'Sensor TY-42',     time: '13:20', passed: true,  pollutant: 'PM2.5', value: 8,  unit: 'μg/m³', source: '光達',   version: 'v2.1', timeCategory: '近24小時', region: '觀音區', trend: '穩定中', aqi: 30,  temperature: 24, humidity: 78 },
   { id: 4,  district: '大園工業區',   station: 'Station TY-15',    time: '12:30', passed: true,  pollutant: 'O3',    value: 35, unit: 'ppb',    source: 'MOE',   version: 'v2.1', timeCategory: '近24小時', region: '大園區', trend: '穩定中', aqi: 42,  temperature: 27, humidity: 65 },
-  { id: 5,  district: '桃園市區',     station: 'Micro-Sensor B12', time: '11:15', passed: false, pollutant: 'NOX',   value: 85, unit: 'ppb',    source: '微感測', version: 'v1.8', timeCategory: '近24小時', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
+  { id: 5,  district: '桃園市區',     station: 'Micro-Sensor B12', time: '11:15', passed: false, pollutant: 'NOx',   value: 85, unit: 'ppb',    source: '微感測', version: 'v1.8', timeCategory: '近24小時', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
   { id: 6,  district: '中壢商業區',   station: 'LUV-Station C3',   time: '10:45', passed: true,  pollutant: 'VOCs',  value: 22, unit: 'ppb',    source: 'LUV',   version: 'v3.0', timeCategory: '近24小時', region: '中壢區', trend: '下降中', aqi: 55,  temperature: 25, humidity: 70 },
   { id: 7,  district: '觀音工業區',   station: 'Grid Beta-7',      time: '昨日 23:30', passed: false, pollutant: 'PM2.5', value: 52, unit: 'μg/m³', source: '微感測', version: 'v2.0', timeCategory: '近3天', region: '觀音區', trend: '上升中', aqi: 140, temperature: 23, humidity: 80 },
   { id: 8,  district: '大園住宅區',   station: 'Station TY-22',    time: '昨日 22:15', passed: true,  pollutant: 'O3',    value: 28, unit: 'ppb',    source: 'MOE',   version: 'v2.1', timeCategory: '近3天', region: '大園區', trend: '穩定中', aqi: 35,  temperature: 22, humidity: 75 },
-  { id: 9,  district: '桃園機場周邊', station: 'LIDAR-Point A1',   time: '昨日 20:00', passed: true,  pollutant: 'NOX',   value: 42, unit: 'ppb',    source: '光達',   version: 'v2.3', timeCategory: '近3天', region: '大園區', trend: '下降中', aqi: 58,  temperature: 24, humidity: 71 },
+  { id: 9,  district: '桃園機場周邊', station: 'LIDAR-Point A1',   time: '昨日 20:00', passed: true,  pollutant: 'NOx',   value: 42, unit: 'ppb',    source: '光達',   version: 'v2.3', timeCategory: '近3天', region: '大園區', trend: '下降中', aqi: 58,  temperature: 24, humidity: 71 },
   { id: 10, district: '中壢工業區',   station: 'Micro-Array D5',   time: '昨日 18:45', passed: false, pollutant: 'VOCs',  value: 78, unit: 'ppb',    source: '微感測', version: 'v1.9', timeCategory: '近3天', region: '中壢區', trend: '穩定中', aqi: 95,  temperature: 27, humidity: 66 },
   { id: 11, district: '桃園都會區',   station: 'LUV-Hub M1',       time: '3天前 16:30', passed: true,  pollutant: 'PM2.5', value: 18, unit: 'μg/m³', source: 'LUV',   version: 'v3.0', timeCategory: '近7天', region: '桃園區', trend: '下降中', aqi: 62,  temperature: 26, humidity: 69 },
   { id: 12, district: '觀音沿海',     station: 'Station TY-35',    time: '4天前 14:20', passed: true,  pollutant: 'O3',    value: 31, unit: 'ppb',    source: 'MOE',   version: 'v2.1', timeCategory: '近7天', region: '觀音區', trend: '穩定中', aqi: 38,  temperature: 23, humidity: 77 },
-  { id: 13, district: '大園農業區',   station: 'LIDAR-Grid F8',    time: '5天前 12:10', passed: false, pollutant: 'NOX',   value: 95, unit: 'ppb',    source: '光達',   version: 'v2.3', timeCategory: '近7天', region: '大園區', trend: '上升中', aqi: 118, temperature: 25, humidity: 73 },
+  { id: 13, district: '大園農業區',   station: 'LIDAR-Grid F8',    time: '5天前 12:10', passed: false, pollutant: 'NOx',   value: 95, unit: 'ppb',    source: '光達',   version: 'v2.3', timeCategory: '近7天', region: '大園區', trend: '上升中', aqi: 118, temperature: 25, humidity: 73 },
   { id: 14, district: '中壢市中心',   station: 'Micro-Net G2',     time: '6天前 09:45', passed: true,  pollutant: 'VOCs',  value: 25, unit: 'ppb',    source: '微感測', version: 'v2.0', timeCategory: '近7天', region: '中壢區', trend: '穩定中', aqi: 48,  temperature: 24, humidity: 72 },
   { id: 15, district: '桃園高鐵站',   station: 'LUV-Station H4',   time: '7天前 15:30', passed: true,  pollutant: 'PM2.5', value: 15, unit: 'μg/m³', source: 'LUV',   version: 'v3.0', timeCategory: '近7天', region: '桃園區', trend: '下降中', aqi: 55,  temperature: 26, humidity: 67 },
 ];
 
 const TIME_TABS = ['近24小時', '近3天', '近7天'] as const;
-const POLLUTANTS = ['全部污染物', 'PM2.5', 'O3', 'NOX', 'VOCs'];
+const POLLUTANTS = ['全部污染物', 'PM2.5', 'O3', 'NOx', 'VOCs'];
 const REGIONS    = ['所有區域', '桃園區', '中壢區', '大園區', '觀音區', '蘆竹區'];
 const SOURCES    = ['全部來源', 'MOE', '微感測', '光達', 'LUV'];
+
+function getPollutantDisplay(p: string): React.ReactNode {
+  switch (p) {
+    case 'PM2.5': return <>PM<sub className="text-xs">2.5</sub></>;
+    case 'O3': return <>O<sub className="text-xs">3</sub></>;
+    case 'NOx': return <>NO<sub className="text-xs">x</sub></>;
+    default: return p;
+  }
+}
 
 /* ─── Stat chip ──────────────────────────────────────────────── */
 function StatChip({ icon: Icon, value, label, color }: {
@@ -253,7 +263,7 @@ function StationCard({ station }: { station: StationData }) {
             padding: '3px 12px', borderRadius: 99,
             backgroundColor: `${pColor}18`, border: `1px solid ${pColor}40`,
           }}>
-            {station.pollutant}
+            {getPollutantDisplay(station.pollutant)}
           </span>
           <span style={{
             fontSize: 12, fontWeight: 600, color: C.muted,
@@ -420,7 +430,7 @@ export default function ExplorerPage() {
           {!isMobile && <div style={{ width: 1, height: 24, backgroundColor: 'rgba(180,140,160,0.20)', margin: '0 2px' }} />}
 
           <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-            <Dropdown id="pollutant" value={selectedPollutant} options={POLLUTANTS} onSelect={setSelectedPollutant} openId={openId} setOpenId={setOpenId} />
+            <Dropdown id="pollutant" value={selectedPollutant} options={POLLUTANTS} onSelect={setSelectedPollutant} openId={openId} setOpenId={setOpenId} renderOption={getPollutantDisplay} />
             <Dropdown id="region"    value={selectedRegion}    options={REGIONS}    onSelect={setSelectedRegion}    openId={openId} setOpenId={setOpenId} />
             <Dropdown id="source"    value={selectedSource}    options={SOURCES}    onSelect={setSelectedSource}    openId={openId} setOpenId={setOpenId} />
           </div>
