@@ -400,6 +400,7 @@ function DashboardStyles() {
       .dashboard-map-wrap {
         width: min(100%, 560px);
         height: min(68vh, 610px);
+        overflow: hidden;
       }
 
       .dashboard-map-action {
@@ -1004,14 +1005,25 @@ function DashboardStyles() {
       @media (max-width: 820px) {
         .dashboard-page {
           padding: 16px 20px 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          overflow-x: hidden;
+          overflow-x: clip;
         }
 
         .dashboard-panel {
           padding: 20px 18px;
+          width: 100%;
+          overflow: hidden;
         }
 
         .dashboard-map-wrap {
-          height: min(44vh, 420px);
+          width: min(88vw, 390px);
+          height: auto;
+          aspect-ratio: 1182 / 1330;
+          max-height: min(48vh, 420px);
+          max-height: min(48svh, 420px);
         }
 
         .dashboard-first-row {
@@ -1026,6 +1038,18 @@ function DashboardStyles() {
 
         .dashboard-lower-row {
           align-items: start;
+        }
+
+        .trend-section {
+          width: 100%;
+          align-self: stretch;
+        }
+
+        .trend-scroll {
+          flex: 0 0 auto;
+          height: 164px;
+          align-items: flex-start;
+          padding: 4px 0 12px;
         }
 
         .insight-card {
@@ -1056,7 +1080,7 @@ function DashboardStyles() {
 
       @media (max-width: 480px) {
         .dashboard-page {
-          padding: 12px 16px 24px;
+          padding: 12px clamp(14px, 4vw, 16px) calc(28px + env(safe-area-inset-bottom));
         }
 
         .dashboard-panel {
@@ -1065,7 +1089,17 @@ function DashboardStyles() {
         }
 
         .dashboard-map-wrap {
-          height: min(38vh, 320px);
+          width: min(82vw, 330px);
+          max-height: min(42vh, 330px);
+          max-height: min(42svh, 330px);
+        }
+
+        .dashboard-map-action {
+          width: min(100%, 300px);
+          justify-content: center;
+          align-self: center;
+          padding: 10px 14px;
+          font-size: 14px;
         }
 
         .dashboard-first-row {
@@ -1099,6 +1133,15 @@ function DashboardStyles() {
 
         .dashboard-side-stack {
           gap: 14px;
+        }
+
+        .trend-heading {
+          height: auto;
+          min-height: 22px;
+        }
+
+        .trend-scroll {
+          margin-right: -2px;
         }
       }
 
