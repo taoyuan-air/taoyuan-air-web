@@ -513,6 +513,11 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           stroke-width: 2.6;
           transform: scale(1.18);
         }
+        @media (max-width: 820px) {
+          .taoyuan-label.selected {
+            transform: none;
+          }
+        }
         .taoyuan-selected-marker {
           pointer-events: none;
           filter: url(#taoyuan-marker-shadow);
