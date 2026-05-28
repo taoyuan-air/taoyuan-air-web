@@ -1047,7 +1047,7 @@ function DashboardStyles() {
 
         .trend-scroll {
           flex: 0 0 auto;
-          height: 164px;
+          height: 196px;
           align-items: flex-start;
           padding: 4px 0 12px;
         }
