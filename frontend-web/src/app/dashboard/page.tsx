@@ -1305,7 +1305,7 @@ export default function DashboardPage() {
     { name: 'NO₂', sub: '二氧化氮', value: no2, unit: 'ppb' },
     { name: 'SO₂', sub: '二氧化硫', value: so2, unit: 'ppb' },
     { name: 'CO', sub: '一氧化碳', value: co.toFixed(2), unit: 'ppm' },
-    { name: 'PM10', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
+    { name: 'PM₁₀', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
   ];
 
   return (
@@ -1347,7 +1347,7 @@ export default function DashboardPage() {
 
               <div className="mini-gauge-row">
                 <div className="mini-gauge-card">
-                  <h3>PM2.5</h3>
+                  <h3>PM₂.₅</h3>
                   <p>細懸浮微粒</p>
                   <small>標準日均值為 15.4 μg/m³</small>
                   <GaugeArc
@@ -1414,7 +1414,7 @@ export default function DashboardPage() {
                     <TrendingDown size={16} />
                   </span>
                   <p className="insight-copy">
-                    <strong>PM2.5 濃度預計下降</strong>
+                    <strong>PM₂.₅ 濃度預計下降</strong>
                     <span>未來 3 小時因海風輻合影響</span>
                   </p>
                   <span className="insight-chip">-12%</span>
@@ -1424,7 +1424,7 @@ export default function DashboardPage() {
 
             <section className="trend-section">
               <div className="trend-heading">
-                <SecLabel title="PM2.5 趨勢" />
+                <SecLabel title="PM₂.₅ 趨勢" />
                 <span className="scroll-hint">
                   <ChevronsRight size={13} />
                   左右滑動查看

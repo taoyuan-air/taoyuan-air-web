@@ -324,7 +324,7 @@ export default function AlertsPage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>PM2.5 注意</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>PM₂.₅ 注意</span>
                       <span style={{
                         fontSize: 10, fontWeight: 700, color: C.orange, letterSpacing: 0.5,
                         backgroundColor: C.orangeAlpha, padding: '3px 10px', borderRadius: 99,

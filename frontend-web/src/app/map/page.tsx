@@ -17,7 +17,7 @@ const pollutantMeta: Record<Pollutant, {
   range: [string, string, string, string]; arcMax: number; arcStandard: number;
 }> = {
   PM25: {
-    short: 'PM2.5', label: '細懸浮微粒', unit: 'µg/m³',
+    short: 'PM₂.₅', label: '細懸浮微粒', unit: 'µg/m³',
     description: '極細小的懸浮顆粒，容易被吸入肺部深處，來源包括車輛廢氣與工業排放。',
     range: ['0', '15', '35', '54+'], arcMax: 100, arcStandard: 15.4,
   },

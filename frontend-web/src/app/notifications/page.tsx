@@ -56,9 +56,9 @@ interface Notification {
 const DATA: Notification[] = [
   {
     id: 1, category: '警報', group: '今天',
-    title: '空氣品質警報', subtitle: '中壢區 · PM2.5',
+    title: '空氣品質警報', subtitle: '中壢區 · PM₂.₅',
     time: '2 小時前',
-    content: 'PM2.5 濃度超過 35 µg/m³，已偵測到局部工業排放。建議室內使用空氣清淨機，避免長時間戶外活動。',
+    content: 'PM₂.₅ 濃度超過 35 µg/m³，已偵測到局部工業排放。建議室內使用空氣清淨機，避免長時間戶外活動。',
     Icon: ShieldAlert, iconColor: C.coral, iconBg: C.coralAlpha, iconBorder: C.coralBorder,
     unread: true,
   },
