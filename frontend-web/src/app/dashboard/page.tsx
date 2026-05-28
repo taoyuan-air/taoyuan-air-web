@@ -3,15 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
 import type { MoeStationData } from '@shared/api/moe';
-
-const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe').then(r => r.json());
 import {
   DISTRICT_STATIC_AQ,
   EPA_STATION_TO_DISTRICT,
   findNearestDistrict,
 } from '@shared/constants/districts';
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
+
+const fetchMoeStations = (): Promise<MoeStationData[]> =>
+  fetch('/api/moe').then(r => r.json());
 
 const C = {
   rose: '#D4567A',
@@ -121,7 +121,7 @@ const getActivityInfo = (aqi: number) => {
   };
 };
 
-function SecLabel({ title, sub }: { title: string; sub?: string }) {
+function SecLabel({ title, sub }: { title: React.ReactNode; sub?: string }) {
   return (
     <div className="dash-section-label">
       <div className="dash-section-dot" />
@@ -388,8 +388,8 @@ function DashboardStyles() {
       }
 
       .dashboard-map-pane {
+      align-self: start;
         position: relative;
-        min-height: calc(100vh - 124px);
         min-width: 0;
         padding: 58px 18px 42px 0;
         display: flex;
@@ -400,12 +400,13 @@ function DashboardStyles() {
       .dashboard-map-wrap {
         width: min(100%, 560px);
         height: min(68vh, 610px);
+        overflow: hidden;
       }
 
       .dashboard-map-action {
         position: absolute;
         left: 32px;
-        bottom: 28px;
+        bottom: 16px;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -425,7 +426,7 @@ function DashboardStyles() {
         min-width: 0;
         max-width: 100%;
         overflow: hidden;
-        align-self: start;
+        align-self: start;    
         margin-top: 28px;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
@@ -488,8 +489,8 @@ function DashboardStyles() {
       .dashboard-lower-row {
         grid-template-columns: minmax(220px, 2fr) minmax(360px, 3fr);
         align-items: stretch;
-        gap: 30px;
-        margin-top: 24px;
+        gap: 40px;
+        margin-top: 35px;
         min-height: 0;
         flex: 0 0 auto;
       }
@@ -826,7 +827,7 @@ function DashboardStyles() {
       }
 
       .scroll-hint {
-        display: none;
+        display: inline-flex;
         align-items: center;
         gap: 4px;
         border: 1px solid ${C.roseBorder};
@@ -877,7 +878,7 @@ function DashboardStyles() {
 
       .trend-date-row {
         position: relative;
-        height: 32px;
+        height: 20px;
         margin-bottom: 0;
       }
 
@@ -910,7 +911,7 @@ function DashboardStyles() {
         bottom: 0;
         left: 50%;
         width: 1.5px;
-        height: 76px;
+        height: 70px;
         transform: translateX(-50%);
         background: ${C.rose};
       }
@@ -1004,14 +1005,25 @@ function DashboardStyles() {
       @media (max-width: 820px) {
         .dashboard-page {
           padding: 16px 20px 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          overflow-x: hidden;
+          overflow-x: clip;
         }
 
         .dashboard-panel {
           padding: 20px 18px;
+          width: 100%;
+          overflow: hidden;
         }
 
         .dashboard-map-wrap {
-          height: min(44vh, 420px);
+          width: min(88vw, 390px);
+          height: auto;
+          aspect-ratio: 1182 / 1330;
+          max-height: min(48vh, 420px);
+          max-height: min(48svh, 420px);
         }
 
         .dashboard-first-row {
@@ -1026,6 +1038,18 @@ function DashboardStyles() {
 
         .dashboard-lower-row {
           align-items: start;
+        }
+
+        .trend-section {
+          width: 100%;
+          align-self: stretch;
+        }
+
+        .trend-scroll {
+          flex: 0 0 auto;
+          height: 196px;
+          align-items: flex-start;
+          padding: 4px 0 12px;
         }
 
         .insight-card {
@@ -1049,14 +1073,18 @@ function DashboardStyles() {
           display: none;
         }
 
-        .trend-heading .scroll-hint {
-          display: inline-flex;
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
         }
       }
 
       @media (max-width: 480px) {
         .dashboard-page {
-          padding: 12px 16px 24px;
+          padding: 12px clamp(14px, 4vw, 16px) calc(28px + env(safe-area-inset-bottom));
         }
 
         .dashboard-panel {
@@ -1065,7 +1093,17 @@ function DashboardStyles() {
         }
 
         .dashboard-map-wrap {
-          height: min(38vh, 320px);
+          width: min(82vw, 330px);
+          max-height: min(42vh, 330px);
+          max-height: min(42svh, 330px);
+        }
+
+        .dashboard-map-action {
+          width: min(100%, 300px);
+          justify-content: center;
+          align-self: center;
+          padding: 10px 14px;
+          font-size: 14px;
         }
 
         .dashboard-first-row {
@@ -1073,16 +1111,18 @@ function DashboardStyles() {
         }
 
         .mini-gauge-row {
-          grid-template-columns: 1fr;
-          gap: 16px;
+          grid-template-columns: 1fr 1px 1fr;
+          gap: 0 8px;
         }
 
-        .mini-divider {
-          display: none;
+        .mini-arc {
+          width: 120px;
+          height: 60px;
         }
 
         .insight-card {
           flex-wrap: wrap;
+          margin-bottom: 10px;
         }
 
         .insight-chip {
@@ -1099,6 +1139,30 @@ function DashboardStyles() {
 
         .dashboard-side-stack {
           gap: 14px;
+        }
+
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
+        }
+
+        .trend-bars,
+        .trend-bar-wrap {
+          height: 55px;
+        }
+
+        .trend-day-line {
+          height: 50px;
+        .trend-heading {
+          height: auto;
+          min-height: 22px;
+        }
+
+        .trend-scroll {
+          margin-right: -2px;
         }
       }
 
@@ -1177,16 +1241,7 @@ function DashboardStyles() {
 
 export default function DashboardPage() {
   const [district, setDistrict] = useState('中壢區');
-  const [remoteMetrics, setRemoteMetrics] = useState<{
-    district: string;
-    aqi: number;
-    pm25: number;
-    pm10: number;
-    o3: number;
-    no2: number;
-    so2: number;
-    co: number;
-  } | null>(null);
+  const [allStations, setAllStations] = useState<MoeStationData[]>([]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1202,33 +1257,36 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
-
     fetchMoeStations()
-      .then((stations) => {
-        const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === district)?.[0];
-        if (!sitename || !alive) return;
-        const station = stations.find((s) => s.sitename === sitename);
-        if (!station || !alive) return;
-
-        setRemoteMetrics({
-          district,
-          aqi:  station.aqi  || base.aqi,
-          pm25: station.pm25 || base.pm25,
-          pm10: station.pm10,
-          o3:   station.o3   || base.o3,
-          no2:  station.no2,
-          so2:  station.so2,
-          co:   station.co,
-        });
+      .then((data) => {
+        console.log('[MOE] stations 數量:', data.length, data);
+        setAllStations(data);
       })
-      .catch(console.warn);
+      .catch(console.error);
+  }, []);
 
-    return () => {
-      alive = false;
+  const remoteMetrics = useMemo(() => {
+    if (!allStations.length) return null;
+
+    const sitename = Object.entries(EPA_STATION_TO_DISTRICT)
+      .find(([, d]) => d === district)?.[0];
+    if (!sitename) return null;
+
+    const station = allStations.find((s) => s.sitename === sitename);
+    if (!station) return null;
+
+    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
+    return {
+      district,
+      aqi:  station.aqi  || base.aqi,
+      pm25: station.pm25 || base.pm25,
+      pm10: station.pm10,
+      o3:   station.o3   || base.o3,
+      no2:  station.no2,
+      so2:  station.so2,
+      co:   station.co,
     };
-  }, [district]);
+  }, [district, allStations]);
 
   const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
   const ext = DISTRICT_EXTENDED[district] ?? DISTRICT_EXTENDED.中壢區;
@@ -1244,10 +1302,10 @@ export default function DashboardPage() {
   const ActivityIcon = activity.icon;
 
   const pollutants = [
-    { name: 'NO₂', sub: '二氧化氮', value: no2, unit: 'ppb' },
-    { name: 'SO₂', sub: '二氧化硫', value: so2, unit: 'ppb' },
+    { name: <>NO<sub className="text-xs">2</sub></>, sub: '二氧化氮', value: no2, unit: 'ppb' },
+    { name: <>SO<sub className="text-xs">2</sub></>, sub: '二氧化硫', value: so2, unit: 'ppb' },
     { name: 'CO', sub: '一氧化碳', value: co.toFixed(2), unit: 'ppm' },
-    { name: 'PM10', sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
+    { name: <>PM<sub className="text-xs">10</sub></>, sub: '懸浮微粒', value: pm10, unit: 'μg/m³' },
   ];
 
   return (
@@ -1289,7 +1347,7 @@ export default function DashboardPage() {
 
               <div className="mini-gauge-row">
                 <div className="mini-gauge-card">
-                  <h3>PM2.5</h3>
+                  <h3>PM<sub className="text-xs">2.5</sub></h3>
                   <p>細懸浮微粒</p>
                   <small>標準日均值為 15.4 μg/m³</small>
                   <GaugeArc
@@ -1304,7 +1362,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="mini-divider" />
                 <div className="mini-gauge-card">
-                  <h3>O₃</h3>
+                  <h3>O<sub className="text-xs">3</sub></h3>
                   <p>臭氧</p>
                   <small>標準8小時均值為 54 ppb</small>
                   <GaugeArc
@@ -1321,7 +1379,7 @@ export default function DashboardPage() {
 
               <div className="mini-pollut-strip">
                 {pollutants.map((item, index) => (
-                  <React.Fragment key={item.name}>
+                  <React.Fragment key={index}>
                     {index > 0 && <div className="metric-divider" />}
                     <div className="mini-pollut-card">
                       <h4>{item.name}</h4>
@@ -1356,7 +1414,7 @@ export default function DashboardPage() {
                     <TrendingDown size={16} />
                   </span>
                   <p className="insight-copy">
-                    <strong>PM2.5 濃度預計下降</strong>
+                    <strong>PM<sub className="text-xs">2.5</sub> 濃度預計下降</strong>
                     <span>未來 3 小時因海風輻合影響</span>
                   </p>
                   <span className="insight-chip">-12%</span>
@@ -1366,7 +1424,7 @@ export default function DashboardPage() {
 
             <section className="trend-section">
               <div className="trend-heading">
-                <SecLabel title="PM2.5 趨勢" />
+                <SecLabel title={<>PM<sub className="text-xs">2.5</sub> 趨勢</>} />
                 <span className="scroll-hint">
                   <ChevronsRight size={13} />
                   左右滑動查看

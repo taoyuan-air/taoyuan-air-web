@@ -75,8 +75,8 @@ const SEVERITIES = ['嚴重度', '高風險', '中等風險', '低風險'];
 interface EventData {
   id: number;
   category: string;
-  title: string;
-  description: string;
+  title: React.ReactNode;
+  description: React.ReactNode;
   severity: string;
   status: string;
   trend: string;
@@ -90,11 +90,11 @@ interface EventData {
 }
 
 const allEventData: EventData[] = [
-  { id: 1, category: '工業聚集區', title: '觀音中心排放',     description: '在工業區範圍內檢測到局部 SO₂ 尖峰，建議附近居民減少戶外活動。',         severity: '中等風險', status: '固定站',  trend: '穩定中', exposure: '~1.2k 人', duration: '45 分鐘',        location: '觀音區', healthIndex: '敏感警告', isActive: true,  isResolved: false },
-  { id: 2, category: '大氣流入',   title: '重度 PM2.5 流入', description: '跨境污染物透過東北風持續流入，影響北部住宅區域，濃度持續上升。',           severity: '高風險',   status: 'AI 識別', trend: '上升中', exposure: '~3.5k 人', duration: '2 小時 15 分鐘', location: '蘆竹區', confidence: '98.4%',    isActive: true,  isResolved: false },
-  { id: 3, category: '交通排放',   title: '中壢交流道壅塞',   description: '尖峰時段車流導致 NOx 濃度升高，預計 1 小時後隨車流疏散改善。',          severity: '低風險',   status: '固定站',  trend: '下降中', exposure: '~800 人',  duration: '1 小時 30 分鐘', location: '中壢區', healthIndex: '良好',     isActive: true,  isResolved: false },
+  { id: 1, category: '工業聚集區', title: '觀音中心排放',     description: <>在工業區範圍內檢測到局部 SO<sub className="text-xs">2</sub> 尖峰，建議附近居民減少戶外活動。</>,         severity: '中等風險', status: '固定站',  trend: '穩定中', exposure: '~1.2k 人', duration: '45 分鐘',        location: '觀音區', healthIndex: '敏感警告', isActive: true,  isResolved: false },
+  { id: 2, category: '大氣流入',   title: <>重度 PM<sub className="text-xs">2.5</sub> 流入</>, description: '跨境污染物透過東北風持續流入，影響北部住宅區域，濃度持續上升。',           severity: '高風險',   status: 'AI 識別', trend: '上升中', exposure: '~3.5k 人', duration: '2 小時 15 分鐘', location: '蘆竹區', confidence: '98.4%',    isActive: true,  isResolved: false },
+  { id: 3, category: '交通排放',   title: '中壢交流道壅塞',   description: <>尖峰時段車流導致 NO<sub className="text-xs">x</sub> 濃度升高，預計 1 小時後隨車流疏散改善。</>,          severity: '低風險',   status: '固定站',  trend: '下降中', exposure: '~800 人',  duration: '1 小時 30 分鐘', location: '中壢區', healthIndex: '良好',     isActive: true,  isResolved: false },
   { id: 4, category: '工業聚集區', title: '大園工業區異常',   description: '檢測到 VOCs 濃度異常升高，來源已定位，工廠已停工排查。',                  severity: '中等風險', status: 'AI 識別', trend: '已穩定', exposure: '~2.1k 人', duration: '已解決',          location: '大園區', confidence: '92.1%',    isActive: false, isResolved: true  },
-  { id: 5, category: '區域性事件', title: '桃園市區空品惡化', description: '多個測站同時檢測到 PM2.5 升高，低壓系統造成污染物堆積，影響範圍持續擴大。', severity: '高風險',   status: '固定站',  trend: '持平',   exposure: '~5.8k 人', duration: '3 小時',          location: '桃園區', healthIndex: '不健康',   isActive: true,  isResolved: false },
+  { id: 5, category: '區域性事件', title: <>桃園市區空品惡化</>, description: <>多個測站同時檢測到 PM<sub className="text-xs">2.5</sub> 升高，低壓系統造成污染物堆積，影響範圍持續擴大。</>, severity: '高風險',   status: '固定站',  trend: '持平',   exposure: '~5.8k 人', duration: '3 小時',          location: '桃園區', healthIndex: '不健康',   isActive: true,  isResolved: false },
 ];
 
 /* ─── Dropdown ───────────────────────────────────────────────── */
