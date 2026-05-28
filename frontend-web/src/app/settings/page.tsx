@@ -316,7 +316,7 @@ export default function SettingsPage() {
           </div>
 
           {/* ── Right: section content ────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
 
             {/* ── 帳戶安全 ── */}
             {activeSection === '帳戶安全' && (

@@ -3,15 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
 import type { MoeStationData } from '@shared/api/moe';
-
-const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe').then(r => r.json());
 import {
   DISTRICT_STATIC_AQ,
   EPA_STATION_TO_DISTRICT,
   findNearestDistrict,
 } from '@shared/constants/districts';
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
+
+const fetchMoeStations = (): Promise<MoeStationData[]> =>
+  fetch('/api/moe').then(r => r.json());
 
 const C = {
   rose: '#D4567A',
@@ -388,8 +388,8 @@ function DashboardStyles() {
       }
 
       .dashboard-map-pane {
+      align-self: start;
         position: relative;
-        min-height: calc(100vh - 124px);
         min-width: 0;
         padding: 58px 18px 42px 0;
         display: flex;
@@ -406,7 +406,7 @@ function DashboardStyles() {
       .dashboard-map-action {
         position: absolute;
         left: 32px;
-        bottom: 28px;
+        bottom: 16px;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -426,7 +426,7 @@ function DashboardStyles() {
         min-width: 0;
         max-width: 100%;
         overflow: hidden;
-        align-self: start;
+        align-self: start;    
         margin-top: 28px;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(231, 101, 149, 0.08);
@@ -489,8 +489,8 @@ function DashboardStyles() {
       .dashboard-lower-row {
         grid-template-columns: minmax(220px, 2fr) minmax(360px, 3fr);
         align-items: stretch;
-        gap: 30px;
-        margin-top: 24px;
+        gap: 40px;
+        margin-top: 35px;
         min-height: 0;
         flex: 0 0 auto;
       }
@@ -827,7 +827,7 @@ function DashboardStyles() {
       }
 
       .scroll-hint {
-        display: none;
+        display: inline-flex;
         align-items: center;
         gap: 4px;
         border: 1px solid ${C.roseBorder};
@@ -878,7 +878,7 @@ function DashboardStyles() {
 
       .trend-date-row {
         position: relative;
-        height: 32px;
+        height: 20px;
         margin-bottom: 0;
       }
 
@@ -911,7 +911,7 @@ function DashboardStyles() {
         bottom: 0;
         left: 50%;
         width: 1.5px;
-        height: 76px;
+        height: 70px;
         transform: translateX(-50%);
         background: ${C.rose};
       }
@@ -1073,8 +1073,12 @@ function DashboardStyles() {
           display: none;
         }
 
-        .trend-heading .scroll-hint {
-          display: inline-flex;
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
         }
       }
 
@@ -1107,16 +1111,18 @@ function DashboardStyles() {
         }
 
         .mini-gauge-row {
-          grid-template-columns: 1fr;
-          gap: 16px;
+          grid-template-columns: 1fr 1px 1fr;
+          gap: 0 8px;
         }
 
-        .mini-divider {
-          display: none;
+        .mini-arc {
+          width: 120px;
+          height: 60px;
         }
 
         .insight-card {
           flex-wrap: wrap;
+          margin-bottom: 10px;
         }
 
         .insight-chip {
@@ -1135,6 +1141,21 @@ function DashboardStyles() {
           gap: 14px;
         }
 
+        .trend-date-row {
+          height: 30px;
+        }
+
+        .trend-date-label {
+          top: 10px;
+        }
+
+        .trend-bars,
+        .trend-bar-wrap {
+          height: 55px;
+        }
+
+        .trend-day-line {
+          height: 50px;
         .trend-heading {
           height: auto;
           min-height: 22px;
@@ -1220,16 +1241,7 @@ function DashboardStyles() {
 
 export default function DashboardPage() {
   const [district, setDistrict] = useState('中壢區');
-  const [remoteMetrics, setRemoteMetrics] = useState<{
-    district: string;
-    aqi: number;
-    pm25: number;
-    pm10: number;
-    o3: number;
-    no2: number;
-    so2: number;
-    co: number;
-  } | null>(null);
+  const [allStations, setAllStations] = useState<MoeStationData[]>([]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1245,33 +1257,36 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
-
     fetchMoeStations()
-      .then((stations) => {
-        const sitename = Object.entries(EPA_STATION_TO_DISTRICT).find(([, d]) => d === district)?.[0];
-        if (!sitename || !alive) return;
-        const station = stations.find((s) => s.sitename === sitename);
-        if (!station || !alive) return;
-
-        setRemoteMetrics({
-          district,
-          aqi:  station.aqi  || base.aqi,
-          pm25: station.pm25 || base.pm25,
-          pm10: station.pm10,
-          o3:   station.o3   || base.o3,
-          no2:  station.no2,
-          so2:  station.so2,
-          co:   station.co,
-        });
+      .then((data) => {
+        console.log('[MOE] stations 數量:', data.length, data);
+        setAllStations(data);
       })
-      .catch(console.warn);
+      .catch(console.error);
+  }, []);
 
-    return () => {
-      alive = false;
+  const remoteMetrics = useMemo(() => {
+    if (!allStations.length) return null;
+
+    const sitename = Object.entries(EPA_STATION_TO_DISTRICT)
+      .find(([, d]) => d === district)?.[0];
+    if (!sitename) return null;
+
+    const station = allStations.find((s) => s.sitename === sitename);
+    if (!station) return null;
+
+    const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
+    return {
+      district,
+      aqi:  station.aqi  || base.aqi,
+      pm25: station.pm25 || base.pm25,
+      pm10: station.pm10,
+      o3:   station.o3   || base.o3,
+      no2:  station.no2,
+      so2:  station.so2,
+      co:   station.co,
     };
-  }, [district]);
+  }, [district, allStations]);
 
   const base = DISTRICT_STATIC_AQ[district] ?? DISTRICT_STATIC_AQ.中壢區;
   const ext = DISTRICT_EXTENDED[district] ?? DISTRICT_EXTENDED.中壢區;
