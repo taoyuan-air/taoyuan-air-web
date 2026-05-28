@@ -41,11 +41,11 @@ type Category = '全部' | '警報' | '健康建議' | '系統';
 interface Notification {
   id: number;
   category: Exclude<Category, '全部'>;
-  title: string;
-  subtitle: string;
+  title: React.ReactNode;
+  subtitle: React.ReactNode;
   time: string;
   group: '今天' | '昨天' | '更早';
-  content: string;
+  content: React.ReactNode;
   Icon: React.ElementType;
   iconColor: string;
   iconBg: string;
@@ -56,9 +56,9 @@ interface Notification {
 const DATA: Notification[] = [
   {
     id: 1, category: '警報', group: '今天',
-    title: '空氣品質警報', subtitle: '中壢區 · PM₂.₅',
+    title: '空氣品質警報', subtitle: <>中壢區 · PM<sub className="text-xs">2.5</sub></>,
     time: '2 小時前',
-    content: 'PM₂.₅ 濃度超過 35 µg/m³，已偵測到局部工業排放。建議室內使用空氣清淨機，避免長時間戶外活動。',
+    content: <>PM<sub className="text-xs">2.5</sub> 濃度超過 35 µg/m³，已偶測到局部工業排放。建議室內使用空氣清凈機，避免長時間戶外活動。</>,
     Icon: ShieldAlert, iconColor: C.coral, iconBg: C.coralAlpha, iconBorder: C.coralBorder,
     unread: true,
   },
@@ -88,9 +88,9 @@ const DATA: Notification[] = [
   },
   {
     id: 5, category: '警報', group: '更早',
-    title: '臭氧濃度偏高', subtitle: '觀音區 · O₃',
+    title: <>臭氧濃度偏高</>, subtitle: <>觀音區 · O<sub className="text-xs">3</sub></>,
     time: '3 天前',
-    content: '下午尖峰時段 O₃ 濃度達 88 ppb，接近敏感族群建議上限。已自動發送預警至當地學校。',
+    content: <>下午尖峰時段 O<sub className="text-xs">3</sub> 濃度達 88 ppb，接近敏感族群建議上限。已自動發送預警至當地學校。</>,
     Icon: ShieldAlert, iconColor: C.coral, iconBg: C.coralAlpha, iconBorder: C.coralBorder,
     unread: false,
   },
