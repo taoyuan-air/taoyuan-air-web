@@ -9,6 +9,15 @@ const nextConfig: NextConfig = {
       zustand: './node_modules/zustand',
     },
   },
+ 
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

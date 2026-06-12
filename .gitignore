@@ -87,6 +87,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+venv/
 
 # Private documentation
 docs/

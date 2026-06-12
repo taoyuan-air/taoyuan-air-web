@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 import type { MoeStationData } from '@shared/api/moe';
 import {
   DISTRICT_STATIC_AQ,
@@ -1240,10 +1241,16 @@ function DashboardStyles() {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [district, setDistrict] = useState('中壢區');
   const [allStations, setAllStations] = useState<MoeStationData[]>([]);
 
   useEffect(() => {
+    if (user?.default_district) {
+      setDistrict(user.default_district);
+      return;
+    }
+
     if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -1254,7 +1261,7 @@ export default function DashboardPage() {
       () => undefined,
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
     );
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchMoeStations()

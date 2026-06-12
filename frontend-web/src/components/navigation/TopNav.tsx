@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, Bell, Settings } from 'lucide-react';
+import { Menu, X, Bell, Settings, LogIn, LogOut } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 const navItems = [
   { href: '/dashboard', label: '空氣總覽' },
@@ -18,6 +19,13 @@ export function TopNav() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/dashboard');
+  };
 
   useEffect(() => {
     let ticking = false;
@@ -74,9 +82,37 @@ export function TopNav() {
             <Link href="/notifications" className="top-nav-action-btn" title="通知" aria-label="通知">
               <Bell size={17} />
             </Link>
-            <Link href="/settings" className="top-nav-action-btn" title="設定" aria-label="設定">
-              <Settings size={17} />
-            </Link>
+            {user ? (
+              <>
+                <Link href="/settings" className="top-nav-action-btn" title="設定" aria-label="設定">
+                  <Settings size={17} />
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="top-nav-action-btn"
+                  title="登出"
+                  aria-label="登出"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <LogOut size={17} />
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/auth/login"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 16px', borderRadius: 99,
+                  border: '1px solid rgba(231,101,149,0.4)',
+                  background: 'rgba(231,101,149,0.08)',
+                  color: '#E76595', fontSize: 13, fontWeight: 700,
+                  textDecoration: 'none', transition: 'all 0.18s',
+                }}
+              >
+                <LogIn size={15} />
+                登入
+              </Link>
+            )}
             <button
               className="top-nav-hamburger"
               aria-label={mobileOpen ? '關閉選單' : '開啟選單'}
