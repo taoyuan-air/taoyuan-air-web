@@ -148,28 +148,37 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
 
   /* 通知偏好 state */
   const [notifs, setNotifs] = useState(INIT.notifs);
 
   useEffect(() => {
     if (!user) return;
-    setTwoFactor(user.two_factor_enabled);
-    setConditions({
-      asthma: user.has_respiratory,
-      elderly: false,
-      child: false,
-    });
-    setNotifs({
-      pm25: user.notif_pm25,
-      aqi: user.notif_aqi,
-      health: user.notif_health,
-      system: user.notif_system,
-    });
-    if (user.default_district) setProfileDistrict(user.default_district);
-    if (user.age_range) setProfileAgeRange(user.age_range);
-    if (user.gender) setProfileGender(user.gender);
-    if (user.sensitivity) setProfileSensitivity(user.sensitivity);
+    // Defer state updates to avoid synchronous setState inside effect
+    const t = setTimeout(() => {
+      setTwoFactor(user.two_factor_enabled);
+      setConditions({
+        asthma: user.has_respiratory,
+        elderly: false,
+        child: false,
+      });
+      setNotifs({
+        pm25: user.notif_pm25,
+        aqi: user.notif_aqi,
+        health: user.notif_health,
+        system: user.notif_system,
+      });
+      if (user.default_district) setProfileDistrict(user.default_district);
+      if (user.age_range) setProfileAgeRange(user.age_range);
+      if (user.gender) setProfileGender(user.gender);
+      if (user.sensitivity) setProfileSensitivity(user.sensitivity);
+      setUsername(user.username);
+      setEmail(user.email);
+    }, 0);
+
+    return () => clearTimeout(t);
   }, [user]);
 
   const healthDirty = user && (
@@ -179,16 +188,30 @@ export default function SettingsPage() {
     profileSensitivity !== user.sensitivity
   );
 
+  const profileDirty = user && (
+    username !== (user.username ?? '') || email !== (user.email ?? '')
+  );
+
   const isDirty =
     twoFactor !== INIT.twoFactor ||
     JSON.stringify(conditions) !== JSON.stringify(INIT.conditions) ||
     JSON.stringify(notifs) !== JSON.stringify(INIT.notifs) ||
-    !!healthDirty;
+    !!healthDirty || !!profileDirty;
 
   const handleSave = async () => {
     setSaveError('');
     try {
       if (activeSection === '帳戶安全') {
+        // update profile if changed
+        if (profileDirty) {
+          const resProfile = await authApi.updateProfile({ username, email });
+          if (!resProfile.ok) {
+            const data = await resProfile.json().catch(() => ({}));
+            setSaveError(data.detail ?? '儲存失敗');
+            return;
+          }
+        }
+
         const payload: Record<string, unknown> = { two_factor_enabled: twoFactor };
         if (newPassword) {
           if (newPassword !== newPasswordConfirm) {
@@ -245,8 +268,8 @@ export default function SettingsPage() {
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       <div style={{ padding: isMobile ? '20px 16px 80px' : '28px 40px 32px' }}>
 
-        {/* ── Page header ──────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        {/* ── Page header（只放標題 + 儲存按鈕）──────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
@@ -277,37 +300,70 @@ export default function SettingsPage() {
             <Check size={15} strokeWidth={2.5} />
             {saved ? '已儲存' : '儲存變更'}
           </button>
-            {saveError && (
+        </div>
+
+        {/* ── 錯誤訊息（獨立於 header 之外）────────────────────── */}
+        {saveError && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 10, marginBottom: 16,
+            backgroundColor: 'rgba(233,76,120,0.10)', border: '1px solid rgba(233,76,120,0.30)',
+            fontSize: 13, color: '#E94C78',
+          }}>{saveError}</div>
+        )}
+
+        {/* ── 兩欄 Layout ────────────────────────────────────────── */}
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 20 : 28,
+          alignItems: 'flex-start',
+          marginTop: 20,
+        }}>
+
+          {/* ── 左欄：頭像 + Nav + 登出 ──────────────────────────── */}
+          <div style={{
+            width: isMobile ? '100%' : 300,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}>
+
+            {/* 頭像 + 帳號輸入 */}
+            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
               <div style={{
-                padding: '10px 14px', borderRadius: 10, marginTop: 8,
-                backgroundColor: 'rgba(233,76,120,0.10)', border: '1px solid rgba(233,76,120,0.30)',
-                fontSize: 13, color: '#E94C78',
-              }}>{saveError}</div>
-            )}
-                  width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
-                  backgroundColor: '#D4B896', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: isMobile ? 20 : 26, fontWeight: 800,
-                  boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
-                }}>
-                  陳
-                </div>
-                <div style={{
-                  position: 'absolute', bottom: -4,
-                  left: '50%', transform: 'translateX(-50%)',
-                  display: 'flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
-                  padding: '3px 10px', borderRadius: 12,
-                  backgroundColor: C.primary, border: '2px solid #fff',
-                  color: '#fff', fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
-                }}>
-                  <Star size={9} fill="white" strokeWidth={0} />
-                  PREMIUM
-                </div>
+                width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
+                backgroundColor: '#D4B896', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: isMobile ? 20 : 26, fontWeight: 800,
+                boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
+              }}>
+                {user?.username ? user.username.split(' ').map(n => n[0]).slice(0, 2).join('') : 'U'}
               </div>
-              <div style={{ flex: isMobile ? 1 : undefined, textAlign: isMobile ? 'left' : 'center' }}>
-                <p style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 2 }}>陳曉明</p>
-                <p style={{ fontSize: 12, color: C.hint, marginBottom: isMobile ? 0 : 4 }}>wei-ting.chen@taoyuan.io</p>
+
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="用戶名稱"
+                  style={{
+                    padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.glassBorder}`,
+                    backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 800,
+                    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="電子郵件"
+                  style={{
+                    padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.glassBorder}`,
+                    backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 12, color: C.hint,
+                    outline: 'none', width: '100%', boxSizing: 'border-box',
+                  }}
+                />
               </div>
+
               {!isMobile && (
                 <div style={{
                   width: '100%', padding: '8px 14px', borderRadius: 12,
@@ -320,7 +376,7 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* Nav items */}
+            {/* Nav */}
             {isMobile ? (
               <div style={{
                 display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
@@ -383,7 +439,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Logout */}
+            {/* 登出 */}
             <button style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '13px 0', borderRadius: 14, cursor: 'pointer',
@@ -396,8 +452,8 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* ── Right: section content ────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
+          {/* ── 右欄：Section 內容 ─────────────────────────────────── */}
+          <div style={{ flex: 1, minWidth: 0 }}>
 
             {/* ── 帳戶安全 ── */}
             {activeSection === '帳戶安全' && (
@@ -406,10 +462,23 @@ export default function SettingsPage() {
 
                 <div style={{ ...card, padding: 28 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本資料</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <FieldRow label="用戶名稱" value="陳曉明" />
-                    <FieldRow label="電子信箱" value="wei-ting.chen@taoyuan.io" />
-                    <FieldRow label="帳號建立日期" value="2024 年 3 月 12 日" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>用戶名稱</span>
+                      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用戶名稱"
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>電子信箱</span>
+                      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="電子郵件"
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>帳號建立日期</span>
+                      <div style={{ padding: '11px 14px', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.6)', border: `1px solid ${C.glassBorder}`, fontSize: 14, color: C.text }}>
+                        {user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -435,24 +504,26 @@ export default function SettingsPage() {
                           </p>
                         </div>
                       </div>
-                      {[
-                        { label: '目前密碼', value: currentPassword, setter: setCurrentPassword, placeholder: '••••••••' },
-                        { label: '新密碼（至少 8 碼）', value: newPassword, setter: setNewPassword, placeholder: '••••••••' },
-                        { label: '確認新密碼', value: newPasswordConfirm, setter: setNewPasswordConfirm, placeholder: '••••••••' },
-                      ].map(({ label, value, setter, placeholder }) => (
-                        <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>{label}</span>
-                          <input
-                            type="password" value={value} onChange={(e) => setter(e.target.value)}
-                            placeholder={placeholder}
-                            style={{
-                              padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`,
-                              backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
-                              fontFamily: 'inherit', outline: 'none',
-                            }}
-                          />
-                        </div>
-                      ))}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                        {[
+                          { label: '目前密碼', value: currentPassword, setter: setCurrentPassword, placeholder: '••••••••' },
+                          { label: '新密碼（至少 8 碼）', value: newPassword, setter: setNewPassword, placeholder: '••••••••' },
+                          { label: '確認新密碼', value: newPasswordConfirm, setter: setNewPasswordConfirm, placeholder: '••••••••' },
+                        ].map(({ label, value, setter, placeholder }) => (
+                          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>{label}</span>
+                            <input
+                              type="password" value={value} onChange={(e) => setter(e.target.value)}
+                              placeholder={placeholder}
+                              style={{
+                                padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`,
+                                backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
+                                fontFamily: 'inherit', outline: 'none',
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -507,22 +578,16 @@ export default function SettingsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>年齡區間</span>
-                      <select
-                        value={profileAgeRange}
-                        onChange={(e) => setProfileAgeRange(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
-                      >
+                      <select value={profileAgeRange} onChange={(e) => setProfileAgeRange(e.target.value)}
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
                         <option value="">不提供</option>
                         {['18歲以下','18–24歲','25–34歲','35–44歲','45–54歲','55–64歲','65歲以上'].map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>性別</span>
-                      <select
-                        value={profileGender}
-                        onChange={(e) => setProfileGender(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
-                      >
+                      <select value={profileGender} onChange={(e) => setProfileGender(e.target.value)}
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
                         <option value="">不提供</option>
                         <option value="男性">男性</option>
                         <option value="女性">女性</option>
@@ -531,22 +596,16 @@ export default function SettingsPage() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>所在行政區</span>
-                      <select
-                        value={profileDistrict}
-                        onChange={(e) => setProfileDistrict(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
-                      >
+                      <select value={profileDistrict} onChange={(e) => setProfileDistrict(e.target.value)}
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
                         <option value="">使用定位 / 中壢區</option>
                         {['桃園區','中壢區','八德區','龜山區','蘆竹區','大園區','大溪區','平鎮區','楊梅區','龍潭區','觀音區','新屋區','復興區'].map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>敏感度預設</span>
-                      <select
-                        value={profileSensitivity}
-                        onChange={(e) => setProfileSensitivity(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
-                      >
+                      <select value={profileSensitivity} onChange={(e) => setProfileSensitivity(e.target.value)}
+                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
                         <option value="一般民眾">一般民眾</option>
                         <option value="敏感族群">敏感族群</option>
                       </select>
@@ -559,7 +618,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <ToggleRow
                       Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="氣啸 / 呼吸道疾病" desc={<>調低 PM<sub className="text-xs">2.5</sub> 警報門檀至 15 µg/m³</>}
+                      title="氣喘 / 呼吸道疾病" desc={<>調低 PM<sub style={{ fontSize: '0.75em' }}>2.5</sub> 警報門檻至 15 µg/m³</>}
                       value={conditions.asthma} onChange={(v) => setConditions(p => ({ ...p, asthma: v }))}
                     />
                     <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
@@ -589,7 +648,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <ToggleRow
                       Icon={Shield} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title={<>PM<sub className="text-xs">2.5</sub> 超標警報</>} desc="濃度超過設定門檀時即時通知"
+                      title={<>PM<sub style={{ fontSize: '0.75em' }}>2.5</sub> 超標警報</>} desc="濃度超過設定門檻時即時通知"
                       value={notifs.pm25} onChange={(v) => setNotifs(p => ({ ...p, pm25: v }))}
                     />
                     <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
@@ -620,8 +679,8 @@ export default function SettingsPage() {
               </div>
             )}
 
-          </div>
-        </div>
+          </div>{/* 右欄結束 */}
+        </div>{/* 兩欄 Layout 結束 */}
       </div>
     </div>
   );

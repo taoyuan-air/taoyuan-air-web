@@ -79,11 +79,11 @@ export function TopNav() {
 
           {/* Right actions */}
           <div className="top-nav-actions">
-            <Link href="/notifications" className="top-nav-action-btn" title="通知" aria-label="通知">
-              <Bell size={17} />
-            </Link>
             {user ? (
               <>
+                <Link href="/notifications" className="top-nav-action-btn" title="通知" aria-label="通知">
+                  <Bell size={17} />
+                </Link>
                 <Link href="/settings" className="top-nav-action-btn" title="設定" aria-label="設定">
                   <Settings size={17} />
                 </Link>
@@ -99,7 +99,7 @@ export function TopNav() {
               </>
             ) : (
               <Link
-                href="/auth/login"
+                href="/login"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 99,
@@ -152,12 +152,25 @@ export function TopNav() {
         ))}
 
         <div className="mobile-nav-actions">
-          <Link href="/notifications" className="top-nav-action-btn" title="通知" onClick={() => setMobileOpen(false)}>
-            <Bell size={17} />
-          </Link>
-          <Link href="/settings" className="top-nav-action-btn" title="設定" onClick={() => setMobileOpen(false)}>
-            <Settings size={17} />
-          </Link>
+          {user ? (
+            <>
+              <Link href="/notifications" className="top-nav-action-btn" title="通知" onClick={() => setMobileOpen(false)}>
+                <Bell size={17} />
+              </Link>
+              <Link href="/settings" className="top-nav-action-btn" title="設定" onClick={() => setMobileOpen(false)}>
+                <Settings size={17} />
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="top-nav-action-btn"
+              onClick={() => setMobileOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <LogIn size={17} /> 登入
+            </Link>
+          )}
         </div>
       </div>
     </>

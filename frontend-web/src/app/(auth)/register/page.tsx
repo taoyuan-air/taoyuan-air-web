@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/lib/api-client';
 
 const C = {
@@ -34,8 +35,23 @@ export default function RegisterPage() {
     age_range: '', gender: '', default_district: '',
     sensitivity: '一般民眾', has_respiratory: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const formatError = (error: unknown): string => {
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    if (Array.isArray(error)) return error.map((item) => formatError(item)).filter(Boolean).join(' / ');
+    if (typeof error === 'object' && error !== null) {
+      const payload = error as Record<string, unknown>;
+      if (typeof payload.detail !== 'undefined') return formatError(payload.detail);
+      if (typeof payload.message !== 'undefined') return formatError(payload.message);
+      if (typeof payload.msg !== 'undefined') return formatError(payload.msg);
+      return JSON.stringify(payload);
+    }
+    return String(error);
+  };
 
   const set = (key: string, value: unknown) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -55,10 +71,12 @@ export default function RegisterPage() {
     });
     setLoading(false);
     if (res.ok) {
-      router.push('/auth/login?registered=1');
+      router.push('/login?registered=1');
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.detail ?? '註冊失敗，請稍後再試');
+      const payload = data as Record<string, unknown>;
+      const message = formatError(payload.detail ?? payload.message ?? payload);
+      setError(message || '註冊失敗，請稍後再試');
     }
   };
 
@@ -98,13 +116,49 @@ export default function RegisterPage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
+            <div style={{ position: 'relative' }}>
               <label style={labelStyle}>密碼 * (至少 8 碼)</label>
-              <input style={inputStyle} type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required placeholder="••••••••" />
+              <input
+                style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={(e) => set('password', e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={{
+                  position: 'absolute', top: 38, right: 14, border: 'none', background: 'transparent',
+                  padding: 0, cursor: 'pointer', color: C.muted,
+                }}
+                aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            <div>
+            <div style={{ position: 'relative' }}>
               <label style={labelStyle}>確認密碼 *</label>
-              <input style={inputStyle} type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required placeholder="••••••••" />
+              <input
+                style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
+                type={showPassword ? 'text' : 'password'}
+                value={form.password_confirm}
+                onChange={(e) => set('password_confirm', e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={{
+                  position: 'absolute', top: 38, right: 14, border: 'none', background: 'transparent',
+                  padding: 0, cursor: 'pointer', color: C.muted,
+                }}
+                aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
@@ -173,7 +227,7 @@ export default function RegisterPage() {
 
         <p style={{ fontSize: 13, color: C.hint, textAlign: 'center', marginTop: 20 }}>
           已有帳號？{' '}
-          <Link href="/auth/login" style={{ color: C.primary, fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/login" style={{ color: C.primary, fontWeight: 700, textDecoration: 'none' }}>
             立即登入
           </Link>
         </p>

@@ -2,11 +2,12 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from ..database import get_db
 from ..models.user import User
 from ..schemas.user import (
-    UserPublic, UserUpdateSecurity, UserUpdateHealth, UserUpdateNotifications
+    UserPublic, UserUpdateSecurity, UserUpdateHealth, UserUpdateNotifications, UserUpdateProfile
 )
 from ..core.deps import get_current_user
 from ..core.security import verify_password, hash_password
@@ -57,6 +58,27 @@ async def update_notifications(
 ):
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(current_user, field, value)
+    await db.flush()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.patch('/me/profile', response_model=UserPublic)
+async def update_profile(
+    body: UserUpdateProfile,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # If email is changing, ensure uniqueness
+    data = body.model_dump(exclude_none=True)
+    if 'email' in data and data['email'] != current_user.email:
+        result = await db.execute(select(User).where(User.email == data['email']))
+        if result.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail='此電子郵件已被使用')
+
+    for field, value in data.items():
+        setattr(current_user, field, value)
+
     await db.flush()
     await db.refresh(current_user)
     return current_user

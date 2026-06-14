@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 const C = {
@@ -21,8 +22,23 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const formatError = (error: unknown): string => {
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    if (Array.isArray(error)) return error.map((item) => formatError(item)).filter(Boolean).join(' / ');
+    if (typeof error === 'object' && error !== null) {
+      const payload = error as Record<string, unknown>;
+      if (typeof payload.detail !== 'undefined') return formatError(payload.detail);
+      if (typeof payload.message !== 'undefined') return formatError(payload.message);
+      if (typeof payload.msg !== 'undefined') return formatError(payload.msg);
+      return JSON.stringify(payload);
+    }
+    return String(error);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +49,7 @@ export default function LoginPage() {
     if (result.ok) {
       router.push('/dashboard');
     } else {
-      setError(result.error ?? '登入失敗');
+      setError(formatError(result.error) || '登入失敗');
     }
   };
 
@@ -76,19 +92,30 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
+          <div style={{ position: 'relative' }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: C.muted, display: 'block', marginBottom: 6 }}>
               密碼
             </label>
             <input
-              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
               required placeholder="••••••••"
               style={{
-                width: '100%', padding: '11px 14px', borderRadius: 12, boxSizing: 'border-box',
+                width: '100%', padding: '11px 44px 11px 14px', borderRadius: 12, boxSizing: 'border-box',
                 border: `1px solid ${C.primaryBorder}`, backgroundColor: 'rgba(255,255,255,0.7)',
                 fontSize: 14, color: C.text, outline: 'none', fontFamily: 'inherit',
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{
+                position: 'absolute', top: 38, right: 14, border: 'none', background: 'transparent',
+                padding: 0, cursor: 'pointer', color: C.muted,
+              }}
+              aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <button
@@ -106,7 +133,7 @@ export default function LoginPage() {
 
         <p style={{ fontSize: 13, color: C.hint, textAlign: 'center', marginTop: 20 }}>
           還沒有帳號？{' '}
-          <Link href="/auth/register" style={{ color: C.primary, fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/register" style={{ color: C.primary, fontWeight: 700, textDecoration: 'none' }}>
             立即註冊
           </Link>
         </p>

@@ -76,6 +76,12 @@ class UserUpdateHealth(BaseModel):
     has_respiratory: Optional[bool] = None
 
 
+class UserUpdateProfile(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
+
 class UserUpdateNotifications(BaseModel):
     notif_pm25: Optional[bool] = None
     notif_aqi: Optional[bool] = None

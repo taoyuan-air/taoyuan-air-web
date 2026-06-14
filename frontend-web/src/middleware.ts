@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/dashboard', '/auth/login', '/auth/register', '/'];
-const AUTH_PATHS = ['/auth/login', '/auth/register'];
+const PUBLIC_PATHS = ['/dashboard', '/login', '/register', '/'];
+const AUTH_PATHS = ['/login', '/register'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
   );
 
   if (!accessToken && !isPublic) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   if (accessToken && AUTH_PATHS.includes(pathname)) {
