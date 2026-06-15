@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
@@ -69,7 +69,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 /* ─── Section label ──────────────────────────────────────────── */
 function SectionLabel({ title }: { title: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingLeft: 2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 2 }}>
       <div style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.primary, boxShadow: `0 0 6px ${C.primaryAlpha}` }} />
       <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: 0.2 }}>{title}</span>
     </div>
@@ -326,9 +326,10 @@ export default function SettingsPage() {
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: 16,
+            gap: 24,
           }}>
 
+            <SectionLabel title="基本資料" />
             {/* 頭像 + 帳號輸入 */}
             <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
               <div style={{
@@ -451,6 +452,7 @@ export default function SettingsPage() {
               登出帳號
             </button>
           </div>
+          
 
           {/* ── 右欄：Section 內容 ─────────────────────────────────── */}
           <div style={{ flex: 1, minWidth: 0 }}>
