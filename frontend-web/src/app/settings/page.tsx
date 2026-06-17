@@ -157,6 +157,11 @@ export default function SettingsPage() {
   const [saveError, setSaveError] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [now] = useState(Date.now);
   const passwordChangedAgo = useMemo(() => {
@@ -171,6 +176,56 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     await logout();
     router.push('/dashboard');
+  };
+
+  const handleEditStart = () => {
+    setEditUsername(username);
+    setEditEmail(email);
+    setEditMode(true);
+    setSaveError('');
+  };
+
+  const handleEditCancel = () => {
+    setEditMode(false);
+    setSaveError('');
+  };
+
+  const handleEditSave = async () => {
+    setSaveError('');
+    try {
+      const res = await authApi.updateProfile({ username: editUsername, email: editEmail });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(parseApiError(data));
+        return;
+      }
+      await refreshUser();
+      setEditMode(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError('網路錯誤，請稍後再試');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await authApi.deleteAccount();
+      if (res.ok || res.status === 204) {
+        await logout();
+        router.push('/login');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(parseApiError(data));
+        setShowDeleteModal(false);
+      }
+    } catch {
+      setSaveError('網路錯誤，請稍後再試');
+      setShowDeleteModal(false);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   /* 通知偏好 state */
@@ -338,9 +393,15 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {isDirty && !saved && (
-              <span style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>
+              <span 
+                style={{ 
+                  padding: '9px 20px', borderRadius: 99, fontSize: 12, color: C.primary, fontWeight: 600, marginRight: 15,
+                  backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
+                  border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,  
+                }}
+              >
                 有尚未儲存的變更
               </span>
             )}
@@ -517,16 +578,98 @@ export default function SettingsPage() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <FieldRow label="用戶名稱" value={username || '—'} />
-                    <FieldRow label="電子信箱" value={email || '—'} />
-                    <FieldRow
-                      label="帳號建立日期"
-                      value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                    />
+                    {editMode ? (
+                      <>
+                        {/* 用戶名稱 input */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>用戶名稱</span>
+                          <input
+                            type="text"
+                            value={editUsername}
+                            onChange={(e) => setEditUsername(e.target.value)}
+                            style={{
+                              padding: '11px 14px', borderRadius: 12,
+                              border: `1.5px solid ${C.primaryBorder}`,
+                              backgroundColor: 'rgba(255,255,255,0.85)',
+                              fontSize: 14, color: C.text, fontWeight: 500,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                        </div>
+                        {/* 電子信箱 input */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>電子信箱</span>
+                          <input
+                            type="email"
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            style={{
+                              padding: '11px 14px', borderRadius: 12,
+                              border: `1.5px solid ${C.primaryBorder}`,
+                              backgroundColor: 'rgba(255,255,255,0.85)',
+                              fontSize: 14, color: C.text, fontWeight: 500,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                        </div>
+                        <FieldRow
+                          label="帳號建立日期"
+                          value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                        />
+                        {/* 編輯模式按鈕列 */}
+                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                          <button
+                            onClick={handleEditSave}
+                            style={{
+                              flex: 1, padding: '11px 0', borderRadius: 12, cursor: 'pointer',
+                              backgroundColor: C.primaryAlpha, border: `1.5px solid ${C.primaryBorder}`,
+                              fontSize: 13, fontWeight: 700, color: C.primary,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            }}
+                          >
+                            <Check size={14} strokeWidth={2.5} />
+                            儲存變更
+                          </button>
+                          <button
+                            onClick={handleEditCancel}
+                            style={{
+                              flex: 1, padding: '11px 0', borderRadius: 12, cursor: 'pointer',
+                              backgroundColor: 'rgba(180,140,160,0.08)', border: `1.5px solid rgba(180,140,160,0.20)`,
+                              fontSize: 13, fontWeight: 700, color: C.muted,
+                            }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <FieldRow label="用戶名稱" value={username || '—'} />
+                        <FieldRow label="電子信箱" value={email || '—'} />
+                        <FieldRow
+                          label="帳號建立日期"
+                          value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                        />
+                        {/* 編輯按鈕 */}
+                        <button
+                          onClick={handleEditStart}
+                          style={{
+                            marginTop: 4, padding: '11px 0', borderRadius: 12, cursor: 'pointer',
+                            backgroundColor: C.primaryAlpha, border: `1.5px solid ${C.primaryBorder}`,
+                            fontSize: 13, fontWeight: 700, color: C.primary,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          }}
+                        >
+                          編輯個人資料
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* 刪除帳號 */}
-                  <button style={{
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    style={{
                     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40,
                     padding: '13px 0', borderRadius: 14, cursor: 'pointer',
                     backgroundColor: 'rgba(220,38,38,0.08)', border: '1.5px dashed rgba(220,38,38,0.40)',
@@ -826,6 +969,77 @@ export default function SettingsPage() {
 
         </div>{/* 兩層Layout結束 */}
     </div>
+
+      {/* ── 刪除帳號確認 Modal ─────────────────────────────────── */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          backgroundColor: 'rgba(26,18,32,0.55)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteModal(false); }}
+        >
+          <div style={{
+            ...card,
+            padding: 32, maxWidth: 420, width: '100%',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            {/* 警示圖示 */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                backgroundColor: 'rgba(220,38,38,0.10)',
+                border: '1.5px solid rgba(220,38,38,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Trash2 size={24} color="#DC2626" strokeWidth={2} />
+              </div>
+            </div>
+
+            {/* 標題與說明 */}
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 8 }}>確認刪除帳號？</p>
+              <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7 }}>
+                此操作將永久刪除您的帳號及所有相關資料，<br />
+                <strong style={{ color: '#DC2626' }}>無法復原</strong>，請確認後再繼續。
+              </p>
+            </div>
+
+            {/* 按鈕列 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 12, cursor: deleteLoading ? 'default' : 'pointer',
+                  backgroundColor: deleteLoading ? 'rgba(220,38,38,0.05)' : 'rgba(220,38,38,0.10)',
+                  border: '1.5px solid rgba(220,38,38,0.35)',
+                  fontSize: 14, fontWeight: 700, color: '#DC2626',
+                  opacity: deleteLoading ? 0.7 : 1,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {deleteLoading ? '刪除中…' : '確認刪除帳號'}
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 12, cursor: 'pointer',
+                  backgroundColor: 'rgba(180,140,160,0.08)', border: `1.5px solid rgba(180,140,160,0.20)`,
+                  fontSize: 14, fontWeight: 700, color: C.muted,
+                  transition: 'all 0.15s',
+                }}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
   </div>
   );
 }
