@@ -1,13 +1,14 @@
 ﻿'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { authApi } from '@/lib/api-client';
 import Image from 'next/image';
 import {
   Bell, Camera, Check, CheckCircle2, ChevronRight,
   Eye, EyeOff, Heart, Key, LogOut, Settings, Shield,
-  Star, UserCheck, Wind,
+  Star, UserCheck, Wind, Trash2
 } from 'lucide-react';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
@@ -33,13 +34,14 @@ const card: React.CSSProperties = {
   boxShadow: C.glassShadow,
 };
 
-type Section = '帳戶安全' | '身份驗證' | '健康檔案' | '通知偏好';
+type Section = '基本資料' | '帳戶安全' | '身份驗證' | '健康檔案' | '通知偏好';
 
 const NAV: { key: Section; Icon: React.ElementType; desc: string }[] = [
-  { key: '帳戶安全', Icon: Shield,    desc: '密碼與登入方式' },
-  { key: '身份驗證', Icon: UserCheck, desc: '帳號驗證狀態' },
-  { key: '健康檔案', Icon: Heart,     desc: '個人健康資訊' },
-  { key: '通知偏好', Icon: Bell,      desc: '警報與推播設定' },
+  { key: '基本資料', Icon: Settings,   desc: '頭像、名稱與信箱' },
+  { key: '帳戶安全', Icon: Shield,     desc: '密碼與登入方式' },
+  { key: '身份驗證', Icon: UserCheck,  desc: '帳號驗證狀態' },
+  { key: '健康檔案', Icon: Heart,      desc: '個人健康資訊' },
+  { key: '通知偏好', Icon: Bell,       desc: '警報與推播設定' },
 ];
 
 /* ─── Toggle ─────────────────────────────────────────────────── */
@@ -70,7 +72,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 /* ─── Section label ──────────────────────────────────────────── */
 function SectionLabel({ title }: { title: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 2, marginTop: 10 }}>
       <div style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: C.primary, boxShadow: `0 0 6px ${C.primaryAlpha}` }} />
       <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: 0.2 }}>{title}</span>
     </div>
@@ -124,10 +126,10 @@ const INIT = {
 
 /* ═══════════════════════════════════════════════════════════════ */
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<Section>('帳戶安全');
+  const [activeSection, setActiveSection] = useState<Section>('基本資料');
   const [saved, setSaved] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -164,6 +166,12 @@ export default function SettingsPage() {
     );
     return new Intl.RelativeTimeFormat('zh-TW', { numeric: 'auto' }).format(-diffInDays, 'day');
   }, [user, now]);
+
+  const router = useRouter();
+  const handleLogout = async () => {
+    await logout();
+    router.push('/dashboard');
+  };
 
   /* 通知偏好 state */
   const [notifs, setNotifs] = useState(INIT.notifs);
@@ -220,7 +228,16 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaveError('');
     try {
-      if (activeSection === '帳戶安全') {
+      if (activeSection === '基本資料') {
+        if (profileDirty) {
+          const resProfile = await authApi.updateProfile({ username, email });
+          if (!resProfile.ok) {
+            const data = await resProfile.json().catch(() => ({}));
+            setSaveError(data.detail ?? '儲存失敗');
+            return;
+          }
+        }
+      } else if (activeSection === '帳戶安全') {
         // update profile if changed
         if (profileDirty) {
           const resProfile = await authApi.updateProfile({ username, email });
@@ -346,77 +363,16 @@ export default function SettingsPage() {
           marginTop: 20,
         }}>
 
-          {/* ── 左欄：頭像 + Nav + 登出 ──────────────────────────── */}
+          {/* ── 左欄： Nav + 登出 ──────────────────────────── */}
           <div style={{
             width: isMobile ? '100%' : 300,
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
             gap: 24,
+            marginTop: isMobile ? 0 : 10,
           }}>
-            <SectionLabel title="基本資料" />
-            {/* 頭像 + 帳號輸入 */}
-            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-              {/* 可上傳頭像 */}
-              <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => document.getElementById('avatar-upload')?.click()}>
-                <div style={{
-                  width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
-                  backgroundColor: '#D4B896', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: isMobile ? 20 : 26, fontWeight: 800,
-                  boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
-                  overflow: 'hidden',
-                }}>
-                  {avatarUrl ? (
-                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                      <Image
-                        src={avatarUrl}
-                        alt="avatar"
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
-                  ) : (
-                    user?.username ? user.username.split(' ').map(n => n[0]).slice(0, 2).join('') : 'U'
-                  )}
-                </div>
-                <div style={{
-                  position: 'absolute', bottom: 0, right: 0,
-                  width: 22, height: 22, borderRadius: '50%',
-                  backgroundColor: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                }}>
-                  <Camera size={11} color="#fff" strokeWidth={2.5} />
-                </div>
-                <input
-                  id="avatar-upload" type="file" accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setAvatarUrl(URL.createObjectURL(file));
-                  }}
-                />
-              </div>
 
-              {/* 唯讀欄位 */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{
-                  padding: '6px 10px', borderRadius: 8,
-                  backgroundColor: 'rgba(180,140,160,0.07)',
-                  border: `1px solid ${C.glassBorder}`,
-                  fontSize: 14, fontWeight: 800, color: C.text,
-                }}>{username || '—'}</div>
-                <div style={{
-                  padding: '6px 10px', borderRadius: 8,
-                  backgroundColor: 'rgba(180,140,160,0.07)',
-                  border: `1px solid ${C.glassBorder}`,
-                  fontSize: 12, color: C.hint,
-                }}>{email || '—'}</div>
-              </div>
-
-              
-            </div>
             {/* Nav */}
             {isMobile ? (
               <div style={{
@@ -481,7 +437,7 @@ export default function SettingsPage() {
             )}
 
             {/* 登出 */}
-            <button style={{
+            <button onClick={handleLogout} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '13px 0', borderRadius: 14, cursor: 'pointer',
               backgroundColor: 'rgba(196,97,74,0.14)', border: '1.5px solid rgba(196,97,74,0.32)',
@@ -496,13 +452,52 @@ export default function SettingsPage() {
           {/* ── 右欄：Section 內容 ─────────────────────────────────── */}
           <div style={{ flex: 1, minWidth: 0 }}>
 
-            {/* ── 帳戶安全 ── */}
-            {activeSection === '帳戶安全' && (
+            {/* ── 基本資料 ── */}
+            {activeSection === '基本資料' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <SectionLabel title="帳戶安全" />
+                <SectionLabel title="基本資料" />
 
                 <div style={{ ...card, padding: 28 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本資料</p>
+
+                  {/* 頭像 */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                    <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => document.getElementById('avatar-upload')?.click()}>
+                      <div style={{
+                        width: 80, height: 80, borderRadius: '50%',
+                        backgroundColor: '#D4B896', color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 28, fontWeight: 800,
+                        boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
+                        overflow: 'hidden',
+                      }}>
+                        {avatarUrl ? (
+                          <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                            <Image src={avatarUrl} alt="avatar" fill sizes="80px" style={{ objectFit: 'cover' }} />
+                          </div>
+                        ) : (
+                          user?.username ? user.username.split(' ').map((n: string) => n[0]).slice(0, 2).join('') : 'U'
+                        )}
+                      </div>
+                      <div style={{
+                        position: 'absolute', bottom: 0, right: 0,
+                        width: 24, height: 24, borderRadius: '50%',
+                        backgroundColor: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                      }}>
+                        <Camera size={12} color="#fff" strokeWidth={2.5} />
+                      </div>
+                      <input
+                        id="avatar-upload" type="file" accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setAvatarUrl(URL.createObjectURL(file));
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <FieldRow label="用戶名稱" value={username || '—'} />
                     <FieldRow label="電子信箱" value={email || '—'} />
@@ -511,7 +506,27 @@ export default function SettingsPage() {
                       value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                     />
                   </div>
+
+                  {/* 刪除帳號 */}
+                  <button style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40,
+                    padding: '13px 0', borderRadius: 14, cursor: 'pointer',
+                    backgroundColor: 'rgba(220,38,38,0.08)', border: '1.5px dashed rgba(220,38,38,0.40)',
+                    fontSize: 14, fontWeight: 700, color: '#DC2626',
+                    transition: 'all 0.15s',
+                  }}>
+                    <Trash2 size={16} strokeWidth={2} />
+                    刪除帳號
+                  </button>
                 </div>
+
+              </div>
+            )}
+
+            {/* ── 帳戶安全 ── */}
+            {activeSection === '帳戶安全' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <SectionLabel title="帳戶安全" />
 
                 <div style={{ ...card, padding: 28 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>登入安全</p>
