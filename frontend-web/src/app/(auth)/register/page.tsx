@@ -82,7 +82,7 @@ export default function RegisterPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--app-bg-gradient)',
+      minHeight: '92vh', background: 'var(--app-bg-gradient)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '40px 16px',
     }}>
