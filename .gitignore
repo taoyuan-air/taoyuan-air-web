@@ -50,6 +50,18 @@ data/raw/cwa-stations/*
 !data/raw/cwa-stations/
 !data/raw/cwa-stations/*/
 
+# TYDEP stations - keep folder structure, ignore files inside
+data/raw/tydep-stations/*
+!data/raw/tydep-stations/
+!data/raw/tydep-stations/*/
+!data/raw/tydep-stations/**/.gitkeep
+
+# TEDS point - keep folder structure, ignore files inside
+data/raw/teds-point/*
+!data/raw/teds-point/
+!data/raw/teds-point/*/
+!data/raw/teds-point/.gitkeep
+
 # Database
 *.sql.backup
 *.dump

@@ -1,0 +1,8 @@
+{
+  "name": "taoyuan-air",
+  "private": true,
+  "scripts": {
+    "web": "npm run dev --prefix frontend-web",
+    "mobile": "npm run start --prefix frontend-mobile"
+  }
+}
