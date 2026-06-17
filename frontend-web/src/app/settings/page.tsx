@@ -32,6 +32,8 @@ const card: React.CSSProperties = {
   border: `1px solid ${C.glassBorder}`,
   borderRadius: 20,
   boxShadow: C.glassShadow,
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
 type Section = '基本資料' | '帳戶安全' | '身份驗證' | '健康檔案' | '通知偏好';
@@ -393,11 +395,11 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-end' : 'center', gap: 4 }}>
             {isDirty && !saved && (
               <span 
                 style={{ 
-                  padding: '9px 20px', borderRadius: 99, fontSize: 12, color: C.primary, fontWeight: 600, marginRight: 15,
+                  padding: isMobile ? '5px 10px' : '9px 20px', marginBottom: isMobile ? 5 : 0, borderRadius: 99, fontSize: 12, color: C.primary, fontWeight: 600,
                   backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
                   border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,  
                 }}
@@ -410,7 +412,7 @@ export default function SettingsPage() {
               disabled={!isDirty && !saved}
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
-                padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default',
+                padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default', marginLeft: isMobile ? 0 : 8,
                 backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
                 border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
                 fontSize: 13, fontWeight: 700,
@@ -515,7 +517,8 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* 登出 */}
+            {/* 登出 — 桌面版才顯示在左欄 */}
+            {!isMobile && (
             <button onClick={handleLogout} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: '13px 0', borderRadius: 14, cursor: 'pointer',
@@ -526,10 +529,11 @@ export default function SettingsPage() {
               <LogOut size={16} strokeWidth={2} />
               登出帳號
             </button>
+            )}
           </div>{/* 左欄結束 */}
 
           {/* ── 右欄：Section 內容 ─────────────────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
 
             {/* ── 基本資料 ── */}
             {activeSection === '基本資料' && (
@@ -968,6 +972,23 @@ export default function SettingsPage() {
           </div>{/* 右欄結束 */}
 
         </div>{/* 兩層Layout結束 */}
+
+        {/* ── 登出按鈕（mobile 移到最底部）─────────────────────── */}
+        {isMobile && (
+          <button onClick={handleLogout} style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginTop: 32,
+            padding: '15px 0', borderRadius: 14, cursor: 'pointer',
+            backgroundColor: 'rgba(196,97,74,0.14)', border: '1.5px solid rgba(196,97,74,0.32)',
+            fontSize: 14, fontWeight: 700, color: C.coral,
+            transition: 'all 0.15s',
+            boxSizing: 'border-box',
+          }}>
+            <LogOut size={16} strokeWidth={2} />
+            登出帳號
+          </button>
+        )}
+
     </div>
 
       {/* ── 刪除帳號確認 Modal ─────────────────────────────────── */}
