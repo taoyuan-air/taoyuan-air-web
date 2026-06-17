@@ -50,11 +50,15 @@ interface LeafletApi {
   polygon: (positions: LatLngTuple[], options: Record<string, unknown>) => LeafletPolygon;
 }
 
+interface WindyColors {
+  changeColor: (colors: [number, [number, number, number, number]][]) => void;
+  toDefault: () => void;
+}
+
 interface WindyApi {
   map: LeafletMapInstance;
-  store: {
-    set: (key: string, value: string) => void;
-  };
+  store: { set: (key: string, value: string) => void };
+  colors?: { wind?: WindyColors };
   L?: LeafletApi;
 }
 
@@ -264,6 +268,31 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
           const WL = windyAPI.L || getWindowValue<LeafletApi>('L');
           if (!WL || !map) return;
           store.set('overlay', 'wind');
+          const targetLayer = windyAPI.colors?.wind;
+          if (targetLayer && typeof targetLayer.changeColor === 'function') {
+            targetLayer.changeColor([
+              [0,   [128, 128, 128, 255]],
+              [1,   [128, 128, 128, 255]],
+              [3,   [128, 128, 128, 255]],
+              [5,   [128, 128, 128, 255]],
+              [7,   [128, 128, 128, 255]],
+              [9,   [128, 128, 128, 255]],
+              [11,  [128, 128, 128, 255]],
+              [13,  [128, 128, 128, 255]],
+              [15,  [128, 128, 128, 255]],
+              [17,  [128, 128, 128, 255]],
+              [19,  [128, 128, 128, 255]],
+              [21,  [128, 128, 128, 255]],
+              [24,  [128, 128, 128, 255]],
+              [27,  [128, 128, 128, 255]],
+              [29,  [128, 128, 128, 255]],
+              [36,  [128, 128, 128, 255]],
+              [46,  [128, 128, 128, 255]],
+              [51,  [128, 128, 128, 255]],
+              [77,  [128, 128, 128, 255]],
+              [104, [128, 128, 128, 255]],
+            ]);
+          }
           mapRef.current = map;
           windyLeafletRef.current = WL;
           map.options.maxZoom = DETAIL_MAX_ZOOM;

@@ -465,7 +465,8 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           cursor: pointer;
           fill: #f7e9ec;
           stroke: rgba(255,250,252,0.96);
-          stroke-width: 3.2;
+          stroke-width: 4;
+		  paint-order: stroke;
           stroke-linejoin: round;
           stroke-linecap: round;
           vector-effect: non-scaling-stroke;
@@ -479,11 +480,13 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
         }
         .taoyuan-district:hover {
           fill: #f8d0da;
+		  paint-order: normal;
         }
         .taoyuan-district.selected {
           fill: #f8d0da;
           stroke: #d4567a;
           stroke-width: 3;
+		  paint-order: normal;
           filter: url(#taoyuan-selected-glow);
           transform: scale(1.075);
         }
@@ -509,6 +512,11 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           fill: #d4567a;
           stroke-width: 2.6;
           transform: scale(1.18);
+        }
+        @media (max-width: 820px) {
+          .taoyuan-label.selected {
+            transform: none;
+          }
         }
         .taoyuan-selected-marker {
           pointer-events: none;

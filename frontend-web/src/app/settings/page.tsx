@@ -94,7 +94,7 @@ function ToggleRow({
   Icon, iconColor, iconBg, title, desc, value, onChange,
 }: {
   Icon: React.ElementType; iconColor: string; iconBg: string;
-  title: string; desc: string; value: boolean; onChange: (v: boolean) => void;
+  title: React.ReactNode; desc: React.ReactNode; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -316,7 +316,7 @@ export default function SettingsPage() {
           </div>
 
           {/* ── Right: section content ────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
 
             {/* ── 帳戶安全 ── */}
             {activeSection === '帳戶安全' && (
@@ -415,7 +415,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <ToggleRow
                       Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="氣喘 / 呼吸道疾病" desc="調低 PM2.5 警報門檻至 15 µg/m³"
+                      title="氣啸 / 呼吸道疾病" desc={<>調低 PM<sub className="text-xs">2.5</sub> 警報門檀至 15 µg/m³</>}
                       value={conditions.asthma} onChange={(v) => setConditions(p => ({ ...p, asthma: v }))}
                     />
                     <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <ToggleRow
                       Icon={Shield} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="PM2.5 超標警報" desc="濃度超過設定門檻時即時通知"
+                      title={<>PM<sub className="text-xs">2.5</sub> 超標警報</>} desc="濃度超過設定門檀時即時通知"
                       value={notifs.pm25} onChange={(v) => setNotifs(p => ({ ...p, pm25: v }))}
                     />
                     <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
