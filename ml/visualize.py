@@ -1,8 +1,9 @@
 """
 Visualize PM2.5 grid interpolation results.
 
-Reads a grid_pm25_*.parquet file produced by ml/impute/predict.py,
-draws a filled contour map of PM2.5, and overlays station observations.
+Reads a grid_pm25_*.parquet file produced by ml/impute/predict.py and draws:
+  - Left panel  : filled contour PM2.5 map with low-confidence hatch overlay
+  - Right panel : confidence-level distribution map (high/medium/low)
 
 Usage:
     cd ml
@@ -10,7 +11,7 @@ Usage:
     python visualize.py --input ../data/exports/grid_pm25_20240615_1400.parquet
 
 Output:
-    data/exports/map_pm25_<timestamp>.png
+    data/exports/map_pm25_<timestamp>_with_confidence.png
 """
 
 import argparse
@@ -25,6 +26,7 @@ matplotlib.use('Agg')  # non-interactive backend (works without a display)
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.font_manager as fm
+import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 from scipy.interpolate import griddata
@@ -43,7 +45,6 @@ def _setup_cjk_font():
         if name in available:
             plt.rcParams['font.family'] = name
             return
-    # fallback: DejaVu Sans (CJK glyphs will be boxes, but no crash)
 
 
 _setup_cjk_font()
@@ -52,6 +53,9 @@ _setup_cjk_font()
 # PM2.5 colour scale (mirrors AQI breakpoints, simplified)
 CMAP   = 'RdYlGn_r'
 LEVELS = [0, 5, 10, 15, 20, 25, 35, 50, 75, 100]
+
+# Confidence level colours
+_CONF_COLORS = {'high': '#2ecc71', 'medium': '#f1c40f', 'low': '#e74c3c'}
 
 
 def _find_grid_file(target: pd.Timestamp) -> Path:
@@ -77,16 +81,17 @@ def _load_stations(target: pd.Timestamp) -> pd.DataFrame:
     ].dropna(subset=['pm25'])
 
 
-def plot_grid(grid_path: Path, target: pd.Timestamp, out_path: Path) -> None:
-    grid = pd.read_parquet(grid_path)
-    stations = _load_stations(target)
-
-    # --- reshape to 2-D grid for contourf ---
+def _make_meshgrid(grid: pd.DataFrame):
     lats = np.sort(grid['latitude'].unique())
     lons = np.sort(grid['longitude'].unique())
     lon2d, lat2d = np.meshgrid(lons, lats)
+    return lon2d, lat2d
 
-    # Interpolate scattered grid points onto the regular meshgrid
+
+def _draw_pm25_panel(ax, grid: pd.DataFrame, stations: pd.DataFrame, target: pd.Timestamp, fig):
+    """Left panel: PM2.5 contourf + low-confidence hatch."""
+    lon2d, lat2d = _make_meshgrid(grid)
+
     z = griddata(
         (grid['longitude'].values, grid['latitude'].values),
         grid['pm25_final'].values,
@@ -94,37 +99,38 @@ def plot_grid(grid_path: Path, target: pd.Timestamp, out_path: Path) -> None:
         method='linear',
     )
 
-    # --- figure layout ---
-    fig, ax = plt.subplots(figsize=(9, 8))
-    fig.patch.set_facecolor('#f5f5f5')
-    ax.set_facecolor('#e8f4f8')
-
-    # filled contour
     cf = ax.contourf(lon2d, lat2d, z,
-                     levels=LEVELS,
-                     cmap=CMAP,
-                     extend='max',
-                     alpha=0.85)
-    # contour lines
+                     levels=LEVELS, cmap=CMAP, extend='max', alpha=0.85)
     ax.contour(lon2d, lat2d, z,
-               levels=LEVELS,
-               colors='white',
-               linewidths=0.4,
-               alpha=0.5)
+               levels=LEVELS, colors='white', linewidths=0.4, alpha=0.5)
 
-    # colourbar
     cbar = fig.colorbar(cf, ax=ax, fraction=0.03, pad=0.02)
-    cbar.set_label('PM2.5 (ug/m3)', fontsize=11)
+    cbar.set_label('PM2.5 (ug/m3)', fontsize=10)
 
-    # --- station overlay ---
+    # hatch low-confidence regions
+    if 'confidence_level' in grid.columns:
+        low_mask = grid['confidence_level'] == 'low'
+        if low_mask.any():
+            z_low = griddata(
+                (grid['longitude'].values, grid['latitude'].values),
+                low_mask.astype(float).values,
+                (lon2d, lat2d),
+                method='nearest',
+            )
+            ax.contourf(lon2d, lat2d, z_low,
+                        levels=[0.5, 1.5],
+                        hatches=['///'],
+                        colors='none',
+                        alpha=0.0)
+
     if not stations.empty:
-        sc = ax.scatter(
+        ax.scatter(
             stations['longitude'], stations['latitude'],
             c=stations['pm25'],
             cmap=CMAP,
             norm=mcolors.BoundaryNorm(LEVELS, matplotlib.colormaps[CMAP].N),
             s=120, edgecolors='black', linewidths=1.2, zorder=5,
-            label='Station obs.'
+            label='Station obs.',
         )
         for _, row in stations.iterrows():
             ax.annotate(
@@ -137,18 +143,82 @@ def plot_grid(grid_path: Path, target: pd.Timestamp, out_path: Path) -> None:
             )
         ax.legend(loc='lower right', fontsize=9)
 
-    # --- axes decoration ---
     ax.set_xlim(TAOYUAN_BBOX['lon_min'], TAOYUAN_BBOX['lon_max'])
     ax.set_ylim(TAOYUAN_BBOX['lat_min'], TAOYUAN_BBOX['lat_max'])
     ax.set_xlabel('Longitude', fontsize=10)
     ax.set_ylabel('Latitude', fontsize=10)
     ax.set_title(
-        f"Taoyuan PM2.5 Interpolation\n{target.strftime('%Y-%m-%d %H:%M')} (XGBoost + Kriging)",
-        fontsize=13, fontweight='bold', pad=12,
+        f"PM2.5 Interpolation\n{target.strftime('%Y-%m-%d %H:%M')} (XGBoost + Kriging)\n"
+        "(/// = low confidence)",
+        fontsize=11, fontweight='bold', pad=8,
     )
     ax.grid(True, linestyle='--', linewidth=0.4, alpha=0.6)
     ax.set_aspect('equal')
 
+
+def _draw_confidence_panel(ax, grid: pd.DataFrame, stations: pd.DataFrame):
+    """Right panel: confidence level distribution."""
+    lon2d, lat2d = _make_meshgrid(grid)
+
+    if 'confidence_level' not in grid.columns:
+        ax.text(0.5, 0.5, 'No confidence_level column',
+                ha='center', va='center', transform=ax.transAxes)
+        return
+
+    # Encode as numeric for griddata
+    level_map = {'high': 2.0, 'medium': 1.0, 'low': 0.0}
+    z_conf = griddata(
+        (grid['longitude'].values, grid['latitude'].values),
+        grid['confidence_level'].map(level_map).values,
+        (lon2d, lat2d),
+        method='nearest',
+    )
+
+    cmap_conf = mcolors.ListedColormap([_CONF_COLORS['low'],
+                                        _CONF_COLORS['medium'],
+                                        _CONF_COLORS['high']])
+    norm_conf = mcolors.BoundaryNorm([-0.5, 0.5, 1.5, 2.5], cmap_conf.N)
+
+    ax.pcolormesh(lon2d, lat2d, z_conf, cmap=cmap_conf, norm=norm_conf, alpha=0.85)
+
+    if not stations.empty:
+        ax.scatter(
+            stations['longitude'], stations['latitude'],
+            c='white', s=100, edgecolors='black', linewidths=1.2, zorder=5,
+        )
+
+    legend_patches = [
+        mpatches.Patch(color=_CONF_COLORS['high'],   label='High'),
+        mpatches.Patch(color=_CONF_COLORS['medium'], label='Medium'),
+        mpatches.Patch(color=_CONF_COLORS['low'],    label='Low'),
+    ]
+    ax.legend(handles=legend_patches, loc='lower right', fontsize=9, title='Confidence')
+
+    ax.set_xlim(TAOYUAN_BBOX['lon_min'], TAOYUAN_BBOX['lon_max'])
+    ax.set_ylim(TAOYUAN_BBOX['lat_min'], TAOYUAN_BBOX['lat_max'])
+    ax.set_xlabel('Longitude', fontsize=10)
+    ax.set_ylabel('Latitude', fontsize=10)
+    ax.set_title('Confidence Level Distribution', fontsize=11, fontweight='bold', pad=8)
+    ax.grid(True, linestyle='--', linewidth=0.4, alpha=0.6)
+    ax.set_aspect('equal')
+
+
+def plot_grid(grid_path: Path, target: pd.Timestamp, out_path: Path) -> None:
+    grid     = pd.read_parquet(grid_path)
+    stations = _load_stations(target)
+
+    fig, (ax_pm25, ax_conf) = plt.subplots(1, 2, figsize=(16, 7))
+    fig.patch.set_facecolor('#f5f5f5')
+    for ax in (ax_pm25, ax_conf):
+        ax.set_facecolor('#e8f4f8')
+
+    _draw_pm25_panel(ax_pm25, grid, stations, target, fig)
+    _draw_confidence_panel(ax_conf, grid, stations)
+
+    fig.suptitle(
+        f"Taoyuan PM2.5 Analysis — {target.strftime('%Y-%m-%d %H:%M')}",
+        fontsize=14, fontweight='bold', y=1.01,
+    )
     plt.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
@@ -164,15 +234,14 @@ def main():
 
     if args.input:
         grid_path = Path(args.input)
-        # parse timestamp from filename
-        stem = grid_path.stem  # grid_pm25_20240615_1400
+        stem  = grid_path.stem  # grid_pm25_20240615_1400
         parts = stem.split('_')
         target = pd.Timestamp(f"{parts[2]} {parts[3][:2]}:{parts[3][2:]}")
     else:
         target    = pd.Timestamp(args.time)
         grid_path = _find_grid_file(target)
 
-    out_path = EXPORTS_DIR / f"map_pm25_{target.strftime('%Y%m%d_%H%M')}.png"
+    out_path = EXPORTS_DIR / f"map_pm25_{target.strftime('%Y%m%d_%H%M')}_with_confidence.png"
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     plot_grid(grid_path, target, out_path)
 

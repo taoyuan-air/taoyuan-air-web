@@ -65,12 +65,13 @@ def train() -> XGBRegressor:
     y_val   = val_df[TARGET_COL]
 
     print("\nTraining XGBoost...")
-    model = XGBRegressor(**XGB_PARAMS)
+    model = XGBRegressor(**XGB_PARAMS, early_stopping_rounds=50)
     model.fit(
         X_train, y_train,
         eval_set=[(X_val, y_val)],
         verbose=100,
     )
+    print(f"Best iteration: {model.best_iteration}")
 
     print("\nEvaluation:")
     train_metrics = evaluate(model, X_train, y_train, 'train')
