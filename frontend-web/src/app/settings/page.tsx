@@ -1,11 +1,12 @@
 ﻿'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { authApi } from '@/lib/api-client';
+import Image from 'next/image';
 import {
-  Bell, Check, CheckCircle2, ChevronRight,
-  Heart, Key, LogOut, Settings, Shield,
+  Bell, Camera, Check, CheckCircle2, ChevronRight,
+  Eye, EyeOff, Heart, Key, LogOut, Settings, Shield,
   Star, UserCheck, Wind,
 } from 'lucide-react';
 
@@ -147,9 +148,22 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+
+  const [now] = useState(Date.now);
+  const passwordChangedAgo = useMemo(() => {
+    if (!user?.password_changed_at) return '—';
+    const diffInDays = Math.floor(
+      (now - new Date(user.password_changed_at).getTime()) / 86400000
+    );
+    return new Intl.RelativeTimeFormat('zh-TW', { numeric: 'auto' }).format(-diffInDays, 'day');
+  }, [user, now]);
 
   /* 通知偏好 state */
   const [notifs, setNotifs] = useState(INIT.notifs);
@@ -192,8 +206,13 @@ export default function SettingsPage() {
     username !== (user.username ?? '') || email !== (user.email ?? '')
   );
 
+  const securityDirty = user ? (
+    twoFactor !== user.two_factor_enabled ||
+    !!currentPassword || !!newPassword || !!newPasswordConfirm
+  ) : false;
+
   const isDirty =
-    twoFactor !== INIT.twoFactor ||
+    securityDirty ||
     JSON.stringify(conditions) !== JSON.stringify(INIT.conditions) ||
     JSON.stringify(notifs) !== JSON.stringify(INIT.notifs) ||
     !!healthDirty || !!profileDirty;
@@ -284,22 +303,29 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={!isDirty && !saved}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default',
-              backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
-              border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
-              fontSize: 13, fontWeight: 700,
-              color: saved ? '#5C8A76' : isDirty ? C.primary : C.hint,
-              transition: 'all 0.18s',
-            }}
-          >
-            <Check size={15} strokeWidth={2.5} />
-            {saved ? '已儲存' : '儲存變更'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            {isDirty && !saved && (
+              <span style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>
+                有尚未儲存的變更
+              </span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={!isDirty && !saved}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default',
+                backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
+                border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
+                fontSize: 13, fontWeight: 700,
+                color: saved ? '#5C8A76' : isDirty ? C.primary : C.hint,
+                transition: 'all 0.18s',
+              }}
+            >
+              <Check size={15} strokeWidth={2.5} />
+              {saved ? '已儲存' : '儲存變更'}
+            </button>
+          </div>
         </div>
 
         {/* ── 錯誤訊息（獨立於 header 之外）────────────────────── */}
@@ -328,55 +354,69 @@ export default function SettingsPage() {
             flexDirection: 'column',
             gap: 24,
           }}>
-
             <SectionLabel title="基本資料" />
             {/* 頭像 + 帳號輸入 */}
             <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
-                backgroundColor: '#D4B896', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: isMobile ? 20 : 26, fontWeight: 800,
-                boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
-              }}>
-                {user?.username ? user.username.split(' ').map(n => n[0]).slice(0, 2).join('') : 'U'}
-              </div>
-
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="用戶名稱"
-                  style={{
-                    padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.glassBorder}`,
-                    backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 800,
-                    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box',
-                  }}
-                />
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="電子郵件"
-                  style={{
-                    padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.glassBorder}`,
-                    backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 12, color: C.hint,
-                    outline: 'none', width: '100%', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              {!isMobile && (
+              {/* 可上傳頭像 */}
+              <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => document.getElementById('avatar-upload')?.click()}>
                 <div style={{
-                  width: '100%', padding: '8px 14px', borderRadius: 12,
-                  backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: isMobile ? 56 : 72, height: isMobile ? 56 : 72, borderRadius: '50%',
+                  backgroundColor: '#D4B896', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: isMobile ? 20 : 26, fontWeight: 800,
+                  boxShadow: '0 6px 20px rgba(94,42,66,0.14)',
+                  overflow: 'hidden',
                 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: C.muted }}>會員方案</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: C.primary }}>Premium</span>
+                  {avatarUrl ? (
+                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                      <Image
+                        src={avatarUrl}
+                        alt="avatar"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
+                  ) : (
+                    user?.username ? user.username.split(' ').map(n => n[0]).slice(0, 2).join('') : 'U'
+                  )}
                 </div>
-              )}
-            </div>
+                <div style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: 22, height: 22, borderRadius: '50%',
+                  backgroundColor: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                }}>
+                  <Camera size={11} color="#fff" strokeWidth={2.5} />
+                </div>
+                <input
+                  id="avatar-upload" type="file" accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setAvatarUrl(URL.createObjectURL(file));
+                  }}
+                />
+              </div>
 
+              {/* 唯讀欄位 */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{
+                  padding: '6px 10px', borderRadius: 8,
+                  backgroundColor: 'rgba(180,140,160,0.07)',
+                  border: `1px solid ${C.glassBorder}`,
+                  fontSize: 14, fontWeight: 800, color: C.text,
+                }}>{username || '—'}</div>
+                <div style={{
+                  padding: '6px 10px', borderRadius: 8,
+                  backgroundColor: 'rgba(180,140,160,0.07)',
+                  border: `1px solid ${C.glassBorder}`,
+                  fontSize: 12, color: C.hint,
+                }}>{email || '—'}</div>
+              </div>
+
+              
+            </div>
             {/* Nav */}
             {isMobile ? (
               <div style={{
@@ -451,8 +491,7 @@ export default function SettingsPage() {
               <LogOut size={16} strokeWidth={2} />
               登出帳號
             </button>
-          </div>
-          
+          </div>{/* 左欄結束 */}
 
           {/* ── 右欄：Section 內容 ─────────────────────────────────── */}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -465,22 +504,12 @@ export default function SettingsPage() {
                 <div style={{ ...card, padding: 28 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本資料</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>用戶名稱</span>
-                      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用戶名稱"
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>電子信箱</span>
-                      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="電子郵件"
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>帳號建立日期</span>
-                      <div style={{ padding: '11px 14px', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.6)', border: `1px solid ${C.glassBorder}`, fontSize: 14, color: C.text }}>
-                        {user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                      </div>
-                    </div>
+                    <FieldRow label="用戶名稱" value={username || '—'} />
+                    <FieldRow label="電子信箱" value={email || '—'} />
+                    <FieldRow
+                      label="帳號建立日期"
+                      value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                    />
                   </div>
                 </div>
 
@@ -498,34 +527,115 @@ export default function SettingsPage() {
                         <div>
                           <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>登入密碼</p>
                           <p style={{ fontSize: 12, color: C.hint }}>
-                            上次變更：{user?.password_changed_at
-                              ? new Intl.RelativeTimeFormat('zh-TW', { numeric: 'auto' }).format(
-                                  -Math.floor((Date.now() - new Date(user.password_changed_at).getTime()) / 86400000), 'day'
-                                )
-                              : '—'}
+                            上次變更：{passwordChangedAgo}
                           </p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-                        {[
-                          { label: '目前密碼', value: currentPassword, setter: setCurrentPassword, placeholder: '••••••••' },
-                          { label: '新密碼（至少 8 碼）', value: newPassword, setter: setNewPassword, placeholder: '••••••••' },
-                          { label: '確認新密碼', value: newPasswordConfirm, setter: setNewPasswordConfirm, placeholder: '••••••••' },
-                        ].map(({ label, value, setter, placeholder }) => (
-                          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>{label}</span>
-                            <input
-                              type="password" value={value} onChange={(e) => setter(e.target.value)}
-                              placeholder={placeholder}
-                              style={{
-                                padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`,
-                                backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
-                                fontFamily: 'inherit', outline: 'none',
-                              }}
-                            />
-                          </div>
-                        ))}
+                      {/* 目前密碼 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>目前密碼</span>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showCurrentPw ? 'text' : 'password'}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="••••••••"
+                            style={{
+                              padding: '11px 40px 11px 14px', borderRadius: 12,
+                              border: `1px solid ${C.glassBorder}`,
+                              backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPw(p => !p)}
+                            style={{
+                              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.hint,
+                            }}
+                          >
+                            {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
+
+                      {/* 新密碼 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>新密碼（至少 8 碼）</span>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showNewPw ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="••••••••"
+                            style={{
+                              padding: '11px 40px 11px 14px', borderRadius: 12,
+                              border: `1px solid ${C.glassBorder}`,
+                              backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPw(p => !p)}
+                            style={{
+                              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.hint,
+                            }}
+                          >
+                            {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 確認新密碼 + 確認按鈕 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>確認新密碼</span>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showConfirmPw ? 'text' : 'password'}
+                            value={newPasswordConfirm}
+                            onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                            placeholder="••••••••"
+                            style={{
+                              padding: '11px 40px 11px 14px', borderRadius: 12,
+                              border: `1px solid ${
+                                newPasswordConfirm && newPassword
+                                  ? newPassword === newPasswordConfirm ? 'rgba(92,138,118,0.50)' : 'rgba(233,76,120,0.50)'
+                                  : C.glassBorder
+                              }`,
+                              backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPw(p => !p)}
+                            style={{
+                              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.hint,
+                            }}
+                          >
+                            {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {/* 兩次密碼相符才顯示確認按鈕 */}
+                        {newPassword && newPasswordConfirm && newPassword === newPasswordConfirm && (
+                          <button
+                            onClick={handleSave}
+                            style={{
+                              marginTop: 4, padding: '10px 0', borderRadius: 12, cursor: 'pointer',
+                              backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+                              fontSize: 13, fontWeight: 700, color: C.primary,
+                            }}
+                          >
+                            確認更改密碼
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -682,8 +792,9 @@ export default function SettingsPage() {
             )}
 
           </div>{/* 右欄結束 */}
-        </div>{/* 兩欄 Layout 結束 */}
-      </div>
+
+        </div>{/* 兩層Layout結束 */}
     </div>
+  </div>
   );
 }
