@@ -17,6 +17,8 @@ class User(Base):
     default_district = Column(String(20))
     sensitivity = Column(String(20), default="一般民眾")
     has_respiratory = Column(Boolean, default=False)
+    has_elderly = Column(Boolean, default=False) 
+    has_child = Column(Boolean, default=False)    
     two_factor_enabled = Column(Boolean, default=False)
     notif_pm25 = Column(Boolean, default=True)
     notif_aqi = Column(Boolean, default=True)

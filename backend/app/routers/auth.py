@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from ..core.deps import get_current_user
 
 from ..database import get_db
 from ..models.user import User, RefreshToken
@@ -107,7 +108,5 @@ async def logout(response: Response, refresh_token: str = Cookie(default=None), 
 
 
 @router.get("/me", response_model=UserPublic)
-async def me(access_token: str = Cookie(default=None), db: AsyncSession = Depends(get_db)):
-    from ..core.deps import get_current_user
-    user = await get_current_user(access_token=access_token, db=db)
-    return user
+async def me(current_user: User = Depends(get_current_user)):
+    return current_user

@@ -44,6 +44,8 @@ class UserPublic(BaseModel):
     default_district: Optional[str]
     sensitivity: str
     has_respiratory: bool
+    has_elderly: bool        # ← 新增
+    has_child: bool          # ← 新增
     two_factor_enabled: bool
     notif_pm25: bool
     notif_aqi: bool
@@ -74,12 +76,13 @@ class UserUpdateHealth(BaseModel):
     default_district: Optional[str] = None
     sensitivity: Optional[str] = None
     has_respiratory: Optional[bool] = None
+    has_elderly: Optional[bool] = None
+    has_child: Optional[bool] = None
 
 
 class UserUpdateProfile(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
-
 
 
 class UserUpdateNotifications(BaseModel):

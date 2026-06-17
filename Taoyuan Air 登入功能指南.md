@@ -130,7 +130,9 @@ CREATE TABLE IF NOT EXISTS users (
     is_active           BOOLEAN DEFAULT TRUE,
     created_at          TIMESTAMPTZ DEFAULT NOW(),
     updated_at          TIMESTAMPTZ DEFAULT NOW(),
-    password_changed_at TIMESTAMPTZ DEFAULT NOW()
+    password_changed_at TIMESTAMPTZ DEFAULT NOW(),
+    has_elderly         BOOLEAN DEFAULT FALSE,
+    has_child           BOOLEAN DEFAULT FALSE
 );
 
 -- Refresh Token 表

@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -8,7 +8,7 @@ from ..core.security import decode_access_token
 
 
 async def get_current_user(
-    access_token: str = None,
+    access_token: str = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     credentials_exc = HTTPException(

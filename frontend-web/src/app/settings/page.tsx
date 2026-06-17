@@ -23,7 +23,7 @@ const C = {
   glassBorder:   'rgba(255,255,255,0.72)',
   glassShadow:   '0 4px 16px rgba(180,140,160,0.10)',
   text:          '#1a1220',
-  muted:         '#7a6880',
+  muted:         '#7a6880', 
   hint:          '#b0a0b8',
 };
 
@@ -183,8 +183,8 @@ export default function SettingsPage() {
       setTwoFactor(user.two_factor_enabled);
       setConditions({
         asthma: user.has_respiratory,
-        elderly: false,
-        child: false,
+        elderly: user.has_elderly,
+        child: user.has_child,
       });
       setNotifs({
         pm25: user.notif_pm25,
@@ -207,7 +207,10 @@ export default function SettingsPage() {
     profileAgeRange !== (user.age_range ?? '') ||
     profileGender !== (user.gender ?? '') ||
     profileDistrict !== (user.default_district ?? '') ||
-    profileSensitivity !== user.sensitivity
+    profileSensitivity !== user.sensitivity ||
+    conditions.asthma !== user.has_respiratory ||
+    conditions.elderly !== user.has_elderly ||
+    conditions.child !== user.has_child
   );
 
   const profileDirty = user && (
@@ -219,11 +222,24 @@ export default function SettingsPage() {
     !!currentPassword || !!newPassword || !!newPasswordConfirm
   ) : false;
 
+  const notifsDirty = user && (
+    notifs.pm25 !== user.notif_pm25 ||
+    notifs.aqi !== user.notif_aqi ||
+    notifs.health !== user.notif_health ||
+    notifs.system !== user.notif_system
+  );
+
   const isDirty =
     securityDirty ||
-    JSON.stringify(conditions) !== JSON.stringify(INIT.conditions) ||
-    JSON.stringify(notifs) !== JSON.stringify(INIT.notifs) ||
+    !!notifsDirty ||
     !!healthDirty || !!profileDirty;
+
+  function parseApiError(data: { detail?: unknown }): string {
+    const d = data.detail;
+    if (Array.isArray(d)) return d.map((e: { msg: string }) => e.msg).join('、');
+    if (typeof d === 'string') return d;
+    return '儲存失敗';
+  }
 
   const handleSave = async () => {
     setSaveError('');
@@ -233,7 +249,7 @@ export default function SettingsPage() {
           const resProfile = await authApi.updateProfile({ username, email });
           if (!resProfile.ok) {
             const data = await resProfile.json().catch(() => ({}));
-            setSaveError(data.detail ?? '儲存失敗');
+            setSaveError(parseApiError(data));
             return;
           }
         }
@@ -243,7 +259,7 @@ export default function SettingsPage() {
           const resProfile = await authApi.updateProfile({ username, email });
           if (!resProfile.ok) {
             const data = await resProfile.json().catch(() => ({}));
-            setSaveError(data.detail ?? '儲存失敗');
+            setSaveError(parseApiError(data));
             return;
           }
         }
@@ -260,7 +276,7 @@ export default function SettingsPage() {
         const res = await authApi.updateSecurity(payload);
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.detail ?? '儲存失敗');
+          setSaveError(parseApiError(data));
           return;
         }
         setCurrentPassword('');
@@ -273,10 +289,12 @@ export default function SettingsPage() {
           default_district: profileDistrict || null,
           sensitivity: profileSensitivity,
           has_respiratory: conditions.asthma,
+          has_elderly: conditions.elderly,
+          has_child: conditions.child,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.detail ?? '儲存失敗');
+          setSaveError(parseApiError(data));
           return;
         }
       } else if (activeSection === '通知偏好') {
@@ -288,7 +306,7 @@ export default function SettingsPage() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          setSaveError(data.detail ?? '儲存失敗');
+          setSaveError(parseApiError(data));
           return;
         }
       }
@@ -636,19 +654,17 @@ export default function SettingsPage() {
                             {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
-                        {/* 兩次密碼相符才顯示確認按鈕 */}
-                        {newPassword && newPasswordConfirm && newPassword === newPasswordConfirm && (
-                          <button
-                            onClick={handleSave}
-                            style={{
-                              marginTop: 4, padding: '10px 0', borderRadius: 12, cursor: 'pointer',
-                              backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
-                              fontSize: 13, fontWeight: 700, color: C.primary,
-                            }}
-                          >
-                            確認更改密碼
-                          </button>
-                        )}
+                        {/* 確認更改密碼按鈕 */}
+                        <button
+                          onClick={handleSave}
+                          style={{
+                            marginTop: 20, padding: '10px 0', borderRadius: 12, cursor: 'pointer',
+                            backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+                            fontSize: 13, fontWeight: 700, color: C.primary,
+                          }}
+                        >
+                          確認更改密碼
+                        </button>
                       </div>
                     </div>
                     </div>
