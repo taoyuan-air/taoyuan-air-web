@@ -7,8 +7,7 @@ SELECT
     station_name, 
     station_type,
     ST_X(location::geometry) as longitude,
-    ST_Y(location::geometry) as latitude,
-    elevation_m
+    ST_Y(location::geometry) as latitude
 FROM cwa_stations
 ORDER BY station_type, station_id;
 
