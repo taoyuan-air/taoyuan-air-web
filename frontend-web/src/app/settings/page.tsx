@@ -301,26 +301,18 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaveError('');
     try {
-      if (activeSection === '基本資料') {
-        if (profileDirty) {
-          const resProfile = await authApi.updateProfile({ username, email });
-          if (!resProfile.ok) {
-            const data = await resProfile.json().catch(() => ({}));
-            setSaveError(parseApiError(data));
-            return;
-          }
+      // 基本資料
+      if (activeSection === '基本資料' && profileDirty) {
+        const res = await authApi.updateProfile({ username, email });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setSaveError(parseApiError(data));
+          return;
         }
-      } else if (activeSection === '帳戶安全') {
-        // update profile if changed
-        if (profileDirty) {
-          const resProfile = await authApi.updateProfile({ username, email });
-          if (!resProfile.ok) {
-            const data = await resProfile.json().catch(() => ({}));
-            setSaveError(parseApiError(data));
-            return;
-          }
-        }
+      }
 
+      // 帳戶安全（含 2FA + 密碼）
+      if (activeSection === '帳戶安全' && securityDirty) {
         const payload: Record<string, unknown> = { two_factor_enabled: twoFactor };
         if (newPassword) {
           if (newPassword !== newPasswordConfirm) {
@@ -339,7 +331,10 @@ export default function SettingsPage() {
         setCurrentPassword('');
         setNewPassword('');
         setNewPasswordConfirm('');
-      } else if (activeSection === '健康檔案') {
+      }
+
+      // 健康檔案
+      if (healthDirty) {
         const res = await authApi.updateHealth({
           age_range: profileAgeRange || null,
           gender: profileGender || null,
@@ -354,7 +349,10 @@ export default function SettingsPage() {
           setSaveError(parseApiError(data));
           return;
         }
-      } else if (activeSection === '通知偏好') {
+      }
+
+      // 通知偏好
+      if (notifsDirty) {
         const res = await authApi.updateNotifications({
           notif_pm25: notifs.pm25,
           notif_aqi: notifs.aqi,
@@ -367,6 +365,7 @@ export default function SettingsPage() {
           return;
         }
       }
+
       await refreshUser();
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -870,7 +869,6 @@ export default function SettingsPage() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>年齡區間</span>
                       <select value={profileAgeRange} onChange={(e) => setProfileAgeRange(e.target.value)}
                         style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                        <option value="">不提供</option>
                         {['18歲以下','18–24歲','25–34歲','35–44歲','45–54歲','55–64歲','65歲以上'].map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
@@ -878,7 +876,6 @@ export default function SettingsPage() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>性別</span>
                       <select value={profileGender} onChange={(e) => setProfileGender(e.target.value)}
                         style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                        <option value="">不提供</option>
                         <option value="男性">男性</option>
                         <option value="女性">女性</option>
                         <option value="其他">其他</option>

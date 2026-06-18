@@ -214,8 +214,7 @@ source venv/bin/activate  # 或 Windows: venv\Scripts\activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # 4. 啟動 Next.js（另開 terminal）
-cd frontend-web
-npm run dev
+npm run web
 ```
 
 ### 驗證 API 正常運作
