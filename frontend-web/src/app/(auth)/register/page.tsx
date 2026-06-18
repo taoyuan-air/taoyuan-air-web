@@ -32,7 +32,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     username: '', email: '', password: '', password_confirm: '',
-    age_range: '', gender: '', default_district: '',
+    birth_date: '', gender: '', default_district: '',
     sensitivity: '一般民眾', has_respiratory: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -66,7 +66,7 @@ export default function RegisterPage() {
     const res = await authApi.register({
       ...form,
       default_district: form.default_district || null,
-      age_range: form.age_range || null,
+      birth_date: form.birth_date || null,
       gender: form.gender || null,
     });
     setLoading(false);
@@ -167,10 +167,14 @@ export default function RegisterPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>年齡區間</label>
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.age_range} onChange={(e) => set('age_range', e.target.value)}>
-                {['18歲以下','18–24歲','25–34歲','35–44歲','45–54歲','55–64歲','65歲以上'].map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <label style={labelStyle}>出生年月日</label>
+              <input
+                style={inputStyle}
+                type="date"
+                value={form.birth_date}
+                onChange={(e) => set('birth_date', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
             </div>
             <div>
               <label style={labelStyle}>性別</label>
@@ -183,12 +187,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>預設行政區</label>
+            <label style={labelStyle}>主要活動行政區</label>
             <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.default_district} onChange={(e) => set('default_district', e.target.value)}>
-              <option value="">不設定（使用定位或中壢區）</option>
+              <option value="">不設定</option>
               {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <p style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>若填寫，頁面預設顯示此區域資料；若未填寫，系統先嘗試定位，失敗則顯示中壢區</p>
+            <p style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>
+              此資料用於估算年暴露量等環境健康指標，請填寫您日常主要活動的行政區。
+            </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

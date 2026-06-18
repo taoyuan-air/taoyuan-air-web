@@ -1246,22 +1246,17 @@ export default function DashboardPage() {
   const [allStations, setAllStations] = useState<MoeStationData[]>([]);
 
   useEffect(() => {
-    if (user?.default_district) {
-      setDistrict(user.default_district);
-      return;
-    }
-
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) return; // 不支援定位，維持預設中壢區
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const nearest = findNearestDistrict(pos.coords.latitude, pos.coords.longitude);
         setDistrict(nearest);
       },
-      () => undefined,
+      () => undefined, // 定位失敗，維持預設中壢區
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
     );
-  }, [user]);
+  }, []); // 移除 user 依賴，不讀取用戶設定
 
   useEffect(() => {
     fetchMoeStations()

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     username            VARCHAR(50) NOT NULL,
     email               VARCHAR(255) NOT NULL UNIQUE,
     hashed_password     TEXT NOT NULL,
-    age_range           VARCHAR(20),
+    birth_date          DATE,
     gender              VARCHAR(10),
     default_district    VARCHAR(20),
     sensitivity         VARCHAR(20) DEFAULT '一般民眾',

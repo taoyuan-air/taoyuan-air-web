@@ -2,7 +2,7 @@ export interface UserProfile {
   id: string;
   username: string;
   email: string;
-  age_range: string | null;
+  birth_date: Date | null;
   gender: string | null;
   default_district: string | null;
   sensitivity: string;

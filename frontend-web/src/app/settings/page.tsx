@@ -146,7 +146,6 @@ export default function SettingsPage() {
   /* 健康檔案 state */
   const [conditions, setConditions] = useState(INIT.conditions);
   const [profileDistrict, setProfileDistrict] = useState('');
-  const [profileAgeRange, setProfileAgeRange] = useState('');
   const [profileGender, setProfileGender] = useState('');
   const [profileSensitivity, setProfileSensitivity] = useState('一般民眾');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -162,6 +161,8 @@ export default function SettingsPage() {
   const [editMode, setEditMode] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [editBirthDate, setEditBirthDate] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -183,6 +184,7 @@ export default function SettingsPage() {
   const handleEditStart = () => {
     setEditUsername(username);
     setEditEmail(email);
+    setEditBirthDate(birthDate);
     setEditMode(true);
     setSaveError('');
   };
@@ -195,7 +197,7 @@ export default function SettingsPage() {
   const handleEditSave = async () => {
     setSaveError('');
     try {
-      const res = await authApi.updateProfile({ username: editUsername, email: editEmail });
+      const res = await authApi.updateProfile({ username: editUsername, email: editEmail, birth_date: editBirthDate || null })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setSaveError(parseApiError(data));
@@ -250,7 +252,7 @@ export default function SettingsPage() {
         system: user.notif_system,
       });
       if (user.default_district) setProfileDistrict(user.default_district);
-      if (user.age_range) setProfileAgeRange(user.age_range);
+      if (user.birth_date) setBirthDate(String(user.birth_date).slice(0, 10));
       if (user.gender) setProfileGender(user.gender);
       if (user.sensitivity) setProfileSensitivity(user.sensitivity);
       setUsername(user.username);
@@ -261,7 +263,6 @@ export default function SettingsPage() {
   }, [user]);
 
   const healthDirty = user && (
-    profileAgeRange !== (user.age_range ?? '') ||
     profileGender !== (user.gender ?? '') ||
     profileDistrict !== (user.default_district ?? '') ||
     profileSensitivity !== user.sensitivity ||
@@ -336,7 +337,6 @@ export default function SettingsPage() {
       // 健康檔案
       if (healthDirty) {
         const res = await authApi.updateHealth({
-          age_range: profileAgeRange || null,
           gender: profileGender || null,
           default_district: profileDistrict || null,
           sensitivity: profileSensitivity,
@@ -615,10 +615,23 @@ export default function SettingsPage() {
                             }}
                           />
                         </div>
-                        <FieldRow
-                          label="帳號建立日期"
-                          value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                        />
+                        {/* 出生年月日 input */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>出生年月日</span>
+                          <input
+                            type="date"
+                            value={editBirthDate}
+                            onChange={(e) => setEditBirthDate(e.target.value)}
+                            max={new Date().toISOString().split('T')[0]}
+                            style={{
+                              padding: '11px 14px', borderRadius: 12,
+                              border: `1.5px solid ${C.primaryBorder}`,
+                              backgroundColor: 'rgba(255,255,255,0.85)',
+                              fontSize: 14, color: C.text, fontWeight: 500,
+                              fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box',
+                            }}
+                          />
+                        </div>
                         {/* 編輯模式按鈕列 */}
                         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                           <button
@@ -649,6 +662,30 @@ export default function SettingsPage() {
                       <>
                         <FieldRow label="用戶名稱" value={username || '—'} />
                         <FieldRow label="電子信箱" value={email || '—'} />
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <FieldRow
+                              label="出生年月日"
+                              value={user?.birth_date
+                                ? new Date(String(user.birth_date)).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })
+                                : '—'}
+                            />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <FieldRow
+                              label="年齡"
+                              value={user?.birth_date ? (() => {
+                                const birth = new Date(String(user.birth_date));
+                                const today = new Date();
+                                let age = today.getFullYear() - birth.getFullYear();
+                                const m = today.getMonth() - birth.getMonth();
+                                if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+                                return `${age} 歲`;
+                              })() : '—'}
+                            />
+                          </div>
+                        </div>
+                        
                         <FieldRow
                           label="帳號建立日期"
                           value={user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
@@ -865,13 +902,10 @@ export default function SettingsPage() {
                 <div style={{ ...card, padding: 28 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>基本健康資訊</p>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>年齡區間</span>
-                      <select value={profileAgeRange} onChange={(e) => setProfileAgeRange(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                        {['18歲以下','18–24歲','25–34歲','35–44歲','45–54歲','55–64歲','65歲以上'].map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </div>
+                    
+
+
+                    
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>性別</span>
                       <select value={profileGender} onChange={(e) => setProfileGender(e.target.value)}
@@ -882,10 +916,9 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>所在行政區</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>主要活動行政區</span>
                       <select value={profileDistrict} onChange={(e) => setProfileDistrict(e.target.value)}
                         style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                        <option value="">使用定位 / 中壢區</option>
                         {['桃園區','中壢區','八德區','龜山區','蘆竹區','大園區','大溪區','平鎮區','楊梅區','龍潭區','觀音區','新屋區','復興區'].map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, String, Text, func, Date
 from sqlalchemy.dialects.postgresql import UUID
 from ..database import Base
 
@@ -12,7 +12,7 @@ class User(Base):
     username = Column(String(50), nullable=False)
     email = Column(String(255), nullable=False, unique=True)
     hashed_password = Column(Text, nullable=False)
-    age_range = Column(String(20))
+    birth_date = Column(Date, nullable=True)
     gender = Column(String(10))
     default_district = Column(String(20))
     sensitivity = Column(String(20), default="一般民眾")

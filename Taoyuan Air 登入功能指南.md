@@ -3,6 +3,21 @@ title: Taoyuan Air 登入功能完整設置指南
 
 ---
 
+## 20260618 20:09更新
+修改資料庫結構: 把age_range移除，新增birth_date
+若已經跑過sql，須執行
+```bash
+# 移除age_range
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE;"
+
+# 新增birth_date
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "ALTER TABLE users DROP COLUMN age_range;"
+
+# 還是其實可以兩個一起
+```
+
+---
+
 
 # 完整操作指南
 
@@ -117,7 +132,7 @@ CREATE TABLE IF NOT EXISTS users (
     username            VARCHAR(50) NOT NULL,
     email               VARCHAR(255) NOT NULL UNIQUE,
     hashed_password     TEXT NOT NULL,
-    age_range           VARCHAR(20),
+    birth_date          DATE,
     gender              VARCHAR(10),
     default_district    VARCHAR(20),
     sensitivity         VARCHAR(20) DEFAULT '一般民眾',

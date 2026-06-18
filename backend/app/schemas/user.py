@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
 import uuid
@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     password_confirm: str
-    age_range: Optional[str] = None
+    birth_date: Optional[date] = None
     gender: Optional[str] = None
     default_district: Optional[str] = None
     sensitivity: str = "一般民眾"
@@ -39,7 +39,7 @@ class UserPublic(BaseModel):
     id: uuid.UUID
     username: str
     email: str
-    age_range: Optional[str]
+    birth_date: Optional[date]
     gender: Optional[str]
     default_district: Optional[str]
     sensitivity: str
@@ -71,7 +71,7 @@ class UserUpdateSecurity(BaseModel):
 
 
 class UserUpdateHealth(BaseModel):
-    age_range: Optional[str] = None
+    birth_date: Optional[date] = None
     gender: Optional[str] = None
     default_district: Optional[str] = None
     sensitivity: Optional[str] = None
@@ -83,6 +83,7 @@ class UserUpdateHealth(BaseModel):
 class UserUpdateProfile(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
+    birth_date: Optional[date] = None
 
 
 class UserUpdateNotifications(BaseModel):
