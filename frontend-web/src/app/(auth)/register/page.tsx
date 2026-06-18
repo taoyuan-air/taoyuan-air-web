@@ -169,14 +169,12 @@ export default function RegisterPage() {
             <div>
               <label style={labelStyle}>年齡區間</label>
               <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.age_range} onChange={(e) => set('age_range', e.target.value)}>
-                <option value="">不提供</option>
                 {['18歲以下','18–24歲','25–34歲','35–44歲','45–54歲','55–64歲','65歲以上'].map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>性別</label>
               <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                <option value="">不提供</option>
                 <option value="男性">男性</option>
                 <option value="女性">女性</option>
                 <option value="其他">其他</option>
