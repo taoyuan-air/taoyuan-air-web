@@ -190,7 +190,7 @@ $$ LANGUAGE plpgsql;
 -- 註解
 -- ─────────────────────────────────────────────────────────────────────────────
 COMMENT ON TABLE uav_flights    IS 'UAV 飛行任務基本資料（6 次，2026-03-30）';
-COMMENT ON TABLE uav_parameters IS 'UAV 量測參數定義（24 個：高度 2、氣象 11、氣膠 3、氣體 8；CO2 為本專案必要欄位）';
+COMMENT ON TABLE uav_parameters IS 'UAV 量測參數定義（24 個：高度 2、氣象 11、氣膠 3、氣體 8；CO2 為預留欄位，原始檔若提供則匯入）';
 COMMENT ON TABLE uav_data       IS 'UAV 量測資料（長表，按 flight_id LIST 分區，agl 為層鍵不另存為參數）';
 COMMENT ON VIEW  uav_profile    IS 'UAV 垂直剖面寬表視圖（常用氣象+污染物欄位）';
 COMMENT ON FUNCTION check_uav_data_quality() IS '檢查 UAV 各飛行任務資料品質統計';

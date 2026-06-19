@@ -52,12 +52,14 @@ ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
 
 # ── 量測參數欄位（不含 agl，agl 單獨作為層鍵 agl_m）────────────────────────
-# CO2 為本專案必要欄位；若原始檔缺少必要欄位，匯入時直接報錯避免靜默漏資料。
+# CO2 為預留欄位；原始檔若有 CO2 就匯入，若沒有則不阻擋匯入。
 PARAM_COLS = [
     'asl', 'P', 'T', 'RH', 'PM1', 'PM25', 'PM10',
     'ws', 'wd', 'theta', 'Td', 'q', 'mixR', 'Tv', 'thetav',
     'O3', 'CO', 'CO2', 'SO2', 'NO2', 'NH3', 'H2S', 'TVOC',
 ]
+
+OPTIONAL_PARAM_COLS = {'CO2'}
 
 HEADER_ALIASES = {
     'PM2.5': 'PM25',
@@ -175,7 +177,10 @@ def parse_txt_file(filepath: Path, flight_id: str):
 
     col_names  = [HEADER_ALIASES.get(c.strip(), c.strip()) for c in header_line.split(sep)]
     max_height = MAX_HEIGHT.get(flight_id, float('inf'))
-    missing_params = [param_id for param_id in PARAM_COLS if param_id not in col_names]
+    missing_params = [
+        param_id for param_id in PARAM_COLS
+        if param_id not in col_names and param_id not in OPTIONAL_PARAM_COLS
+    ]
     if missing_params:
         raise ValueError(
             f'{filepath.name} 缺少必要欄位: {", ".join(missing_params)}'
@@ -204,6 +209,8 @@ def parse_txt_file(filepath: Path, flight_id: str):
 
         # 插入各參數（不含 agl）
         for param_id in PARAM_COLS:
+            if param_id not in row:
+                continue
             raw_val = row.get(param_id, '').strip()
             raw_value, value, quality = parse_value(raw_val)
 
