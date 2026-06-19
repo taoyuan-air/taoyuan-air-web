@@ -83,12 +83,15 @@ export const fetchCurrentWeather = async (
         console.log(`[CWA] 該測站此欄位無有效資料(-99)，改用假資料`);
         return fallback;
       }
+      if (!obs.Weather || obs.Weather === '-99') {
+        console.log(`[CWA] 天氣描述無有效資料(-99)，改用假資料`);
+      }
       return round ? String(Math.round(n)) : String(n);
     };
     console.log(`[CWA] 現況 ${st.StationName ?? keyword} → ${obs.AirTemperature}°C ${obs.Weather}`);
     return {
       temperature: parseNum(obs.AirTemperature, MOCK_CURRENT_WEATHER.temperature, true),
-      weather: obs.Weather || MOCK_CURRENT_WEATHER.weather,
+      weather: (obs.Weather && obs.Weather !== '-99') ? obs.Weather : MOCK_CURRENT_WEATHER.weather,
       humidity: parseNum(obs.RelativeHumidity, MOCK_CURRENT_WEATHER.humidity),
       windSpeed: parseNum(obs.WindSpeed, MOCK_CURRENT_WEATHER.windSpeed),
       dailyHigh: parseNum(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature, MOCK_CURRENT_WEATHER.dailyHigh, true),
