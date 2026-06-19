@@ -286,7 +286,7 @@ function TrendBars() {
     const currentHour = now.getHours();
     const items: { hour: number; date: Date; isPrediction: boolean; isNow: boolean }[] = [];
 
-    for (let i = 5; i >= 1; i -= 1) {
+    for (let i = 12; i >= 1; i -= 1) {
       const d = new Date(now);
       d.setHours(currentHour - i, 0, 0, 0);
       items.push({ hour: d.getHours(), date: d, isPrediction: false, isNow: false });
@@ -294,7 +294,7 @@ function TrendBars() {
 
     items.push({ hour: currentHour, date: new Date(now), isPrediction: false, isNow: true });
 
-    for (let i = 1; i <= 32; i += 1) {
+    for (let i = 1; i <= 12; i += 1) {
       const d = new Date(now);
       d.setHours(currentHour + i, 0, 0, 0);
       items.push({ hour: d.getHours(), date: d, isPrediction: true, isNow: false });
@@ -303,9 +303,9 @@ function TrendBars() {
     return items;
   }, []);
 
-  const data = TREND_DATA.slice(0, 38);
+  const data = TREND_DATA.slice(0, 25);
   const totalWidth = data.length * (BAR_W + BAR_GAP) - BAR_GAP;
-  const pastWidth = 5 * (BAR_W + BAR_GAP);
+  const pastWidth = 12 * (BAR_W + BAR_GAP);
   const nowOffset = pastWidth + BAR_W / 2;
 
   const barColor = (value: number, isPrediction: boolean) => {
@@ -315,10 +315,10 @@ function TrendBars() {
       if (value <= 0.7) return '#999999';
       return '#7B7B7B';
     }
-    if (value <= 0.3) return `${COLORS.good}cc`;
-    if (value <= 0.5) return `${COLORS.moderate}cc`;
-    if (value <= 0.7) return `${COLORS.unhealthy}cc`;
-    return `${COLORS.veryUnhealthy}cc`;
+    if (value <= 0.3) return '#7ec480'; 
+    if (value <= 0.5) return '#f2d44a';  
+    if (value <= 0.7) return '#f87171';  
+    return '#c07bc0'; 
   };
 
   const dateLabel = (index: number) => {
@@ -382,9 +382,9 @@ function TrendBars() {
         </div>
 
         <div className="trend-footer">
-          <span>過去 5h</span>
+          <span>過去 12h</span>
           <strong style={{ left: nowOffset - 14 }}>NOW</strong>
-          <span>未來 32h</span>
+          <span>未來 12h</span>
         </div>
       </div>
     </div>
@@ -1141,6 +1141,7 @@ function DashboardStyles() {
         height: 70px;
         transform: translateX(-50%);
         background: ${C.rose};
+        z-index: 0;
       }
 
       .trend-bar {
