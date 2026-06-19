@@ -4,6 +4,7 @@
 -- 儀器: TMA_328（可擴充）
 -- 資料範圍: 2026-03-27 至 2026-04-15，共 20 天
 -- 量測間隔: 每 10 分鐘，760 高度層（9.1m～984.6m）
+-- 時間欄位: 原始 Date/time 視為 UTC，以 TIMESTAMPTZ 儲存；View 另提供台灣時間欄位
 -- 資料流程: txt → 直接匯入 DB（資料量過大，不產生 JSON 中間層）
 
 -- 0. 啟用必要擴充功能
@@ -80,14 +81,14 @@ ON CONFLICT (parameter_id) DO UPDATE SET
 CREATE TABLE IF NOT EXISTS wind_lidar_data (
     id           BIGSERIAL,
     station_id   VARCHAR(20)    NOT NULL,
-    measure_time TIMESTAMP      NOT NULL,           -- 分區鍵，10分鐘均值的區間終點
+    measure_time TIMESTAMPTZ    NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
     height_m     NUMERIC(7, 1)  NOT NULL,           -- 量測高度（公尺）
     parameter_id VARCHAR(10)    NOT NULL,
     value        NUMERIC(10, 3),                    -- 量測數值（無效值為 NULL）
     raw_value    VARCHAR(30),                       -- 原始字串值
     data_quality VARCHAR(10)    DEFAULT 'good',     -- 'good' 或 'invalid'
-    period_start TIMESTAMP,                         -- measure_time - 10 分鐘
-    period_end   TIMESTAMP,                         -- 等同 measure_time
+    period_start TIMESTAMPTZ,                       -- measure_time - 10 分鐘（UTC）
+    period_end   TIMESTAMPTZ,                       -- 等同 measure_time（UTC）
     source       VARCHAR(20)    DEFAULT 'history',
     created_at   TIMESTAMP      DEFAULT NOW(),
     PRIMARY KEY (id, measure_time),
@@ -101,29 +102,29 @@ CREATE TABLE IF NOT EXISTS wind_lidar_data (
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- 2026 年 3 月
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_27 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-27') TO ('2026-03-28');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_28 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-28') TO ('2026-03-29');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_29 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-29') TO ('2026-03-30');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_30 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-30') TO ('2026-03-31');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_31 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-31') TO ('2026-04-01');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_27 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-27 00:00:00+00') TO ('2026-03-28 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_28 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-28 00:00:00+00') TO ('2026-03-29 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_29 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-29 00:00:00+00') TO ('2026-03-30 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_30 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-30 00:00:00+00') TO ('2026-03-31 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_31 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-31 00:00:00+00') TO ('2026-04-01 00:00:00+00');
 
 -- 2026 年 4 月
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_01 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-01') TO ('2026-04-02');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_02 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-02') TO ('2026-04-03');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_03 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-03') TO ('2026-04-04');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_04 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-04') TO ('2026-04-05');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_05 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-05') TO ('2026-04-06');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_06 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-06') TO ('2026-04-07');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_07 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-07') TO ('2026-04-08');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_08 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-08') TO ('2026-04-09');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_09 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-09') TO ('2026-04-10');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_10 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-10') TO ('2026-04-11');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_11 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-11') TO ('2026-04-12');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_12 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-12') TO ('2026-04-13');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_13 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-13') TO ('2026-04-14');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_14 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-14') TO ('2026-04-15');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_15 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-15') TO ('2026-04-16');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_16 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-16') TO ('2026-04-17');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_01 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-01 00:00:00+00') TO ('2026-04-02 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_02 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-02 00:00:00+00') TO ('2026-04-03 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_03 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-03 00:00:00+00') TO ('2026-04-04 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_04 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-04 00:00:00+00') TO ('2026-04-05 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_05 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-05 00:00:00+00') TO ('2026-04-06 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_06 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-06 00:00:00+00') TO ('2026-04-07 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_07 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-07 00:00:00+00') TO ('2026-04-08 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_08 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-08 00:00:00+00') TO ('2026-04-09 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_09 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-09 00:00:00+00') TO ('2026-04-10 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_10 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-10 00:00:00+00') TO ('2026-04-11 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_11 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-11 00:00:00+00') TO ('2026-04-12 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_12 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-12 00:00:00+00') TO ('2026-04-13 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_13 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-13 00:00:00+00') TO ('2026-04-14 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_14 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-14 00:00:00+00') TO ('2026-04-15 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_15 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-15 00:00:00+00') TO ('2026-04-16 00:00:00+00');
+CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_16 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-16 00:00:00+00') TO ('2026-04-17 00:00:00+00');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. 索引
@@ -144,6 +145,7 @@ CREATE OR REPLACE VIEW wind_lidar_latest AS
 SELECT
     s.station_id,
     d.measure_time,
+    d.measure_time AT TIME ZONE 'Asia/Taipei' AS measure_time_tw,
     d.height_m,
     MAX(CASE WHEN d.parameter_id = 'hsp'      THEN d.value END) AS hsp,
     MAX(CASE WHEN d.parameter_id = 'vsp'      THEN d.value END) AS vsp,
@@ -151,7 +153,7 @@ SELECT
     MAX(CASE WHEN d.parameter_id = 'turb'     THEN d.value END) AS turb,
     MAX(CASE WHEN d.parameter_id = 'min_int'  THEN d.value END) AS min_int,
     MAX(CASE WHEN d.parameter_id = 'mean_int' THEN d.value END) AS mean_int,
-    MAX(CASE WHEN d.parameter_id = 'n_samples'THEN d.value END) AS n_samples
+    MAX(CASE WHEN d.parameter_id = 'n_samples' THEN d.value END) AS n_samples
 FROM wind_lidar_stations s
 JOIN wind_lidar_data d ON s.station_id = d.station_id
 WHERE d.measure_time >= (SELECT MAX(measure_time) FROM wind_lidar_data) - INTERVAL '1 hour'

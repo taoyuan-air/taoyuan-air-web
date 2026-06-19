@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
@@ -236,6 +237,37 @@ def unpivot_record(record: dict) -> list[tuple]:
 # 5. 資料庫操作
 # ===========================================================
 
+def month_bounds(dt: datetime) -> tuple[datetime, datetime]:
+    """回傳資料月份分區的起訖時間。"""
+    start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        end = start.replace(year=start.year + 1, month=1)
+    else:
+        end = start.replace(month=start.month + 1)
+    return start, end
+
+
+def ensure_cwa_partitions(conn, monitor_dates: list[datetime]) -> None:
+    """依資料月份自動建立 cwa_hourly_data 分區。"""
+    months = sorted({month_bounds(dt) for dt in monitor_dates if dt is not None})
+    if not months:
+        return
+
+    with conn.cursor() as cur:
+        for start, end in months:
+            partition_name = f"cwa_hourly_data_{start:%Y_%m}"
+            cur.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {partition}
+                    PARTITION OF cwa_hourly_data
+                    FOR VALUES FROM (%s) TO (%s)
+                    """
+                ).format(partition=sql.Identifier(partition_name)),
+                (start, end),
+            )
+
+
 def batch_insert(conn, rows: list[tuple], batch_size: int) -> int:
     sql = """
         INSERT INTO cwa_hourly_data 
@@ -280,6 +312,7 @@ def process_file(conn, filepath: Path, batch_size: int, json_dir: Path | None) -
 
     if all_rows:
         try:
+            ensure_cwa_partitions(conn, [row[1] for row in all_rows])
             stats["inserted"] = batch_insert(conn, all_rows, batch_size)
             conn.commit()
             log.info(f"  ✅ 成功插入 {stats['inserted']} 列資料")

@@ -11,9 +11,10 @@ txt 格式：
   第 1 行：單位（如 (m), (hPa), ...）
   第 2 行：欄位名稱（agl, asl, P, T, ...）
   第 3 行起：資料（NaN 存為 NULL）
+
+注意：agl 欄位作為層鍵（agl_m），不另外插入 uav_data 作為參數
 """
 
-import csv
 import os
 import sys
 from pathlib import Path
@@ -21,6 +22,7 @@ from typing import Optional
 
 try:
     import psycopg2
+    from psycopg2 import sql
     from psycopg2.extras import execute_batch
 except ImportError:
     print('[ERROR] 請先安裝 psycopg2：pip3 install psycopg2-binary')
@@ -49,13 +51,17 @@ if not DB_CONFIG['password']:
 ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
 
-# ── txt 欄位名 → parameter_id 對照（agl 單獨處理為 agl_m）────────────────────
-# 欄位順序對應 txt 第 2 行
+# ── 量測參數欄位（不含 agl，agl 單獨作為層鍵 agl_m）────────────────────────
+# CO2 為本專案必要欄位；若原始檔缺少必要欄位，匯入時直接報錯避免靜默漏資料。
 PARAM_COLS = [
-    'agl', 'asl', 'P', 'T', 'RH', 'PM1', 'PM25', 'PM10',
+    'asl', 'P', 'T', 'RH', 'PM1', 'PM25', 'PM10',
     'ws', 'wd', 'theta', 'Td', 'q', 'mixR', 'Tv', 'thetav',
     'O3', 'CO', 'CO2', 'SO2', 'NO2', 'NH3', 'H2S', 'TVOC',
 ]
+
+HEADER_ALIASES = {
+    'PM2.5': 'PM25',
+}
 
 # ── 各飛行任務最高有效高度（超過此高度的層直接跳過）────────────────────────
 MAX_HEIGHT = {
@@ -85,6 +91,49 @@ def connect_db():
         return None
 
 
+def ensure_uav_flight_and_partition(
+    conn,
+    flight_id: str,
+    data_level: str,
+    flight_direction: str,
+) -> None:
+    """自動補齊飛行任務基本資料與 flight_id LIST 分區。"""
+    partition_name = f"uav_data_{flight_id}"
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO uav_flights
+                (flight_id, flight_direction, data_level, site_name)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (flight_id) DO UPDATE SET
+                flight_direction = EXCLUDED.flight_direction,
+                data_level       = EXCLUDED.data_level,
+                updated_at        = NOW()
+            """,
+            (flight_id, flight_direction, data_level, 'Guanyin'),
+        )
+        cursor.execute(
+            sql.SQL(
+                """
+                CREATE TABLE IF NOT EXISTS {partition}
+                PARTITION OF uav_data
+                FOR VALUES IN (%s)
+                """
+            ).format(partition=sql.Identifier(partition_name)),
+            (flight_id,),
+        )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f'    [ERROR] UAV 分區建立失敗: {e}')
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
+
 def parse_value(raw: str) -> tuple:
     """
     解析單一欄位值。
@@ -103,8 +152,13 @@ def parse_value(raw: str) -> tuple:
 def parse_txt_file(filepath: Path, flight_id: str):
     """
     解析單一 txt 檔，yield INSERT tuple。
-    跳過第 1 行（單位），第 2 行為欄位名，第 3 行起為資料。
+    - lines[0]：單位行（跳過）
+    - lines[1]：欄位名稱行
+    - lines[2:]：資料行
+
+    分隔符優先嘗試逗號，若欄位數不符則改用空白分隔。
     超過該飛行任務最高有效高度的層直接跳過。
+    agl 只作為 agl_m 層鍵，不插入 uav_data。
     """
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -112,25 +166,43 @@ def parse_txt_file(filepath: Path, flight_id: str):
     if len(lines) < 3:
         return
 
-    col_names   = [c.strip() for c in lines[1].split(',')]
-    max_height  = MAX_HEIGHT.get(flight_id, float('inf'))
+    # 自動偵測分隔符
+    header_line = lines[1].strip()
+    if ',' in header_line:
+        sep = ','
+    else:
+        sep = None  # str.split() 預設以空白分隔
+
+    col_names  = [HEADER_ALIASES.get(c.strip(), c.strip()) for c in header_line.split(sep)]
+    max_height = MAX_HEIGHT.get(flight_id, float('inf'))
+    missing_params = [param_id for param_id in PARAM_COLS if param_id not in col_names]
+    if missing_params:
+        raise ValueError(
+            f'{filepath.name} 缺少必要欄位: {", ".join(missing_params)}'
+        )
 
     for line in lines[2:]:
-        values = [v.strip() for v in line.split(',')]
+        line = line.strip()
+        if not line:
+            continue
+
+        values = [v.strip() for v in line.split(sep)]
         if len(values) < len(col_names):
             continue
 
         row = dict(zip(col_names, values))
 
+        # 解析 agl 作為層鍵
         try:
-            agl_m = float(row.get('agl', '0'))
-        except ValueError:
+            agl_m = float(row.get('agl', '').strip())
+        except (ValueError, TypeError):
             continue
 
-        # 超過最高有效高度 → 跳過
+        # 超過最高有效高度 → 跳過整層
         if agl_m > max_height:
             continue
 
+        # 插入各參數（不含 agl）
         for param_id in PARAM_COLS:
             raw_val = row.get(param_id, '').strip()
             raw_value, value, quality = parse_value(raw_val)
@@ -148,8 +220,10 @@ def parse_txt_file(filepath: Path, flight_id: str):
 def import_txt_file(conn, filepath: Path) -> tuple:
     """匯入單一 txt 檔，回傳 (total, valid, invalid)。"""
     # 從檔名解析 flight_id：YYYYMMDD_TTTT_L3_ascending.txt → YYYYMMDD_TTTT
-    parts = filepath.stem.split('_')
+    parts     = filepath.stem.split('_')
     flight_id = f'{parts[0]}_{parts[1]}'
+    data_level = parts[2] if len(parts) > 2 else 'L3'
+    flight_direction = parts[3] if len(parts) > 3 else 'ascending'
 
     rows    = list(parse_txt_file(filepath, flight_id))
     valid   = sum(1 for r in rows if r[5] == 'good')
@@ -160,6 +234,7 @@ def import_txt_file(conn, filepath: Path) -> tuple:
 
     cursor = None
     try:
+        ensure_uav_flight_and_partition(conn, flight_id, data_level, flight_direction)
         cursor = conn.cursor()
         execute_batch(cursor, INSERT_SQL, rows, page_size=2000)
         conn.commit()

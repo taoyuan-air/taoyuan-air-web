@@ -4,19 +4,21 @@ WindLidar TMA_328 資料匯入腳本
 直接讀取 data/raw/WindLidar/TMA_328_*.txt 並批次匯入 PostgreSQL
 
 資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
-資料品質：整列 Hsp=0 → 該時間點所有參數標記為 'invalid'，value=NULL
+資料品質：同一高度列 Hsp=0 → 該高度列所有參數標記為 'invalid'，value=NULL
+時區說明：原始 txt 為 UTC，以 TIMESTAMPTZ 存入 DB（UTC）
+          查詢時透過 wind_lidar_latest View 的 measure_time_tw 欄位取得台灣時間
 """
 
 import csv
 import os
 import sys
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 try:
     import psycopg2
+    from psycopg2 import sql
     from psycopg2.extras import execute_batch
 except ImportError:
     print('[ERROR] 請先安裝 psycopg2：pip3 install psycopg2-binary')
@@ -49,13 +51,13 @@ STATION_ID = 'TMA_328'
 
 # ── 參數對照（txt 欄位名 → parameter_id）────────────────────────────────────
 PARAM_MAP = {
-    'Hsp':       'Hsp',
-    'Vsp':       'Vsp',
-    'Wdir':      'Wdir',
-    'Turb':      'Turb',
-    'Min int.':  'Min_int.',   # ← key 是 txt header，value 是 DB parameter_id
-    'Mean int.': 'Mean_int.',
-    'n':         'n',
+    'Hsp':       'hsp',
+    'Vsp':       'vsp',
+    'Wdir':      'wdir',
+    'Turb':      'turb',
+    'Min int.':  'min_int',
+    'Mean int.': 'mean_int',
+    'n':         'n_samples',
 }
 
 INTEGER_PARAMS = {'n_samples'}
@@ -88,6 +90,44 @@ def parse_value(raw: str, param_id: str) -> Optional[float]:
         return None
 
 
+def day_bounds(dt: datetime) -> tuple[datetime, datetime]:
+    """回傳 WindLidar UTC 日分區起訖時間。"""
+    start = dt.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+    return start, end
+
+
+def ensure_wind_lidar_partitions(conn, measure_times: list[datetime]) -> None:
+    """依資料 UTC 日期自動建立 wind_lidar_data 日分區。"""
+    days = sorted({day_bounds(dt) for dt in measure_times if dt is not None})
+    if not days:
+        return
+
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        for start, end in days:
+            partition_name = f"wind_lidar_data_{start:%Y_%m_%d}"
+            cursor.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {partition}
+                    PARTITION OF wind_lidar_data
+                    FOR VALUES FROM (%s) TO (%s)
+                    """
+                ).format(partition=sql.Identifier(partition_name)),
+                (start, end),
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f'    [ERROR] WindLidar 分區建立失敗: {e}')
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
+
 def parse_txt_file(filepath: Path):
     with open(filepath, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter='\t')
@@ -95,6 +135,9 @@ def parse_txt_file(filepath: Path):
             t = row.get('Date/time', '').strip()
             if not t:
                 continue
+
+            # 原始時間為 UTC，直接標記 tzinfo=UTC，不做 +8 轉換
+            # 台灣時間轉換在 View 層（measure_time_tw）處理
             try:
                 measure_time = datetime.strptime(
                     t, '%Y-%m-%d %H:%M'
@@ -105,9 +148,12 @@ def parse_txt_file(filepath: Path):
             period_end   = measure_time
             period_start = measure_time - timedelta(minutes=10)
 
-            # 逐列（每個 height）判斷品質
-            hsp_zero = float(row.get('Hsp', '0') or '0') == 0.0
-            quality  = 'invalid' if hsp_zero else 'good'
+            # 修正：Hsp 解析失敗也視為無效
+            try:
+                hsp_zero = float(row.get('Hsp', '').strip()) == 0.0
+            except (ValueError, TypeError):
+                hsp_zero = True
+            quality = 'invalid' if hsp_zero else 'good'
 
             try:
                 height_m = float(row['Height'])
@@ -142,6 +188,7 @@ def import_txt_file(conn, filepath: Path) -> tuple:
 
     cursor = None
     try:
+        ensure_wind_lidar_partitions(conn, [row[1] for row in rows])
         cursor = conn.cursor()
         execute_batch(cursor, INSERT_SQL, rows, page_size=5000)
         conn.commit()
