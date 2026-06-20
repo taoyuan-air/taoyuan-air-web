@@ -4,6 +4,8 @@
 每列一小時 → 拆成每筆一個污染物
 只保留 6 種: SO2, CO, O3, PM2.5, PM10, NO2
 按月份分割輸出，檔名格式: 空氣品質小時值_桃園市_中壢站 (YYYY-MM).json
+
+時間範圍：2019-03-01 起（對齊 TEPA 資料起始點）
 """
 
 import json
@@ -11,12 +13,15 @@ import csv
 from pathlib import Path
 from collections import defaultdict
 
-FOLDER  = Path(__file__).parent.parent / 'data' / 'raw' / 'moe-stations' / 'AQX_P_255_Resource'
+FOLDER   = Path(__file__).parent.parent / 'data' / 'raw' / 'moe-stations' / 'AQX_P_255_Resource'
 CSV_FILE = FOLDER / 'MOEaqdata_068_Zhongli.csv'
 
 SITE_ID   = '68'
 SITE_NAME = '中壢'
 COUNTY    = '桃園市'
+
+# 資料起始月份（不含 2019-01、2019-02）
+DATA_START_MONTH = '2019-03'
 
 # CSV 欄位 → (itemid, itemname, itemengname, itemunit)
 COLUMN_MAP = {

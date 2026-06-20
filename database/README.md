@@ -1,35 +1,55 @@
-# 資料目錄結構說明
+# Database 目錄說明
 
-## 📁 目錄用途
+此目錄保留資料庫 schema 與 SQL 查詢範例。正式建表請使用各資料源獨立 schema，不再使用舊版通用 `init.sql`。
 
-### `raw/` - 原始資料
+## 正式 Schema
 
-存放從外部來源取得的原始資料，不應該被修改。
+| 檔案 | 資料源 | 用途 |
+| --- | --- | --- |
+| `moe_stations_schema.sql` | MOE 環境部測站 | 空氣品質測站與小時值資料 |
+| `cwa_stations_schema.sql` | CWA 氣象署測站 | 氣象測站與小時觀測資料 |
+| `tydep_stations_schema.sql` | TYDEP 桃園市環保局 | 桃園市環保局測站與小時值資料 |
+| `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
+| `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
+| `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
 
-#### `moe-stations/` - MOE 測站資料
+## 查詢範例
 
-- 來源：環境部空氣品質監測網
-- 格式：JSON 檔案
-- 內容：桃園市 6 個測站的空氣品質小時值資料
-- 時間範圍：2019-03 至 2026-04 (7年資料)
+查詢範例放在 `database/examples/`，不屬於建表流程。
 
-### `processed/` - 處理後資料
-
-存放經過清理、轉換或分析後的資料。
-
-### `exports/` - 匯出資料
-
-存放從資料庫匯出的資料，用於備份或分享。
-
-## 📋 資料管理原則
-
-1. **原始資料不可修改** - `raw/` 目錄下的檔案應保持原始狀態
-2. **版本控制** - 重要的處理後資料應該有版本標記
-3. **文檔記錄** - 每個資料集都應該有對應的說明文檔
-4. **定期清理** - 定期清理不需要的臨時檔案
-
-## 🔄 資料流程
-
+```text
+database/examples/
+├── cwa_queries.sql
+├── moe_queries.sql
+└── teds_point_queries.sql
 ```
-外部來源 → raw/ → 資料庫 → processed/ → exports/
+
+## 分區與更新流程
+
+| 資料源 | 分區策略 | 自動建立位置 | 補正或更新流程 |
+| --- | --- | --- | --- |
+| MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | `scripts/update_moe_monthly.py` 以 history 覆蓋 realtime |
+| CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
+| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 目前以歷史資料批次匯入為主 |
+| UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
+| WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+
+## 已移除舊檔
+
+| 舊檔 | 移除原因 |
+| --- | --- |
+| `init.sql` | 舊版通用 schema，已被各資料源獨立 schema 取代 |
+| `test_data.sql` | 舊版 `init.sql` 的測試資料，與目前資料表不一致 |
+
+## 建議建置順序
+
+依需要執行單一資料源 schema：
+
+```bash
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/moe_stations_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/cwa_stations_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/tydep_stations_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_point_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 ```
