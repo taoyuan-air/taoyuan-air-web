@@ -1,10 +1,17 @@
 ---
-title: Taoyuan Air 登入功能完整設置指南
+title: Taoyuan Air 登入功能完整設置指南與其他更新
 
 ---
+此分支除新增登出登入功能，也同時新增首頁dashboard的天氣卡片以及調整pm2.5趨勢條
+
+</br>
 
 ## 20260618 20:09更新
-修改資料庫結構: 把age_range移除，新增birth_date
+1. frontend-web/.env
+需新增cwa api key (NEXT_PUBLIC_CWA_API_KEY)
+
+
+2. 修改資料庫結構: 把age_range移除，新增birth_date
 若已經跑過sql，須執行
 ```bash
 # 移除age_range
@@ -16,8 +23,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "ALTER TABL
 # 還是其實可以兩個一起
 ```
 
----
-
+</br></br>
 
 # 完整操作指南
 
@@ -27,7 +33,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -c "ALTER TABL
 3. 步驟二：資料庫腳本
 4. 步驟三：啟動與測試
 
----
+</br></br>
 
 ## 1. 最終資料夾結構
 
@@ -77,11 +83,10 @@ taoyuan-air/
 │       └── middleware.ts             ← 新增（專案根層 src/）
 ```
 
----
+</br></br>
 
 ## 2. 步驟一：安裝依賴
 
-### 2-1 建立 backend 目錄並安裝 Python 套件
 
 ```bash
 mkdir -p backend/app/models backend/app/schemas backend/app/routers backend/app/core
@@ -117,9 +122,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2-2 前端不需要額外安裝（只用現有的 fetch API）
-
----
+</br></br>
 
 ## 3. 步驟二：資料庫腳本
 
@@ -188,7 +191,7 @@ docker-compose up -d
 docker exec -i taoyuan-air-db psql -U <你的POSTGRES_USER> -d taoyuan_air < database/auth_schema.sql
 ```
 
----
+</br></br>
 
 ## 4. 步驟三：FastAPI 後端
 
@@ -209,8 +212,7 @@ FRONTEND_URL=http://localhost:3000
 python -c "import secrets; print(secrets.token_hex(64))"
 ```
 
-
----
+</br></br>
 
 ## 4. 步驟三：啟動與測試
 
@@ -252,19 +254,3 @@ open http://localhost:8000/docs
 5. 在 Settings 修改通知偏好，儲存後登出再登入 → 設定應保留
 6. 在 Settings 修改密碼，用新密碼重新登入 → 應成功
 ```
-
----
-
-## 常見問題
-
-**Q: CORS 錯誤**
-確認 `backend/.env` 的 `FRONTEND_URL=http://localhost:3000`，且 FastAPI 已正確 reload。
-
-**Q: Cookie 無法設定（SameSite 問題）**
-開發環境使用 `http`，確認 `COOKIE_OPTS` 中 `secure=False`。
-
-**Q: `asyncpg` 連線失敗**
-確認 `DATABASE_URL` 格式為 `postgresql+asyncpg://user:pass@localhost:5432/taoyuan_air`，Docker 容器需已啟動。
-
-**Q: Next.js middleware 不生效**
-`middleware.ts` 必須放在 `frontend-web/src/middleware.ts`（不是 `app/` 內），且 `next.config.ts` 不需要額外設定。
