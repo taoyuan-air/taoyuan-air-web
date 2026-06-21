@@ -76,6 +76,14 @@ data/raw/UAV/
 └── 20260330_1647_L3_ascending.txt
 ```
 
+檔名格式為 `yyyymmdd_hhmm_datalevel(_sitename).txt`。`yyyymmdd_hhmm` 為無人機當地起飛時間，`datalevel` 目前主要為 `L3_ascending`；部分資料可在檔名最後加站名，例如高屏實驗資料的 `Linyuan`。
+
+檔案第一行為單位，第二行為參數縮寫，第三行起為 3 km 以下 UAV L3 資料；若實際觀測高度低於 3 km，L3 檔案會以 `NaN` 補缺值。匯入時會排除 `agl`、`asl` 高度欄位；若某高度層其餘量測欄位皆為 `NaN` 或無效值，會視為進入補值區並停止讀取該檔後續高度。`agl` 作為垂直剖面層鍵存入 `agl_m`，不另存為參數。現有 raw 檔使用 `PM25`，匯入時會統一轉為資料庫參數 `PM2.5`。`CO2` 為預留欄位，原始檔若提供則匯入。
+
+目前桃園觀音資料 metadata：Version `Level 3`、Data Release Date `2026/04/17`、Project `桃園環保局`、Site `Guanyin (25.0605° N; 121.1287° E); 17 m`、Instrument `Aeromount V2(A009)+POM(1781)`、Highest flight altitude `301 m`、Average ascent rate `2.8 m/s`。這些資訊會存入 `uav_flights`。
+
+欄位順序：`agl`、`asl`、`P`、`T`、`RH`、`PM1`、`PM2.5`、`PM10`、`ws`、`wd`、`theta`、`Td`、`q`、`mixR`、`Tv`、`thetav`、`O3`、`CO`、`SO2`、`NO2`、`NH3`、`H2S`、`TVOC`。
+
 匯入腳本：`scripts/import_uav.py`
 
 ### `data/raw/WindLidar/`
@@ -88,6 +96,10 @@ data/raw/WindLidar/
 ├── ...
 └── TMA_328_15Apr2026.txt
 ```
+
+檔名格式為 `TMA_328_ddMMMyyyy.txt`。檔案第一行為參數縮寫，第二行起為觀測資料，欄位以 Tab 分隔；同一觀測時間包含多個高度層。`Date/time` 為 UTC，查詢台灣時間需加 8 小時，資料庫 view 會提供 `measure_time_tw`。高度範圍約 9.1 m 至 984.6 m，每 10 分鐘一筆時間資料。
+
+欄位順序：`Date/time`、`Height`、`Hsp`、`Vsp`、`Wdir`、`Turb`、`Min int.`、`Mean int.`、`n`。
 
 匯入腳本：`scripts/import_wind_lidar.py`
 

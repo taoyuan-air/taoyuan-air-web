@@ -52,7 +52,12 @@ def run_staging_and_upsert(conn, all_rows):
         log.info("--- 階段 3: 正在執行 UPSERT... ---")
         sql_upsert = """
             INSERT INTO cwa_hourly_data 
-            SELECT * FROM cwa_hourly_data_staging
+                (station_id, monitor_date, observation_id, concentration,
+                 concentration_numeric, data_quality, period_start, period_end, source)
+            SELECT
+                station_id, monitor_date, observation_id, concentration,
+                concentration_numeric, data_quality, period_start, period_end, source
+            FROM cwa_hourly_data_staging
             ON CONFLICT (station_id, monitor_date, observation_id) 
             DO UPDATE SET 
                 concentration = EXCLUDED.concentration,

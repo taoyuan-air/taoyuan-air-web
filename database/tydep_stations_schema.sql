@@ -11,28 +11,27 @@ CREATE TABLE IF NOT EXISTS tydep_stations (
     location     GEOMETRY(Point, 4326),
     latitude     DECIMAL(10, 8),
     longitude    DECIMAL(11, 8),
-    address      TEXT,
     is_active    BOOLEAN          DEFAULT true,
     created_at   TIMESTAMP        DEFAULT NOW(),
     updated_at   TIMESTAMP        DEFAULT NOW()
 );
 
 ALTER TABLE IF EXISTS tydep_stations
-    ADD COLUMN IF NOT EXISTS district VARCHAR(50);
+    ADD COLUMN IF NOT EXISTS district VARCHAR(50),
+    DROP COLUMN IF EXISTS address;
 
 INSERT INTO tydep_stations
-    (station_id, station_name, county, district, latitude, longitude, address)
+    (station_id, station_name, county, district, latitude, longitude)
 VALUES
-    ('0604616A0002', '新興國小', '桃園市', '蘆竹區', 25.0083, 121.2650, '蘆竹區'),
-    ('0604316A0003', '內壢',     '桃園市', '中壢區', 24.9677, 121.2590, '中壢區'),
-    ('0604816I0005', '華亞',     '桃園市', '龜山區', 25.0505, 121.3713, '龜山區'),
-    ('0605316I0004', '觀音_S',   '桃園市', '觀音區', 25.0525, 121.1181, '觀音區')
+    ('0604616A0002', '新興國小', '桃園市', '蘆竹區', 25.0083, 121.2650),
+    ('0604316A0003', '內壢',     '桃園市', '中壢區', 24.9677, 121.2590),
+    ('0604816I0005', '華亞',     '桃園市', '龜山區', 25.0505, 121.3713),
+    ('0605316I0004', '觀音_N',   '桃園市', '觀音區', 25.0525, 121.1181)
 ON CONFLICT (station_id) DO UPDATE SET
     station_name = EXCLUDED.station_name,
     district     = EXCLUDED.district,
     latitude     = EXCLUDED.latitude,
     longitude    = EXCLUDED.longitude,
-    address      = EXCLUDED.address,
     updated_at   = NOW();
 
 CREATE TABLE IF NOT EXISTS tydep_pollutants (
@@ -93,7 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_tydep_stations_location   ON tydep_stations USING
 
 UPDATE tydep_stations
 SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-WHERE location IS NULL AND latitude IS NOT NULL AND longitude IS NOT NULL;
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
 
 CREATE OR REPLACE VIEW tydep_latest_data AS
 SELECT

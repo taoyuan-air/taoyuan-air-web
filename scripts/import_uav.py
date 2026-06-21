@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 UAV 資料匯入腳本
-直接讀取 data/raw/UAV/<YYYYMMDD_TTTT>_L3_ascending.txt
+直接讀取 data/raw/UAV/<YYYYMMDD_TTTT>_L3_ascending(_sitename).txt
 並批次匯入 PostgreSQL 的 uav_data 分區表
 
-檔名格式：YYYYMMDD_TTTT_L3_ascending.txt
+檔名格式：YYYYMMDD_TTTT_L3_ascending(_sitename).txt
 flight_id：YYYYMMDD_TTTT（取前兩段）
+takeoff_time：YYYYMMDD_TTTT（當地時間）
 
 txt 格式：
   第 1 行：單位（如 (m), (hPa), ...）
@@ -17,6 +18,7 @@ txt 格式：
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -51,29 +53,33 @@ if not DB_CONFIG['password']:
 ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
 
+DEFAULT_METADATA = {
+    'data_release_date': '2026-04-17',
+    'project_name': '桃園環保局',
+    'instrument': 'Aeromount V2(A009)+POM(1781)',
+    'latitude': 25.0605,
+    'longitude': 121.1287,
+    'ground_altitude_m': 17.0,
+    'highest_flight_altitude_m': 301.0,
+    'average_ascent_rate_ms': 2.8,
+}
+
 # ── 量測參數欄位（不含 agl，agl 單獨作為層鍵 agl_m）────────────────────────
 # CO2 為預留欄位；原始檔若有 CO2 就匯入，若沒有則不阻擋匯入。
 PARAM_COLS = [
-    'asl', 'P', 'T', 'RH', 'PM1', 'PM25', 'PM10',
+    'asl', 'P', 'T', 'RH', 'PM1', 'PM2.5', 'PM10',
     'ws', 'wd', 'theta', 'Td', 'q', 'mixR', 'Tv', 'thetav',
     'O3', 'CO', 'CO2', 'SO2', 'NO2', 'NH3', 'H2S', 'TVOC',
 ]
 
 OPTIONAL_PARAM_COLS = {'CO2'}
+MEASUREMENT_PARAM_COLS = [param_id for param_id in PARAM_COLS if param_id != 'asl']
 
 HEADER_ALIASES = {
-    'PM2.5': 'PM25',
+    'PM25': 'PM2.5',
 }
 
-# ── 各飛行任務最高有效高度（超過此高度的層直接跳過）────────────────────────
-MAX_HEIGHT = {
-    '20260330_0025': 500.0,
-    '20260330_0242': 500.0,
-    '20260330_1433': 295.0,
-    '20260330_1517': 300.0,
-    '20260330_1601': 295.0,
-    '20260330_1647': 300.0,
-}
+MAX_AGL_M = 3000.0
 
 INSERT_SQL = """
     INSERT INTO uav_data
@@ -96,8 +102,10 @@ def connect_db():
 def ensure_uav_flight_and_partition(
     conn,
     flight_id: str,
+    takeoff_time: datetime,
     data_level: str,
     flight_direction: str,
+    site_name: str,
 ) -> None:
     """自動補齊飛行任務基本資料與 flight_id LIST 分區。"""
     partition_name = f"uav_data_{flight_id}"
@@ -107,14 +115,45 @@ def ensure_uav_flight_and_partition(
         cursor.execute(
             """
             INSERT INTO uav_flights
-                (flight_id, flight_direction, data_level, site_name)
-            VALUES (%s, %s, %s, %s)
+                (flight_id, takeoff_time, flight_direction, data_level, data_release_date,
+                 project_name, instrument, site_name, location, latitude, longitude,
+                 ground_altitude_m, highest_flight_altitude_m, average_ascent_rate_ms)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                    ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                    %s, %s, %s, %s, %s)
             ON CONFLICT (flight_id) DO UPDATE SET
-                flight_direction = EXCLUDED.flight_direction,
-                data_level       = EXCLUDED.data_level,
-                updated_at        = NOW()
+                takeoff_time              = EXCLUDED.takeoff_time,
+                flight_direction          = EXCLUDED.flight_direction,
+                data_level                = EXCLUDED.data_level,
+                data_release_date         = EXCLUDED.data_release_date,
+                project_name              = EXCLUDED.project_name,
+                instrument                = EXCLUDED.instrument,
+                site_name                 = EXCLUDED.site_name,
+                location                  = EXCLUDED.location,
+                latitude                  = EXCLUDED.latitude,
+                longitude                 = EXCLUDED.longitude,
+                ground_altitude_m         = EXCLUDED.ground_altitude_m,
+                highest_flight_altitude_m = EXCLUDED.highest_flight_altitude_m,
+                average_ascent_rate_ms    = EXCLUDED.average_ascent_rate_ms,
+                updated_at                = NOW()
             """,
-            (flight_id, flight_direction, data_level, 'Guanyin'),
+            (
+                flight_id,
+                takeoff_time,
+                flight_direction,
+                data_level,
+                DEFAULT_METADATA['data_release_date'],
+                DEFAULT_METADATA['project_name'],
+                DEFAULT_METADATA['instrument'],
+                site_name,
+                DEFAULT_METADATA['longitude'],
+                DEFAULT_METADATA['latitude'],
+                DEFAULT_METADATA['latitude'],
+                DEFAULT_METADATA['longitude'],
+                DEFAULT_METADATA['ground_altitude_m'],
+                DEFAULT_METADATA['highest_flight_altitude_m'],
+                DEFAULT_METADATA['average_ascent_rate_ms'],
+            ),
         )
         cursor.execute(
             sql.SQL(
@@ -151,6 +190,17 @@ def parse_value(raw: str) -> tuple:
         return (val_str, None, 'invalid')
 
 
+def row_has_any_valid_measurement(row: dict) -> bool:
+    """排除高度欄位，判斷該高度層是否還有任一有效量測值。"""
+    for param_id in MEASUREMENT_PARAM_COLS:
+        if param_id not in row:
+            continue
+        _, value, quality = parse_value(row.get(param_id, ''))
+        if quality == 'good' and value is not None:
+            return True
+    return False
+
+
 def parse_txt_file(filepath: Path, flight_id: str):
     """
     解析單一 txt 檔，yield INSERT tuple。
@@ -159,7 +209,7 @@ def parse_txt_file(filepath: Path, flight_id: str):
     - lines[2:]：資料行
 
     分隔符優先嘗試逗號，若欄位數不符則改用空白分隔。
-    超過該飛行任務最高有效高度的層直接跳過。
+    L3 檔案為 3 km 以下資料；若高度超過 3 km 則跳過。
     agl 只作為 agl_m 層鍵，不插入 uav_data。
     """
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -175,16 +225,10 @@ def parse_txt_file(filepath: Path, flight_id: str):
     else:
         sep = None  # str.split() 預設以空白分隔
 
-    col_names  = [HEADER_ALIASES.get(c.strip(), c.strip()) for c in header_line.split(sep)]
-    max_height = MAX_HEIGHT.get(flight_id, float('inf'))
-    missing_params = [
-        param_id for param_id in PARAM_COLS
-        if param_id not in col_names and param_id not in OPTIONAL_PARAM_COLS
+    col_names = [
+        HEADER_ALIASES.get(column.strip(), column.strip())
+        for column in header_line.split(sep)
     ]
-    if missing_params:
-        raise ValueError(
-            f'{filepath.name} 缺少必要欄位: {", ".join(missing_params)}'
-        )
 
     for line in lines[2:]:
         line = line.strip()
@@ -203,9 +247,14 @@ def parse_txt_file(filepath: Path, flight_id: str):
         except (ValueError, TypeError):
             continue
 
-        # 超過最高有效高度 → 跳過整層
-        if agl_m > max_height:
+        # L3 檔案定義為 3 km 以下資料，超過時跳過。
+        if agl_m > MAX_AGL_M:
             continue
+
+        # L3 會在實際最高觀測高度以上以 NaN 補到 3 km。
+        # 若某高度層所有量測欄位都無有效值，視為進入補值區並停止讀取該檔。
+        if not row_has_any_valid_measurement(row):
+            break
 
         # 插入各參數（不含 agl）
         for param_id in PARAM_COLS:
@@ -226,11 +275,22 @@ def parse_txt_file(filepath: Path, flight_id: str):
 
 def import_txt_file(conn, filepath: Path) -> tuple:
     """匯入單一 txt 檔，回傳 (total, valid, invalid)。"""
-    # 從檔名解析 flight_id：YYYYMMDD_TTTT_L3_ascending.txt → YYYYMMDD_TTTT
+    # 從檔名解析：YYYYMMDD_TTTT_L3_ascending(_sitename).txt
     parts     = filepath.stem.split('_')
+    if len(parts) < 4:
+        print(f'    [ERROR] 檔名格式不符：{filepath.name}')
+        return 0, 0, 0
+
     flight_id = f'{parts[0]}_{parts[1]}'
-    data_level = parts[2] if len(parts) > 2 else 'L3'
-    flight_direction = parts[3] if len(parts) > 3 else 'ascending'
+    data_level = parts[2]
+    flight_direction = parts[3]
+    site_name = parts[4] if len(parts) > 4 else 'Guanyin'
+
+    try:
+        takeoff_time = datetime.strptime(flight_id, '%Y%m%d_%H%M')
+    except ValueError:
+        print(f'    [ERROR] 檔名時間格式不符：{filepath.name}')
+        return 0, 0, 0
 
     rows    = list(parse_txt_file(filepath, flight_id))
     valid   = sum(1 for r in rows if r[5] == 'good')
@@ -241,7 +301,14 @@ def import_txt_file(conn, filepath: Path) -> tuple:
 
     cursor = None
     try:
-        ensure_uav_flight_and_partition(conn, flight_id, data_level, flight_direction)
+        ensure_uav_flight_and_partition(
+            conn,
+            flight_id,
+            takeoff_time,
+            data_level,
+            flight_direction,
+            site_name,
+        )
         cursor = conn.cursor()
         execute_batch(cursor, INSERT_SQL, rows, page_size=2000)
         conn.commit()
@@ -261,7 +328,7 @@ def main():
     print('UAV 資料匯入工具')
     print('=' * 60)
 
-    txt_files = sorted(RAW_DIR.glob('*_L3_ascending.txt'))
+    txt_files = sorted(RAW_DIR.glob('*_L3_ascending*.txt'))
     if not txt_files:
         print(f'[ERROR] 找不到 txt 檔案：{RAW_DIR}')
         sys.exit(1)
