@@ -238,14 +238,14 @@ def main():
         grand_total   += total
         grand_valid   += valid
         grand_invalid += invalid
-        print(f'{total:,} 列  (有效:{valid:,} 無效:{invalid:,})')
+        print(f'解析 {total:,} 列  (有效:{valid:,} 無效:{invalid:,})')
 
     conn.close()
 
     print('\n' + '=' * 60)
     print('匯入完成')
     print('=' * 60)
-    print(f'總列數  : {grand_total:,}')
+    print(f'解析總列數: {grand_total:,}')
     if grand_total:
         print(f'有效    : {grand_valid:,}  ({grand_valid / grand_total * 100:.1f}%)')
     print(f'無效    : {grand_invalid:,}')
