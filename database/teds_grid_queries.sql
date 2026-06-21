@@ -1,10 +1,9 @@
--- 1. 查看網格點位基本資料 (抽樣 50 筆)
+-- 1. 查看網格點位基本資料
 SELECT grid_id, latitude, longitude, ST_AsText(location) as geom_wkt
 FROM teds_grid_points
 LIMIT 50;
 
--- 2. 統計各污染物 (Observation) 的總筆數與排放量概況
--- 用來確認 10 個測項 (PB, PM25 等) 是否都已正確匯入
+-- 2. 統計各污染物的總筆數與排放量概況
 SELECT 
     observation_id,
     COUNT(*) as total_grids,
@@ -15,8 +14,7 @@ FROM teds_grid_emission_data
 GROUP BY observation_id
 ORDER BY total_grids DESC;
 
--- 3. 隨機抽查一個網格的所有 10 個測項 (驗證全數據匯入)
--- 這能確認你修改後的邏輯是否連值為 0 的測項都有存入
+-- 3. 隨機抽查一個網格的所有 10 個測項
 SELECT 
     p.grid_id,
     p.latitude,
@@ -28,7 +26,6 @@ JOIN teds_grid_emission_data d ON p.grid_id = d.grid_id
 WHERE p.grid_id = (SELECT grid_id FROM teds_grid_points OFFSET floor(random() * (SELECT count(*) FROM teds_grid_points)) LIMIT 1);
 
 -- 4. 尋找「桃園地區」排放熱點 (以 PM2.5 為例)
--- 座標範圍約為：Lat 24.8~25.1, Lon 121.1~121.4
 SELECT 
     p.grid_id,
     p.latitude,
@@ -43,7 +40,6 @@ ORDER BY d.emission_value DESC
 LIMIT 20;
 
 -- 5. 查看微量污染物 (如 PB 鉛) 的非零分佈
--- 用來確認像 9.8e-05 這種科學記號數值是否正確存檔
 SELECT 
     p.grid_id,
     p.latitude,
@@ -56,8 +52,7 @@ WHERE d.observation_id = 'PB'
 ORDER BY d.emission_value DESC
 LIMIT 20;
 
--- 6. 寬表視圖：查看特定網格的各項污染物對照 (Pivot)
--- 方便讓你像看 Excel 一樣橫向比對一個點的所有排放值
+-- 6. 寬表視圖：查看特定網格的各項污染物對照 
 SELECT 
     p.grid_id,
     p.latitude,
@@ -72,8 +67,7 @@ JOIN teds_grid_emission_data d ON p.grid_id = d.grid_id
 GROUP BY p.grid_id, p.latitude, p.longitude
 LIMIT 10;
 
--- 7. 空間查詢：找出距離特定座標最近的網格 (使用 PostGIS)
--- 假設以中央大學 (121.192, 24.968) 為中心
+-- 7. 空間查詢：找出距離特定座標最近的網格 
 SELECT 
     grid_id,
     latitude,
@@ -87,7 +81,6 @@ ORDER BY location <-> ST_SetSRID(ST_MakePoint(121.192, 24.968), 4326)
 LIMIT 5;
 
 -- 8. 統計資料庫中「零排放」與「有排放」的比例
--- 用來評估資料稀疏度，輔助 AI 模型決定是否過濾特徵
 SELECT 
     observation_id,
     SUM(CASE WHEN emission_value = 0 THEN 1 ELSE 0 END) as zero_count,
@@ -96,7 +89,7 @@ SELECT
 FROM teds_grid_emission_data
 GROUP BY observation_id;
 
--- 9. 檢查座標重複性 (確保一個經緯度只對應一個 ID)
+-- 9. 檢查座標重複性
 SELECT latitude, longitude, COUNT(*) 
 FROM teds_grid_points 
 GROUP BY latitude, longitude 

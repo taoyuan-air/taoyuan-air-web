@@ -18,21 +18,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===========================================================
-# 1. 資料庫連線設定 (獨立網格 DB，建議 Port 與點源隔離)
+# 1. 資料庫連線設定
 # ===========================================================
 DB_CONFIG = {
     'host': os.getenv('POSTGRES_HOST', 'localhost'),
     'port': os.getenv('POSTGRES_PORT', '5432'),
     'database': os.getenv('POSTGRES_DB', 'taoyuan_air'),
     'user': os.getenv('POSTGRES_USER', 'taoyuan_user'),
-    'password': os.getenv('POSTGRES_PASSWORD')  # 不提供預設值，強制使用環境變數
+    'password': os.getenv('POSTGRES_PASSWORD') 
 }
 
 # ===========================================================
-# 2. 常數設定 (污染物標頭對照與日誌設定)
+# 2. 常數設定 
 # ===========================================================
 
-# CSV 標題翻譯為資料庫 ID (解決 PM2.5 與 SOx 等名稱標準化問題)
+# CSV 標題翻譯為資料庫 ID 
 POLLUTANT_MAP = {
     "TSP": "TSP",
     "PM10": "PM10", 
@@ -55,7 +55,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ===========================================================
-# 3. 品質控管工具函式 (新增)
+# 3. 品質控管工具函式 
 # ===========================================================
 
 def clean_emission(val):
@@ -72,7 +72,7 @@ def clean_emission(val):
             
         f_val = float(val)
         
-        # 處理負值 (TEDS 常見異常代碼)
+        # 處理負值 
         if f_val < 0:
             return 0.0, "invalid"
             
@@ -81,7 +81,7 @@ def clean_emission(val):
         return 0.0, "invalid"
 
 # ===========================================================
-# 4. CSV → JSON 轉換 (修改重點)
+# 4. CSV → JSON 轉換 
 # ===========================================================
 
 def csv_to_json(csv_path: Path, json_path: Path):
@@ -95,7 +95,7 @@ def csv_to_json(csv_path: Path, json_path: Path):
     for _, row in df.iterrows():
         stats["total"] += 1
         
-        # 提取座標 (加入基礎檢查防止崩潰)
+        # 提取座標 
         try:
             point = {
                 "lat": float(row["WGS84_N"]), 
@@ -108,7 +108,7 @@ def csv_to_json(csv_path: Path, json_path: Path):
         # 提取並清洗排放量數值
         emissions = {}
         for csv_col, db_id in POLLUTANT_MAP.items():
-            # [修改處]：呼叫 QC 清洗函式
+            # 呼叫 QC 清洗函式
             val, quality = clean_emission(row.get(csv_col))
             
             if quality == "invalid":
@@ -116,7 +116,7 @@ def csv_to_json(csv_path: Path, json_path: Path):
                 
             emissions[db_id] = {
                 "value": val,
-                "quality": quality # [修改處]：儲存品質標記
+                "quality": quality # 儲存品質標記
             }
         
         records.append({
@@ -135,7 +135,7 @@ def csv_to_json(csv_path: Path, json_path: Path):
     return records
 
 # ===========================================================
-# 5. 資料庫操作 (點位與排放量匯入)
+# 5. 資料庫操作
 # ===========================================================
 
 def insert_grid_points(conn, records):
@@ -191,16 +191,16 @@ def process(csv_path: Path, json_dir: Path, batch_size: int):
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         
-        # 步驟 A: 同步點位
+        # 同步點位
         log.info("▶ 正在同步網格點位...")
         point_map = insert_grid_points(conn, records)
         
-        # 步驟 B: 批次匯入排放量
+        # 批次匯入排放量
         log.info(f"▶ 正在批次匯入網格排放量 (Batch size: {batch_size})...")
         inserted = insert_grid_emissions(conn, records, point_map, batch_size)
         log.info(f"✅ 成功插入網格排放量記錄：{inserted} 筆")
         
-        # 步驟 C: 更新 PostGIS 空間幾何
+        # 更新 PostGIS 空間幾何
         with conn.cursor() as cur:
             cur.execute("SELECT update_grid_geometries();")
         conn.commit()
