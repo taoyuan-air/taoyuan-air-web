@@ -4,7 +4,7 @@
 -- 儀器: TMA_328（可擴充）
 -- 資料範圍: 2026-03-27 至 2026-04-15，共 20 天
 -- 量測間隔: 每 10 分鐘，760 高度層（9.1m～984.6m）
--- 時間欄位: 原始 Date/time 視為 UTC，以 TIMESTAMPTZ 儲存；View 另提供台灣時間欄位
+-- 時間欄位: 原始 Date/time 以 UTC TIMESTAMP 儲存；View 另提供 UTC+8 台灣時間欄位
 -- 資料流程: txt → 直接匯入 DB（資料量過大，不產生 JSON 中間層）
 
 -- 0. 啟用必要擴充功能
@@ -20,19 +20,27 @@ CREATE TABLE IF NOT EXISTS wind_lidar_stations (
     location    GEOMETRY(Point, 4326),
     latitude    DECIMAL(10, 8),
     longitude   DECIMAL(11, 8),
-    altitude_m  DECIMAL(7, 1),                    -- 儀器架設地面高度（公尺）
-    address     TEXT,
+    altitude_m  DECIMAL(7, 1),                    -- 儀器離地高度（公尺）
     is_active   BOOLEAN               DEFAULT true,
     created_at  TIMESTAMP             DEFAULT NOW(),
     updated_at  TIMESTAMP             DEFAULT NOW()
 );
 
--- 插入 TMA_328 儀器資料（架設於華亞工業區）
+ALTER TABLE IF EXISTS wind_lidar_stations
+    ADD COLUMN IF NOT EXISTS location GEOMETRY(Point, 4326),
+    ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
+    ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8),
+    ADD COLUMN IF NOT EXISTS altitude_m DECIMAL(7, 1),
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+    DROP COLUMN IF EXISTS address;
+
+-- 插入 TMA_328 儀器資料
 INSERT INTO wind_lidar_stations
-    (station_id, county, latitude, longitude, altitude_m, address)
+    (station_id, county, location, latitude, longitude, altitude_m)
 VALUES
-    ('TMA_328', '桃園市', 25.0505, 121.3713, 0.0, '桃園市龜山區華亞工業區')
+    ('TMA_328', '桃園市', ST_SetSRID(ST_MakePoint(121.11794722, 25.05283056), 4326), 25.05283056, 121.11794722, 36.0)
 ON CONFLICT (station_id) DO UPDATE SET
+    location   = EXCLUDED.location,
     latitude   = EXCLUDED.latitude,
     longitude  = EXCLUDED.longitude,
     altitude_m = EXCLUDED.altitude_m,
@@ -45,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_wl_stations_location
 -- 更新 PostGIS location 欄位
 UPDATE wind_lidar_stations
 SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-WHERE location IS NULL AND latitude IS NOT NULL AND longitude IS NOT NULL;
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. 量測參數種類表
@@ -63,17 +71,19 @@ CREATE TABLE IF NOT EXISTS wind_lidar_parameters (
 INSERT INTO wind_lidar_parameters
     (parameter_id, parameter_name, parameter_eng, unit, data_type, description)
 VALUES
-    ('hsp',       '水平風速', 'Hsp',       'm/s', 'float',   'Hsp=0 表示訊號不足，整列無效'),
-    ('vsp',       '垂直風速', 'Vsp',       'm/s', 'float',   '正值向上，負值向下'),
-    ('wdir',      '風向',     'Wdir',      '度',  'float',   '範圍 [0, 360)，0/360 為正北，順時針'),
-    ('turb',      '紊流強度', 'Turb',      '',    'float',   '紊流強度指標'),
-    ('min_int',   '最小強度', 'Min int.',  '',    'float',   '量測區間最小後向散射強度'),
-    ('mean_int',  '平均強度', 'Mean int.', '',    'float',   '量測區間平均後向散射強度'),
-    ('n_samples', '樣本數',   'n',         '',    'integer', '區間內有效光脈衝樣本數（1～401）')
+    ('hsp',       '水平風速',     'horizontal speed', 'm/s',    'float',   '水平風速'),
+    ('vsp',       '垂直風速',     'vertical speed',   'm/s',    'float',   '正值向上，負值向下'),
+    ('wdir',      '風向',         'wind direction',   'degree', 'float',   '範圍 [0, 360)，0/360 為正北，順時針'),
+    ('turb',      '亂流強度',     'turbulence',       '無因次', 'float',   '亂流強度'),
+    ('min_int',   '最小訊號強度', 'minimum intensity', '',      'float',   '最小訊號強度'),
+    ('mean_int',  '平均訊號強度', 'mean intensity',    '',      'float',   '平均訊號強度'),
+    ('n_samples', '樣本數',       'number of samples', '',      'integer', '該時間與高度層之統計筆數')
 ON CONFLICT (parameter_id) DO UPDATE SET
     parameter_name = EXCLUDED.parameter_name,
+    parameter_eng  = EXCLUDED.parameter_eng,
     unit           = EXCLUDED.unit,
-    data_type      = EXCLUDED.data_type;
+    data_type      = EXCLUDED.data_type,
+    description    = EXCLUDED.description;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. 量測資料表（分區表，按天分區）
@@ -81,14 +91,14 @@ ON CONFLICT (parameter_id) DO UPDATE SET
 CREATE TABLE IF NOT EXISTS wind_lidar_data (
     id           BIGSERIAL,
     station_id   VARCHAR(20)    NOT NULL,
-    measure_time TIMESTAMPTZ    NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
+    measure_time TIMESTAMP      NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
     height_m     NUMERIC(7, 1)  NOT NULL,           -- 量測高度（公尺）
     parameter_id VARCHAR(10)    NOT NULL,
     value        NUMERIC(10, 3),                    -- 量測數值（無效值為 NULL）
     raw_value    VARCHAR(30),                       -- 原始字串值
     data_quality VARCHAR(10)    DEFAULT 'good',     -- 'good' 或 'invalid'
-    period_start TIMESTAMPTZ,                       -- measure_time - 10 分鐘（UTC）
-    period_end   TIMESTAMPTZ,                       -- 等同 measure_time（UTC）
+    period_start TIMESTAMP,                         -- measure_time - 10 分鐘（UTC）
+    period_end   TIMESTAMP,                         -- 等同 measure_time（UTC）
     source       VARCHAR(20)    DEFAULT 'history',
     created_at   TIMESTAMP      DEFAULT NOW(),
     PRIMARY KEY (id, measure_time),
@@ -96,6 +106,37 @@ CREATE TABLE IF NOT EXISTS wind_lidar_data (
     FOREIGN KEY (parameter_id) REFERENCES wind_lidar_parameters(parameter_id),
     UNIQUE (station_id, measure_time, height_m, parameter_id)
 ) PARTITION BY RANGE (measure_time);
+
+-- 將舊版 YYYYMMDD 分區名稱正規化為 YYYY_MM_DD，避免相同範圍重複建表。
+DO $$
+DECLARE
+    old_partition RECORD;
+    normalized_name TEXT;
+BEGIN
+    FOR old_partition IN
+        SELECT child.relname
+        FROM pg_inherits inheritance
+        JOIN pg_class parent ON parent.oid = inheritance.inhparent
+        JOIN pg_class child ON child.oid = inheritance.inhrelid
+        WHERE parent.oid = 'wind_lidar_data'::regclass
+          AND child.relname ~ '^wind_lidar_data_[0-9]{8}$'
+    LOOP
+        normalized_name :=
+            'wind_lidar_data_' ||
+            SUBSTRING(old_partition.relname FROM 17 FOR 4) || '_' ||
+            SUBSTRING(old_partition.relname FROM 21 FOR 2) || '_' ||
+            SUBSTRING(old_partition.relname FROM 23 FOR 2);
+
+        IF to_regclass(normalized_name) IS NULL THEN
+            EXECUTE format(
+                'ALTER TABLE %I RENAME TO %I',
+                old_partition.relname,
+                normalized_name
+            );
+        END IF;
+    END LOOP;
+END
+$$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. 分區表（按天，2026-03-27 至 2026-04-15）
@@ -141,11 +182,13 @@ CREATE INDEX IF NOT EXISTS idx_wl_station_time_height
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. 彙總視圖（最近 1 小時，pivot 回寬表格式）
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW wind_lidar_latest AS
+DROP VIEW IF EXISTS wind_lidar_latest;
+
+CREATE VIEW wind_lidar_latest AS
 SELECT
     s.station_id,
     d.measure_time,
-    d.measure_time AT TIME ZONE 'Asia/Taipei' AS measure_time_tw,
+    d.measure_time + INTERVAL '8 hours' AS measure_time_tw,
     d.height_m,
     MAX(CASE WHEN d.parameter_id = 'hsp'      THEN d.value END) AS hsp,
     MAX(CASE WHEN d.parameter_id = 'vsp'      THEN d.value END) AS vsp,

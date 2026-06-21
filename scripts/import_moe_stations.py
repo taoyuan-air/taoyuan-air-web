@@ -87,6 +87,30 @@ def ensure_moe_hourly_schema(conn):
             cursor.close()
 
 
+def ensure_moe_station_names(conn):
+    """同步 MOE 測站命名，避免前端與 TYDEP 觀音站混淆。"""
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE public.moe_stations
+            SET station_name = '觀音_S',
+                updated_at = NOW()
+            WHERE station_id = '19'
+            """
+        )
+        conn.commit()
+        print("[OK] 已確認 MOE 測站命名（觀音_S）")
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] MOE 測站命名同步失敗: {e}")
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
+
 def month_bounds(dt: datetime) -> tuple[datetime, datetime]:
     """回傳資料月份分區的起訖時間。"""
     start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -267,6 +291,7 @@ def main():
 
     # 先補齊舊資料庫缺漏欄位，避免批次匯入時出現 column does not exist
     ensure_moe_hourly_schema(conn)
+    ensure_moe_station_names(conn)
     
     # 取得專案根目錄
     project_root = Path(__file__).parent.parent

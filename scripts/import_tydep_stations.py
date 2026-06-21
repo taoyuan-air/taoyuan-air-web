@@ -65,6 +65,24 @@ def connect_db():
 def parse_concentration(val) -> Optional[float]:
     if val is None:
         return None
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
+
+
+def ensure_tydep_station_names(conn) -> None:
+    """同步 TYDEP 測站命名，避免前端與 MOE 觀音站混淆。"""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE tydep_stations
+            SET station_name = '觀音_N',
+                district = '觀音區',
+                updated_at = NOW()
+            WHERE station_id = '0605316I0004'
+            """
+        )
 
 
 def month_bounds(dt: datetime) -> tuple[datetime, datetime]:
@@ -96,10 +114,6 @@ def ensure_tydep_partitions(conn, monitor_dates: list[datetime]) -> None:
                 ).format(partition=sql.Identifier(partition_name)),
                 (start, end),
             )
-    try:
-        return float(val)
-    except (ValueError, TypeError):
-        return None
 
 
 def build_rows(record: dict) -> list:
@@ -193,6 +207,9 @@ def main():
     conn = connect_db()
     if not conn:
         sys.exit(1)
+
+    ensure_tydep_station_names(conn)
+    conn.commit()
 
     print(f"JSON 來源目錄：{json_dir}")
 
