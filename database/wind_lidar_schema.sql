@@ -4,7 +4,7 @@
 -- 儀器: TMA_328（可擴充）
 -- 資料範圍: 2026-03-27 至 2026-04-15，共 20 天
 -- 量測間隔: 每 10 分鐘，760 高度層（9.1m～984.6m）
--- 時間欄位: 原始 Date/time 視為 UTC，以 TIMESTAMPTZ 儲存；View 另提供台灣時間欄位
+-- 時間欄位: 原始 Date/time 以 UTC TIMESTAMP 儲存；View 另提供 UTC+8 台灣時間欄位
 -- 資料流程: txt → 直接匯入 DB（資料量過大，不產生 JSON 中間層）
 
 -- 0. 啟用必要擴充功能
@@ -91,14 +91,14 @@ ON CONFLICT (parameter_id) DO UPDATE SET
 CREATE TABLE IF NOT EXISTS wind_lidar_data (
     id           BIGSERIAL,
     station_id   VARCHAR(20)    NOT NULL,
-    measure_time TIMESTAMPTZ    NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
+    measure_time TIMESTAMP      NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
     height_m     NUMERIC(7, 1)  NOT NULL,           -- 量測高度（公尺）
     parameter_id VARCHAR(10)    NOT NULL,
     value        NUMERIC(10, 3),                    -- 量測數值（無效值為 NULL）
     raw_value    VARCHAR(30),                       -- 原始字串值
     data_quality VARCHAR(10)    DEFAULT 'good',     -- 'good' 或 'invalid'
-    period_start TIMESTAMPTZ,                       -- measure_time - 10 分鐘（UTC）
-    period_end   TIMESTAMPTZ,                       -- 等同 measure_time（UTC）
+    period_start TIMESTAMP,                         -- measure_time - 10 分鐘（UTC）
+    period_end   TIMESTAMP,                         -- 等同 measure_time（UTC）
     source       VARCHAR(20)    DEFAULT 'history',
     created_at   TIMESTAMP      DEFAULT NOW(),
     PRIMARY KEY (id, measure_time),
@@ -188,7 +188,7 @@ CREATE VIEW wind_lidar_latest AS
 SELECT
     s.station_id,
     d.measure_time,
-    d.measure_time AT TIME ZONE 'Asia/Taipei' AS measure_time_tw,
+    d.measure_time + INTERVAL '8 hours' AS measure_time_tw,
     d.height_m,
     MAX(CASE WHEN d.parameter_id = 'hsp'      THEN d.value END) AS hsp,
     MAX(CASE WHEN d.parameter_id = 'vsp'      THEN d.value END) AS vsp,

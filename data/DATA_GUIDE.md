@@ -97,7 +97,7 @@ data/raw/WindLidar/
 └── TMA_328_15Apr2026.txt
 ```
 
-檔名格式為 `TMA_328_ddMMMyyyy.txt`。檔案第一行為參數縮寫，第二行起為觀測資料，欄位以 Tab 分隔；同一觀測時間包含多個高度層。`Date/time` 為 UTC，查詢台灣時間需加 8 小時，資料庫 view 會提供 `measure_time_tw`。高度範圍約 9.1 m 至 984.6 m，每 10 分鐘一筆時間資料。
+檔名格式為 `TMA_328_ddMMMyyyy.txt`。檔案第一行為參數縮寫，第二行起為觀測資料，欄位以 Tab 分隔；同一觀測時間包含多個高度層。`Date/time` 以 UTC `TIMESTAMP` 儲存，資料庫 view 的 `measure_time_tw` 會加 8 小時顯示台灣時間。高度範圍約 9.1 m 至 984.6 m，每 10 分鐘一筆時間資料。
 
 欄位順序：`Date/time`、`Height`、`Hsp`、`Vsp`、`Wdir`、`Turb`、`Min int.`、`Mean int.`、`n`。
 

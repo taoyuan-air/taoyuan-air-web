@@ -5,14 +5,14 @@ WindLidar TMA_328 資料匯入腳本
 
 資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
 資料品質：各參數逐欄解析，無法轉為數值時標記為 'invalid'，value=NULL
-時區說明：原始 txt 為 UTC，以 TIMESTAMPTZ 存入 DB（UTC）
+時區說明：原始 txt 為 UTC，以 TIMESTAMP 存入 DB（UTC）
           查詢時透過 wind_lidar_latest View 的 measure_time_tw 欄位取得台灣時間
 """
 
 import csv
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -92,7 +92,7 @@ def parse_value(raw: str, param_id: str) -> Optional[float]:
 
 def day_bounds(dt: datetime) -> tuple[datetime, datetime]:
     """回傳 WindLidar UTC 日分區起訖時間。"""
-    start = dt.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
     return start, end
 
@@ -144,12 +144,12 @@ def parse_txt_file(filepath: Path):
             if not t:
                 continue
 
-            # 原始時間為 UTC，直接標記 tzinfo=UTC，不做 +8 轉換
+            # 原始時間為 UTC，直接以 UTC TIMESTAMP 儲存，不做 +8 轉換
             # 台灣時間轉換在 View 層（measure_time_tw）處理
             try:
                 measure_time = datetime.strptime(
                     t, '%Y-%m-%d %H:%M'
-                ).replace(tzinfo=timezone.utc)
+                )
             except ValueError:
                 continue
 
