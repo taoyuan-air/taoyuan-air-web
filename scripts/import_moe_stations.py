@@ -7,6 +7,7 @@ MOE 測站資料匯入腳本
 import os
 import json
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extras import execute_batch
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -80,6 +81,47 @@ def ensure_moe_hourly_schema(conn):
     except Exception as e:
         conn.rollback()
         print(f"[ERROR] 資料表結構修復失敗: {e}")
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
+
+def month_bounds(dt: datetime) -> tuple[datetime, datetime]:
+    """回傳資料月份分區的起訖時間。"""
+    start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        end = start.replace(year=start.year + 1, month=1)
+    else:
+        end = start.replace(month=start.month + 1)
+    return start, end
+
+
+def ensure_moe_partitions(conn, monitor_dates: list[datetime]) -> None:
+    """依資料月份自動建立 moe_hourly_data 分區。"""
+    months = sorted({month_bounds(dt) for dt in monitor_dates if dt is not None})
+    if not months:
+        return
+
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        for start, end in months:
+            partition_name = f"moe_hourly_data_{start:%Y_%m}"
+            cursor.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {partition}
+                    PARTITION OF moe_hourly_data
+                    FOR VALUES FROM (%s) TO (%s)
+                    """
+                ).format(partition=sql.Identifier(partition_name)),
+                (start, end),
+            )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] MOE 分區建立失敗: {e}")
         raise
     finally:
         if cursor:
@@ -159,6 +201,8 @@ def import_json_file(conn, file_path, station_id):
             print(f"    [WARNING] 發現 {invalid_count} 筆濃度無效資料（將標記為 invalid）")
         if skipped_count > 0:
             print(f"    [WARNING] 發現 {skipped_count} 筆時間格式錯誤資料（已跳過）")
+
+        ensure_moe_partitions(conn, [row[1] for row in insert_data])
         
         # 批次插入
         cursor = None

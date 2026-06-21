@@ -204,8 +204,20 @@ python scripts\import_moe_stations.py
 # 匯入 CWA 測站
 python scripts\import_cwa_stations.py
 
+# MOE 月資料補正（history 覆蓋 realtime）
+python scripts\update_moe_monthly.py
+
+# CWA 月資料補正（history 覆蓋 realtime）
+python scripts\update_cwa_monthly.py
+
 # 匯入 TYDEP 測站
 python scripts\import_tydep_stations.py
+
+# 匯入 UAV 無人機剖面
+python scripts\import_uav.py
+
+# 匯入 WindLidar 風光達
+python scripts\import_wind_lidar.py
 
 # 匯入 TEDS 點源資料
 python scripts\import_teds_point.py
