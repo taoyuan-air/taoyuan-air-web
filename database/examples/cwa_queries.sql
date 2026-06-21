@@ -8,7 +8,7 @@ SELECT
     station_type,
     ST_X(location::geometry) as longitude,
     ST_Y(location::geometry) as latitude,
-    elevation_m
+    altitude
 FROM cwa_stations
 ORDER BY station_type, station_id;
 
@@ -52,17 +52,17 @@ WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
 GROUP BY s.station_name, h.monitor_date
 ORDER BY h.monitor_date DESC, s.station_name;
 
--- 5. 查看「雨跡 (Trace)」發生頻率統計
+-- 5. 查看無效資料發生頻率統計
 SELECT 
     s.station_name,
-    COUNT(*) as trace_events,
-    MIN(monitor_date) as earliest_trace,
-    MAX(monitor_date) as latest_trace
+    COUNT(*) as invalid_events,
+    MIN(monitor_date) as earliest_invalid,
+    MAX(monitor_date) as latest_invalid
 FROM cwa_hourly_data h
 JOIN cwa_stations s ON h.station_id = s.station_id
-WHERE h.data_quality = 'trace'
+WHERE h.data_quality = 'invalid'
 GROUP BY s.station_name
-ORDER BY trace_events DESC;
+ORDER BY invalid_events DESC;
 
 -- 6. 計算最近 7 天的每日平均氣溫與總降雨量
 SELECT 
@@ -104,11 +104,11 @@ ORDER BY h.concentration_numeric DESC;
 SELECT 
     station_name,
     ROUND(ST_Distance(
-        location, 
+        location::geography, 
         ST_SetSRID(ST_MakePoint(121.301, 24.993), 4326)::geography
     )::numeric / 1000, 2) as distance_km
 FROM cwa_stations
-ORDER BY location <-> ST_SetSRID(ST_MakePoint(121.301, 24.993), 4326)::geography
+ORDER BY location <-> ST_SetSRID(ST_MakePoint(121.301, 24.993), 4326)
 LIMIT 3;
 
 -- 10. 隨機抽取 5 筆資料進行完整人工核對
