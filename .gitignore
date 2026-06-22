@@ -94,6 +94,7 @@ wheels/
 .installed.cfg
 *.egg
 venv/
+.venv/
 
 # Private documentation
 docs/
