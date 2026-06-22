@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import auth, user, uav
+from .routers import auth, explorer, user, uav
 
 app = FastAPI(title="Taoyuan Air Auth API", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(uav.router,  prefix="/api")
+app.include_router(explorer.router, prefix="/api")
 
 
 @app.get("/health")

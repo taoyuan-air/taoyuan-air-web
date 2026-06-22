@@ -47,14 +47,14 @@ const resolveApiKey = (apiKey?: string): string | undefined => {
 };
 
 // ─── 現在天氣觀測 (O-A0001-001) ─────────────────────────────────────────────
-export const fetchCurrentWeather = async (
+
+async function _fetchCurrentWeather(
   district: string,
-  apiKey?: string,
-): Promise<CurrentWeatherData> => {
-  const key = resolveApiKey(apiKey);
+  key: string | undefined,
+): Promise<{ data: CurrentWeatherData; isFallback: boolean }> {
   if (!key) {
     console.warn('[CWA] API key 未設定，使用假資料');
-    return MOCK_CURRENT_WEATHER;
+    return { data: MOCK_CURRENT_WEATHER, isFallback: true };
   }
 
   const url =
@@ -65,20 +65,18 @@ export const fetchCurrentWeather = async (
     const res = await fetch(url);
     if (!res.ok) {
       console.warn(`[CWA] 現況 API 錯誤 HTTP ${res.status}`);
-      return MOCK_CURRENT_WEATHER;
+      return { data: MOCK_CURRENT_WEATHER, isFallback: true };
     }
     const json = await res.json();
     const stations: any[] = json?.records?.Station ?? [];
-    if (stations.length === 0) return MOCK_CURRENT_WEATHER;
+    if (stations.length === 0) return { data: MOCK_CURRENT_WEATHER, isFallback: true };
 
     const keyword = district.replace('區', '');
     const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
     const obs = st.WeatherElement ?? {};
-    
-    
+
     const parseNum = (val: any, fallback: string, round = false) => {
       const n = parseFloat(val);
-
       if (isNaN(n) || n <= -90) {
         console.log(`[CWA] 該測站此欄位無有效資料(-99)，改用假資料`);
         return fallback;
@@ -90,17 +88,28 @@ export const fetchCurrentWeather = async (
     };
     console.log(`[CWA] 現況 ${st.StationName ?? keyword} → ${obs.AirTemperature}°C ${obs.Weather}`);
     return {
-      temperature: parseNum(obs.AirTemperature, MOCK_CURRENT_WEATHER.temperature, true),
-      weather: (obs.Weather && obs.Weather !== '-99') ? obs.Weather : MOCK_CURRENT_WEATHER.weather,
-      humidity: parseNum(obs.RelativeHumidity, MOCK_CURRENT_WEATHER.humidity),
-      windSpeed: parseNum(obs.WindSpeed, MOCK_CURRENT_WEATHER.windSpeed),
-      dailyHigh: parseNum(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature, MOCK_CURRENT_WEATHER.dailyHigh, true),
-      dailyLow:  parseNum(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature,  MOCK_CURRENT_WEATHER.dailyLow, true),
+      data: {
+        temperature: parseNum(obs.AirTemperature, MOCK_CURRENT_WEATHER.temperature, true),
+        weather: (obs.Weather && obs.Weather !== '-99') ? obs.Weather : MOCK_CURRENT_WEATHER.weather,
+        humidity: parseNum(obs.RelativeHumidity, MOCK_CURRENT_WEATHER.humidity),
+        windSpeed: parseNum(obs.WindSpeed, MOCK_CURRENT_WEATHER.windSpeed),
+        dailyHigh: parseNum(obs.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature, MOCK_CURRENT_WEATHER.dailyHigh, true),
+        dailyLow:  parseNum(obs.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature,  MOCK_CURRENT_WEATHER.dailyLow, true),
+      },
+      isFallback: false,
     };
   } catch (err) {
     console.error('[CWA] 現況資料請求失敗：', err);
-    return MOCK_CURRENT_WEATHER;
+    return { data: MOCK_CURRENT_WEATHER, isFallback: true };
   }
+}
+
+export const fetchCurrentWeather = async (
+  district: string,
+  apiKey?: string,
+): Promise<CurrentWeatherData> => {
+  const { data } = await _fetchCurrentWeather(district, resolveApiKey(apiKey));
+  return data;
 };
 
 // ─── 天氣代表性選取輔助（多時段取最嚴重天氣描述） ──────────────────────────
@@ -242,22 +251,26 @@ export interface CwaWeatherBundle {
   forecast: ForecastDay[];
   todayPrecipProb: string;
   past1hrRain: string;
+  /** true 代表 current 是 mock 資料（API key 未設定或請求失敗） */
+  usedFallback?: boolean;
 }
 
 export const fetchCwaWeather = async (
   district: string,
   apiKey?: string,
 ): Promise<CwaWeatherBundle> => {
-  const [current, forecastResult, past1hrRain] = await Promise.all([
-    fetchCurrentWeather(district, apiKey),
+  const key = resolveApiKey(apiKey);
+  const [currentResult, forecastResult, past1hrRain] = await Promise.all([
+    _fetchCurrentWeather(district, key),
     fetchWeatherForecast(district, apiKey),
     fetchPast1hrRainfall(district, apiKey),
   ]);
 
   return {
-    current,
+    current: currentResult.data,
     forecast: forecastResult.days,
     todayPrecipProb: forecastResult.todayPrecipProb,
     past1hrRain,
+    usedFallback: currentResult.isFallback,
   };
 };
