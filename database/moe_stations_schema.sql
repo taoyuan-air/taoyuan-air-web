@@ -178,6 +178,10 @@ CREATE TABLE IF NOT EXISTS moe_hourly_data_2026_10 PARTITION OF moe_hourly_data 
 CREATE TABLE IF NOT EXISTS moe_hourly_data_2026_11 PARTITION OF moe_hourly_data FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
 CREATE TABLE IF NOT EXISTS moe_hourly_data_2026_12 PARTITION OF moe_hourly_data FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
 
+-- 保底分區：匯入腳本會自動建立月份分區；若仍遇到未涵蓋日期，先落到 default 避免中斷。
+CREATE TABLE IF NOT EXISTS moe_hourly_data_default
+    PARTITION OF moe_hourly_data DEFAULT;
+
 -- 5. 建立索引
 CREATE INDEX IF NOT EXISTS idx_moe_hourly_station ON moe_hourly_data(station_id);
 CREATE INDEX IF NOT EXISTS idx_moe_hourly_date ON moe_hourly_data(monitor_date);
@@ -226,7 +230,7 @@ ORDER BY month DESC, s.station_id, h.pollutant_eng_name;
 INSERT INTO moe_stations (station_id, station_name, county, latitude, longitude, address) VALUES
 ('17', '桃園', '桃園市', 24.9936, 121.3010, '桃園區'),
 ('18', '大園', '桃園市', 25.0608, 121.2000, '大園區'),
-('19', '觀音', '桃園市', 25.0354, 121.0820, '觀音區'),
+('19', '觀音_S', '桃園市', 25.0354, 121.0820, '觀音區'),
 ('20', '平鎮', '桃園市', 24.9533, 121.2039, '平鎮區'),
 ('21', '龍潭', '桃園市', 24.8633, 121.2164, '龍潭區'),
 ('68', '中壢', '桃園市', 24.9536, 121.2265, '中壢區')

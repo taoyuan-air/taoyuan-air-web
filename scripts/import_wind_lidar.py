@@ -4,15 +4,15 @@ WindLidar TMA_328 資料匯入腳本
 直接讀取 data/raw/WindLidar/TMA_328_*.txt 並批次匯入 PostgreSQL
 
 資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
-資料品質：同一高度列 Hsp=0 → 該高度列所有參數標記為 'invalid'，value=NULL
-時區說明：原始 txt 為 UTC，以 TIMESTAMPTZ 存入 DB（UTC）
+資料品質：各參數逐欄解析，無法轉為數值時標記為 'invalid'，value=NULL
+時區說明：原始 txt 為 UTC，以 TIMESTAMP 存入 DB（UTC）
           查詢時透過 wind_lidar_latest View 的 measure_time_tw 欄位取得台灣時間
 """
 
 import csv
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -92,7 +92,7 @@ def parse_value(raw: str, param_id: str) -> Optional[float]:
 
 def day_bounds(dt: datetime) -> tuple[datetime, datetime]:
     """回傳 WindLidar UTC 日分區起訖時間。"""
-    start = dt.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
     return start, end
 
@@ -108,6 +108,14 @@ def ensure_wind_lidar_partitions(conn, measure_times: list[datetime]) -> None:
         cursor = conn.cursor()
         for start, end in days:
             partition_name = f"wind_lidar_data_{start:%Y_%m_%d}"
+            legacy_partition_name = f"wind_lidar_data_{start:%Y%m%d}"
+            cursor.execute(
+                "SELECT to_regclass(%s), to_regclass(%s)",
+                (partition_name, legacy_partition_name),
+            )
+            if any(cursor.fetchone()):
+                continue
+
             cursor.execute(
                 sql.SQL(
                     """
@@ -136,24 +144,17 @@ def parse_txt_file(filepath: Path):
             if not t:
                 continue
 
-            # 原始時間為 UTC，直接標記 tzinfo=UTC，不做 +8 轉換
+            # 原始時間為 UTC，直接以 UTC TIMESTAMP 儲存，不做 +8 轉換
             # 台灣時間轉換在 View 層（measure_time_tw）處理
             try:
                 measure_time = datetime.strptime(
                     t, '%Y-%m-%d %H:%M'
-                ).replace(tzinfo=timezone.utc)
+                )
             except ValueError:
                 continue
 
             period_end   = measure_time
             period_start = measure_time - timedelta(minutes=10)
-
-            # 修正：Hsp 解析失敗也視為無效
-            try:
-                hsp_zero = float(row.get('Hsp', '').strip()) == 0.0
-            except (ValueError, TypeError):
-                hsp_zero = True
-            quality = 'invalid' if hsp_zero else 'good'
 
             try:
                 height_m = float(row['Height'])
@@ -162,7 +163,8 @@ def parse_txt_file(filepath: Path):
 
             for field_name, param_id in PARAM_MAP.items():
                 raw_val = row.get(field_name, '').strip()
-                value   = None if quality == 'invalid' else parse_value(raw_val, param_id)
+                value   = parse_value(raw_val, param_id)
+                quality = 'good' if value is not None else 'invalid'
                 yield (
                     STATION_ID, measure_time, height_m, param_id,
                     value, raw_val, quality,
@@ -208,7 +210,15 @@ def main():
     print('WindLidar 資料匯入工具（直接 txt → DB）')
     print('=' * 60)
 
-    txt_files = sorted(RAW_DIR.glob('TMA_328_*.txt'))
+    if len(sys.argv) > 1:
+        txt_files = [RAW_DIR / filename for filename in sys.argv[1:]]
+        missing_files = [path.name for path in txt_files if not path.is_file()]
+        if missing_files:
+            print(f'[ERROR] 找不到指定檔案：{", ".join(missing_files)}')
+            sys.exit(1)
+    else:
+        txt_files = sorted(RAW_DIR.glob('TMA_328_*.txt'))
+
     if not txt_files:
         print(f'[ERROR] 找不到 txt 檔案：{RAW_DIR}')
         sys.exit(1)
@@ -228,14 +238,14 @@ def main():
         grand_total   += total
         grand_valid   += valid
         grand_invalid += invalid
-        print(f'{total:,} 列  (有效:{valid:,} 無效:{invalid:,})')
+        print(f'解析 {total:,} 列  (有效:{valid:,} 無效:{invalid:,})')
 
     conn.close()
 
     print('\n' + '=' * 60)
     print('匯入完成')
     print('=' * 60)
-    print(f'總列數  : {grand_total:,}')
+    print(f'解析總列數: {grand_total:,}')
     if grand_total:
         print(f'有效    : {grand_valid:,}  ({grand_valid / grand_total * 100:.1f}%)')
     print(f'無效    : {grand_invalid:,}')
