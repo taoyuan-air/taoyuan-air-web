@@ -7,10 +7,13 @@ import {
   type CategoryId,
   type ParameterId,
 } from './uavConfig';
+import type { ParamStats } from './UAVProfileChart';
 
 interface Props {
   selected: ParameterId[];
   onChange: (params: ParameterId[]) => void;
+  /** Stats from the last successful chart fetch — used to show ranges on active buttons */
+  paramStats?: Record<string, ParamStats>;
 }
 
 // Group parameters by category in display order
@@ -26,7 +29,35 @@ const byCategory = CATEGORY_ORDER.reduce<Record<CategoryId, ParameterId[]>>(
   { meteorology: [], aerosol: [], gas: [] }
 );
 
-export function UAVParameterSelector({ selected, onChange }: Props) {
+function RangeLabel({
+  paramId,
+  stats,
+  active,
+}: {
+  paramId: ParameterId;
+  stats: Record<string, ParamStats> | undefined;
+  active: boolean;
+}) {
+  if (!active || !stats) return null;
+  const s = stats[paramId];
+  if (!s) return null;
+
+  const text = s.hasData
+    ? `${s.min.toFixed(1)} ~ ${s.max.toFixed(1)}`
+    : '無資料';
+
+  return (
+    <span
+      className="uav-param-range"
+      style={{ opacity: active ? 0.85 : 0 }}
+      aria-label={s.hasData ? `數值範圍 ${text}` : '無資料'}
+    >
+      {text}
+    </span>
+  );
+}
+
+export function UAVParameterSelector({ selected, onChange, paramStats }: Props) {
   function toggle(id: ParameterId) {
     if (selected.includes(id)) {
       onChange(selected.filter((p) => p !== id));
@@ -55,8 +86,11 @@ export function UAVParameterSelector({ selected, onChange }: Props) {
                   backgroundColor: active ? cfg.color : 'transparent',
                 }}
               >
-                {cfg.label}
-                <span className="uav-param-unit">（{cfg.unit}）</span>
+                <span className="uav-param-btn-text">
+                  {cfg.label}
+                  <span className="uav-param-unit">（{cfg.unit}）</span>
+                </span>
+                <RangeLabel paramId={id} stats={paramStats} active={active} />
               </button>
             );
           })}
