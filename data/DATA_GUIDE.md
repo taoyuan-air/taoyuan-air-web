@@ -14,7 +14,8 @@
 外部來源 → data/raw → data/processed → PostgreSQL → data/exports
 ```
 
-若資料量太大，實際資料檔可能不進 Git，只保留 `.gitkeep` 讓資料夾存在。
+CWA、MOE、TYDEP、WindLidar 的過濾後資料（桃園 2025 年起）已直接 tracked 在 Git 中。
+原始完整資料（7 GB+）另存雲端，不進 repo；其他來源（TEDS、MPL 等）仍以 `.gitkeep` 保留資料夾。
 
 ## Raw 資料
 
@@ -162,5 +163,5 @@ python scripts/import_tydep_stations.py
 1. `raw/` 保存原始檔，不直接手改。
 2. `processed/` 放腳本產生的中間資料，可刪除後重建。
 3. `exports/` 放資料庫匯出或分析成果。
-4. 大檔案不進 Git，資料夾用 `.gitkeep` 保留。
+4. 過濾後的 CWA/MOE/TYDEP/WindLidar 桃園資料已 tracked；原始完整資料另存雲端，不進 Git。其他大檔案來源以 `.gitkeep` 保留資料夾。
 5. 新資料源要補三件事：資料夾位置、轉檔或匯入腳本、對應 schema 說明。
