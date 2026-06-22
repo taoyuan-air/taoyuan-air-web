@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, Plane } from 'lucide-react';
 import { UAVProfileChart } from '@/components/UAV/UAVProfileChart';
 import { UAVParameterSelector } from '@/components/UAV/UAVParameterSelector';
@@ -113,11 +113,10 @@ function FlightDropdown({
 /*  Page                                                         */
 /* ──────────────────────────────────────────────────────────── */
 export default function UAVProfilePage() {
-  const [flights, setFlights]         = useState<FlightSummary[]>([]);
-  const [selectedId, setSelectedId]   = useState<string | null>(null);
-  const [parameters, setParameters]   = useState<ParameterId[]>(DEFAULT_PARAMETERS);
-  const [loadError, setLoadError]     = useState<string | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [flights, setFlights]       = useState<FlightSummary[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [parameters, setParameters] = useState<ParameterId[]>(DEFAULT_PARAMETERS);
+  const [loadError, setLoadError]   = useState<string | null>(null);
 
   useEffect(() => {
     fetchFlights()
@@ -128,17 +127,9 @@ export default function UAVProfilePage() {
       .catch((err: Error) => setLoadError(err.message));
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const close = () => setDropdownOpen(false);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, []);
-
   return (
     <div
       style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}
-      onClick={() => setDropdownOpen(false)}
     >
       {/* ── Page header ── */}
       <div style={{ padding: '28px 40px 0' }}>
@@ -224,6 +215,7 @@ export default function UAVProfilePage() {
           <UAVProfileChart
             key={selectedId}
             flightId={selectedId}
+            flightDirection={flights.find(f => f.flight_id === selectedId)?.flight_direction ?? 'ascending'}
             parameters={parameters}
           />
         ) : (

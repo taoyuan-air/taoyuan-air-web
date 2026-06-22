@@ -17,6 +17,7 @@ import { PARAMETER_CONFIG, type ParameterId } from './uavConfig';
 
 interface Props {
   flightId: string;
+  flightDirection: string;
   parameters: ParameterId[];
 }
 
@@ -115,7 +116,7 @@ function CustomTooltip({
   );
 }
 
-export function UAVProfileChart({ flightId, parameters }: Props) {
+export function UAVProfileChart({ flightId, flightDirection, parameters }: Props) {
   const [chartData, setChartData] = useState<NormRow[]>([]);
   const [stats, setStats] = useState<Record<string, ParamStats>>({});
   const [loading, setLoading] = useState(true);
@@ -141,10 +142,9 @@ export function UAVProfileChart({ flightId, parameters }: Props) {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-
-    // Re-fetch when flightId or param list changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flightId, parameters.join(',')]);
+  // parameters identity changes when parent calls setParameters with a new array,
+  // so listing it directly is correct — no join trick needed.
+  }, [flightId, parameters]);
 
   const readableTime = parseFlightId(flightId);
   const siteName = chartData[0]?.site_name ?? '';
@@ -178,7 +178,7 @@ export function UAVProfileChart({ flightId, parameters }: Props) {
       <div className="uav-flight-title">
         <span>飛行任務：{flightId}</span>
         <span className="uav-flight-meta">
-          {readableTime} · {siteName} · ascending
+          {readableTime} · {siteName} · {flightDirection}
         </span>
       </div>
 
