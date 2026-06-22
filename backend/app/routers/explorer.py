@@ -112,10 +112,6 @@ async def _fetch_air_history(
     station_extra = ", s.district AS district" if station_table == "tydep_stations" else ", NULL AS district"
     query = text(
         f"""
-        WITH latest AS (
-            SELECT MAX(monitor_date) AS latest_at
-            FROM {table_name}
-        )
         SELECT
             :source_name AS source,
             h.station_id,
@@ -127,9 +123,7 @@ async def _fetch_air_history(
             {station_extra}
         FROM {table_name} h
         JOIN {station_table} s ON s.station_id = h.station_id
-        CROSS JOIN latest
-        WHERE latest.latest_at IS NOT NULL
-          AND h.monitor_date >= latest.latest_at - (:days * INTERVAL '1 day')
+        WHERE h.monitor_date >= NOW() - (:days * INTERVAL '1 day')
           AND h.data_quality = 'good'
           AND h.concentration_numeric IS NOT NULL
           AND h.pollutant_eng_name IN ('PM2.5', 'PM25', 'PM10', 'O3', 'NOx', 'NOX', 'NO2', 'SO2', 'CO')
@@ -152,10 +146,6 @@ async def _fetch_cwa_history(db: AsyncSession, days: int) -> List[Dict[str, Any]
 
     query = text(
         """
-        WITH latest AS (
-            SELECT MAX(monitor_date) AS latest_at
-            FROM cwa_hourly_data
-        )
         SELECT
             '氣象署' AS source,
             h.station_id,
@@ -167,9 +157,7 @@ async def _fetch_cwa_history(db: AsyncSession, days: int) -> List[Dict[str, Any]
             NULL AS district
         FROM cwa_hourly_data h
         JOIN cwa_stations s ON s.station_id = h.station_id
-        CROSS JOIN latest
-        WHERE latest.latest_at IS NOT NULL
-          AND h.monitor_date >= latest.latest_at - (:days * INTERVAL '1 day')
+        WHERE h.monitor_date >= NOW() - (:days * INTERVAL '1 day')
           AND h.data_quality = 'good'
           AND h.concentration_numeric IS NOT NULL
           AND h.observation_id = 'TX01'
