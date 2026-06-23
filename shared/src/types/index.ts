@@ -134,3 +134,11 @@ export interface ForecastDay {
   weather: string;
   precipProb: string;
 }
+
+export interface TEDSPoint {
+  id: string;
+  name?: string;
+  latLng: LatLng;
+  heightM?: number;
+  source?: string;
+}
