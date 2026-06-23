@@ -44,6 +44,12 @@ interface LeafletTileLayer {
   addTo: (map: LeafletMapInstance) => void;
 }
 
+// ── 💡 修正後的核心 Leaflet API 介面 ──────────────────────────────────
+interface LeafletMarkerInstance {
+  addTo: (map: LeafletMapInstance | LeafletLayerGroup) => LeafletMarkerInstance;
+  bindPopup: (text: string) => LeafletMarkerInstance; // 移除問號，確保絕對安全
+}
+
 interface LeafletApi {
   map: (id: string, options: Record<string, unknown>) => LeafletMapInstance;
   tileLayer: (url: string, options: Record<string, unknown>) => LeafletTileLayer;
@@ -281,9 +287,10 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           satMapRef.current = satMap;
           satLayerGroupRef.current = L.layerGroup().addTo(satMap);
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, satLayerGroupRef.current);
-          if (tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroupRef.current, satMap);
+          const satLayerGroup = satLayerGroupRef.current;
+          if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
           satMap.on('zoomend', () => {
-            if (tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroupRef.current, satMap);
+            if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
           });
         }
 
@@ -297,13 +304,14 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           detailMapRef.current = detailMap;
           detailLayerGroupRef.current = L.layerGroup().addTo(detailMap);
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, detailLayerGroupRef.current);
-          if (tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroupRef.current, detailMap);
+          const detailLayerGroup = detailLayerGroupRef.current;
+          if (detailLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
           detailMap.on('zoomend', () => {
             if (isSyncingRef.current || mapModeRef.current !== '2D') return;
             if (detailMap.getZoom() <= WINDY_DETAIL_ZOOM && isDetailModeRef.current) {
               syncWindyFromDetail();
-            } else if (tedsPointsRef.current.length > 0) {
-              renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroupRef.current, detailMap);
+            } else if (detailLayerGroup && tedsPointsRef.current.length > 0) {
+              renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
             }
           });
         }
@@ -347,14 +355,15 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           map.options.maxZoom = DETAIL_MAX_ZOOM;
           map.setMaxZoom?.(DETAIL_MAX_ZOOM);
           polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
-          if (tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroupRef.current, map);
+          const polygonLayerGroup = polygonLayerGroupRef.current;
+          if (polygonLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
           map.on('zoomend', () => {
             if (isSyncingRef.current || mapModeRef.current !== '2D') return;
             if (map.getZoom() > WINDY_DETAIL_ZOOM) {
               syncDetailFromWindy();
-            } else if (tedsPointsRef.current.length > 0) {
+            } else if (polygonLayerGroup && tedsPointsRef.current.length > 0) {
               // Re-render TEDS points at appropriate zoom level
-              renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroupRef.current, map);
+              renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
             }
           });
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, WL, polygonLayerGroupRef.current);
