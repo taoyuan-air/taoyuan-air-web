@@ -1,7 +1,7 @@
 import {
   GridCell, Station, VerticalProfile, ForecastSeries,
   EventItem, Alert, Meta, HealthAdvisory, Pollutant,
-  TargetType, Scenario
+  TargetType, Scenario, TEDSPoint // 💡TEDSPoint 統一加進來這裡了
 } from '../types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -103,6 +103,21 @@ export const getMeta = async (): Promise<Meta> => {
 export const getStations = async ({ pollutant, timestamp }: { pollutant: Pollutant; timestamp?: string }): Promise<Station[]> => {
   await delay(500);
   return mockStations;
+};
+
+// ── 🎯 這是修改後的連線報錯機制 ───────────────────────────────────
+export const getTEDSPoints = async (): Promise<TEDSPoint[]> => {
+  try {
+    const response = await fetch('/api/teds-points');
+    if (!response.ok) {
+      throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
+    }
+    return await response.json();
+  } catch (error) {
+    // 這裡直接把錯誤拋給前端畫面處理，不使用假資料頂替
+    console.error('TEDS Points API 連線失敗:', error);
+    throw error;
+  }
 };
 
 export const getGrid = async ({ pollutant, timestamp }: { pollutant: Pollutant; timestamp?: string }): Promise<GridCell[]> => {
