@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@shared/store';
-import { getGrid, setScenario } from '@shared/api/index';
+import { getGrid, setScenario, getTEDSPoints } from '@shared/api/index';
 import { palette } from '@shared/constants/theme';
 import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
-import { GridCell, Pollutant } from '@shared/types';
+import { GridCell, Pollutant, TEDSPoint } from '@shared/types';
 
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
 const TGOSMap = dynamic(() => import('@/components/map/TGOSMap'), { ssr: false });
@@ -429,6 +429,7 @@ export default function MapPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
   const [focusedGrid, setFocusedGrid] = useState<GridCell | null>(null);
+  const [tedsPoints, setTedsPoints] = useState<TEDSPoint[]>([]);
   const Z = 1100;
 
   useEffect(() => {
@@ -438,6 +439,8 @@ export default function MapPage() {
       .then(setGridCells)
       .catch(console.error)
       .finally(() => setIsLoading(false));
+
+    getTEDSPoints().then(setTedsPoints).catch(console.error);
   }, [selectedPollutant, selectedScenario, setGridCells, setIsLoading]);
 
   const handleGridPress = (grid: GridCell) => {
@@ -630,7 +633,7 @@ export default function MapPage() {
       {/* ── Map ──────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'none' : 'block' }}>
-          <LeafletMap gridCells={gridCells} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
+          <LeafletMap gridCells={[]} tedsPoints={tedsPoints} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
         </div>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'block' : 'none' }}>
           <TGOSMap gridCells={gridCells} onGridPress={handleGridPress} focusGrid={focusedGrid} />
