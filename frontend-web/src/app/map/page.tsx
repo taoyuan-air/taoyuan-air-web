@@ -430,6 +430,7 @@ export default function MapPage() {
   const [searchMessage, setSearchMessage] = useState('');
   const [focusedGrid, setFocusedGrid] = useState<GridCell | null>(null);
   const [tedsPoints, setTedsPoints] = useState<TEDSPoint[]>([]);
+  const [tedsPointsError, setTedsPointsError] = useState('');
   const Z = 1100;
 
   useEffect(() => {
@@ -440,7 +441,16 @@ export default function MapPage() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
 
-    getTEDSPoints().then(setTedsPoints).catch(console.error);
+    getTEDSPoints()
+      .then((points) => {
+        setTedsPoints(points);
+        setTedsPointsError('');
+      })
+      .catch((error) => {
+        console.error(error);
+        setTedsPoints([]);
+        setTedsPointsError(error instanceof Error ? error.message : 'TEDS 點位資料載入失敗');
+      });
   }, [selectedPollutant, selectedScenario, setGridCells, setIsLoading]);
 
   const handleGridPress = (grid: GridCell) => {
@@ -625,6 +635,12 @@ export default function MapPage() {
           {searchMessage && (
             <div style={{ marginTop: 6, paddingLeft: 14, fontSize: 11, fontWeight: 700, color: '#9F1239' }}>
               {searchMessage}
+            </div>
+          )}
+
+          {tedsPointsError && (
+            <div style={{ marginTop: 8, marginLeft: 4, padding: '8px 12px', maxWidth: 300, borderRadius: 12, background: 'rgba(255,255,255,0.96)', border: `1px solid ${palette.borderSoft}`, boxShadow: '0 8px 24px rgba(58,30,45,0.12)', color: '#9F1239', fontSize: 12, fontWeight: 700 }}>
+              TEDS 點位載入失敗：{tedsPointsError}
             </div>
           )}
         </div>
