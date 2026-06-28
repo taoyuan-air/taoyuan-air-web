@@ -162,6 +162,19 @@ CREATE TABLE IF NOT EXISTS cwa_hourly_data_2025_12 PARTITION OF cwa_hourly_data 
 CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_01 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
 CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_02 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_03 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_04 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_05 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_06 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_07 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_08 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_09 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_10 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_11 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_2026_12 PARTITION OF cwa_hourly_data FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
+
+-- 保底分區：超出目前明確月份範圍的資料先落到 default，避免匯入中斷。
+CREATE TABLE IF NOT EXISTS cwa_hourly_data_default
+    PARTITION OF cwa_hourly_data DEFAULT;
 
 -- ========================================================
 -- 5. 建立索引

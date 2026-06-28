@@ -4,7 +4,7 @@ TYDEP（桃園市環保局）測站資料轉換腳本（原 TEPA）
 將 Excel 原始資料轉換為按測站+月份分割的 JSON 檔
 
 輸入：data/raw/tydep-stations/桃園市空氣品質測站監測數據(108-115).xlsx
-輸出：data/raw/tydep-stations/json/<station_id>/<YYYY_MM>.json
+輸出：data/processed/tydep-stations/json/<station_id>/<YYYY_MM>.json
 
 保留污染物（對齊 MOE/CWA 六項）：
   SO2, CO, O3, NO2, PM10, PM2.5
@@ -24,13 +24,13 @@ DATA_START = datetime(2019, 3, 1)
 
 ROOT_DIR = Path(__file__).parent.parent
 INPUT_FILE = ROOT_DIR / "data" / "raw" / "tydep-stations" / "桃園市空氣品質測站監測數據(108-115).xlsx"
-OUTPUT_DIR = ROOT_DIR / "data" / "raw" / "tydep-stations" / "json"
+OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "tydep-stations" / "json"
 
 STATION_MAP = {
     "(局)新興國小": {"id": "0604616A0002", "name": "新興國小", "district": "蘆竹區"},
     "(局)內壢":     {"id": "0604316A0003", "name": "內壢",     "district": "中壢區"},
     "(局)華亞":     {"id": "0604816I0005", "name": "華亞",     "district": "龜山區"},
-    "(局)觀音":     {"id": "0605316I0004", "name": "觀音_S",   "district": "觀音區"},
+    "(局)觀音":     {"id": "0605316I0004", "name": "觀音_N",   "district": "觀音區"},
 }
 
 COL = {

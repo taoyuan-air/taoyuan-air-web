@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
 TYDEP 測站資料匯入腳本（原 TEPA）
-讀取 data/raw/tydep-stations/json/<station_id>/<YYYY_MM>.json
+讀取 data/processed/tydep-stations/json/<station_id>/<YYYY_MM>.json
 並批次匯入 PostgreSQL 的 tydep_hourly_data 分區表
 """
 
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 try:
     import psycopg2
+    from psycopg2 import sql
     from psycopg2.extras import execute_batch
 except ImportError:
     print("[ERROR] 請先安裝 psycopg2：pip3 install psycopg2-binary")
@@ -37,8 +38,9 @@ if not DB_CONFIG['password']:
     print("[ERROR] 缺少 POSTGRES_PASSWORD 環境變數")
     sys.exit(1)
 
-ROOT_DIR    = Path(__file__).parent.parent
-JSON_DIR = ROOT_DIR / 'data' / 'raw' / 'tydep-stations' / 'json'
+ROOT_DIR        = Path(__file__).parent.parent
+JSON_DIR        = ROOT_DIR / 'data' / 'processed' / 'tydep-stations' / 'json'
+LEGACY_JSON_DIR = ROOT_DIR / 'data' / 'raw' / 'tydep-stations' / 'json'
 
 POLLUTANT_MAP = {
     'so2':  {'id': '1',  'name': '二氧化硫',   'eng': 'SO2',   'unit': 'ppb'},
@@ -69,8 +71,55 @@ def parse_concentration(val) -> Optional[float]:
         return None
 
 
+def ensure_tydep_station_names(conn) -> None:
+    """同步 TYDEP 測站命名，避免前端與 MOE 觀音站混淆。"""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE tydep_stations
+            SET station_name = '觀音_N',
+                district = '觀音區',
+                updated_at = NOW()
+            WHERE station_id = '0605316I0004'
+            """
+        )
+
+
+def month_bounds(dt: datetime) -> tuple[datetime, datetime]:
+    """回傳資料月份分區的起訖時間。"""
+    start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if start.month == 12:
+        end = start.replace(year=start.year + 1, month=1)
+    else:
+        end = start.replace(month=start.month + 1)
+    return start, end
+
+
+def ensure_tydep_partitions(conn, monitor_dates: list[datetime]) -> None:
+    """依資料月份自動建立 tydep_hourly_data 分區。"""
+    months = sorted({month_bounds(dt) for dt in monitor_dates if dt is not None})
+    if not months:
+        return
+
+    with conn.cursor() as cur:
+        for start, end in months:
+            partition_name = f"tydep_hourly_data_{start:%Y_%m}"
+            cur.execute(
+                sql.SQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS {partition}
+                    PARTITION OF tydep_hourly_data
+                    FOR VALUES FROM (%s) TO (%s)
+                    """
+                ).format(partition=sql.Identifier(partition_name)),
+                (start, end),
+            )
+
+
 def build_rows(record: dict) -> list:
     monitor_date = datetime.fromisoformat(record['monitor_date'])
+    period_start = monitor_date
+    period_end   = monitor_date + timedelta(minutes=59)
     station_id   = record['station_id']
     rows = []
 
@@ -90,6 +139,8 @@ def build_rows(record: dict) -> list:
             conc_str,
             conc_numeric,
             quality,
+            period_start,
+            period_end,
             'history',
         ))
 
@@ -120,13 +171,14 @@ def import_json_file(conn, json_path: Path) -> tuple:
         INSERT INTO tydep_hourly_data
             (station_id, monitor_date, pollutant_id, pollutant_name,
              pollutant_eng_name, unit, concentration, concentration_numeric,
-             data_quality, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             data_quality, period_start, period_end, source)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (station_id, monitor_date, pollutant_id) DO NOTHING
     """
 
     cursor = None
     try:
+        ensure_tydep_partitions(conn, [row[1] for row in all_rows])
         cursor = conn.cursor()
         execute_batch(cursor, insert_sql, all_rows, page_size=1000)
         conn.commit()
@@ -146,7 +198,9 @@ def main():
     print("TYDEP 測站資料匯入工具")
     print("=" * 60)
 
-    if not JSON_DIR.exists():
+    json_dir = JSON_DIR if JSON_DIR.exists() else LEGACY_JSON_DIR
+
+    if not json_dir.exists():
         print(f"[ERROR] 找不到 TYDEP JSON 目錄：{JSON_DIR}")
         sys.exit(1)
 
@@ -154,7 +208,12 @@ def main():
     if not conn:
         sys.exit(1)
 
-    station_dirs = sorted([d for d in JSON_DIR.iterdir() if d.is_dir()])
+    ensure_tydep_station_names(conn)
+    conn.commit()
+
+    print(f"JSON 來源目錄：{json_dir}")
+
+    station_dirs = sorted([d for d in json_dir.iterdir() if d.is_dir()])
     if not station_dirs:
         print("[ERROR] 找不到任何測站目錄")
         conn.close()
