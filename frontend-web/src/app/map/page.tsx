@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@shared/store';
-import { getGrid, setScenario } from '@shared/api/index';
+import { getGrid, setScenario, getTEDSPoints } from '@shared/api/index';
 import { palette } from '@shared/constants/theme';
 import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
-import { GridCell, Pollutant } from '@shared/types';
+import { GridCell, Pollutant, TEDSPoint } from '@shared/types';
 
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
 const TGOSMap = dynamic(() => import('@/components/map/TGOSMap'), { ssr: false });
@@ -383,6 +383,44 @@ const getNearestGridToPoint = (grids: GridCell[], latitude: number, longitude: n
   }, null)
 );
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const seededNoise = (seed: number) => {
+  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return raw - Math.floor(raw);
+};
+
+const TAOYUAN_DEMO_BOUNDS = {
+  south: 24.82,
+  north: 25.19,
+  west: 121.02,
+  east: 121.49,
+};
+
+const generateDemoTEDSPoints = (count = 420): TEDSPoint[] => {
+  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
+
+  const points: TEDSPoint[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
+    const angle = seededNoise(i + 7) * Math.PI * 2;
+    const distance = 0.0018 + seededNoise(i + 97) * 0.0105;
+    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
+    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
+    const heightM = 18 + Math.round(seededNoise(i + 163) * 178);
+
+    points.push({
+      id: `demo-stack-${String(i + 1).padStart(4, '0')}`,
+      name: `${center.district}${center.village}排放點`,
+      latLng: { latitude, longitude },
+      heightM,
+      source: 'demo-fallback',
+    });
+  }
+
+  return points;
+};
+
 const IconTemp = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -429,6 +467,8 @@ export default function MapPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
   const [focusedGrid, setFocusedGrid] = useState<GridCell | null>(null);
+  const [tedsPoints, setTedsPoints] = useState<TEDSPoint[]>([]);
+  const [tedsPointsNotice, setTedsPointsNotice] = useState('');
   const Z = 1100;
 
   useEffect(() => {
@@ -438,6 +478,25 @@ export default function MapPage() {
       .then(setGridCells)
       .catch(console.error)
       .finally(() => setIsLoading(false));
+
+    getTEDSPoints()
+      .then((points) => {
+        if (points.length > 0) {
+          setTedsPoints(points);
+          setTedsPointsNotice('');
+          return;
+        }
+
+        const demoPoints = generateDemoTEDSPoints();
+        setTedsPoints(demoPoints);
+        setTedsPointsNotice(`TEDS 後端目前沒有回傳點位，已自動切換展示資料（${demoPoints.length} 筆）。`);
+      })
+      .catch((error) => {
+        console.error(error);
+        const demoPoints = generateDemoTEDSPoints();
+        setTedsPoints(demoPoints);
+        setTedsPointsNotice(`TEDS 後端暫時離線，已切換展示資料（${demoPoints.length} 筆）。`);
+      });
   }, [selectedPollutant, selectedScenario, setGridCells, setIsLoading]);
 
   const handleGridPress = (grid: GridCell) => {
@@ -624,13 +683,19 @@ export default function MapPage() {
               {searchMessage}
             </div>
           )}
+
+          {tedsPointsNotice && (
+            <div style={{ marginTop: 8, marginLeft: 4, padding: '8px 12px', maxWidth: 340, borderRadius: 12, background: 'rgba(255,255,255,0.96)', border: '1px solid rgba(154,102,27,0.22)', boxShadow: '0 8px 24px rgba(58,30,45,0.12)', color: '#7C4A03', fontSize: 12, fontWeight: 700 }}>
+              {tedsPointsNotice}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Map ──────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'none' : 'block' }}>
-          <LeafletMap gridCells={gridCells} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
+          <LeafletMap gridCells={[]} tedsPoints={tedsPoints} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
         </div>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'block' : 'none' }}>
           <TGOSMap gridCells={gridCells} onGridPress={handleGridPress} focusGrid={focusedGrid} />

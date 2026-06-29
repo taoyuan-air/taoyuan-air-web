@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { GridCell } from '@shared/types';
+import { GridCell, TEDSPoint } from '@shared/types';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
+  tedsPoints?: TEDSPoint[];
   mapMode: '2D' | 'Satellite';
   onGridPress?: (grid: GridCell) => void;
   focusGrid?: GridCell | null;
@@ -43,10 +44,18 @@ interface LeafletTileLayer {
   addTo: (map: LeafletMapInstance) => void;
 }
 
+interface LeafletMarkerInstance {
+  addTo: (map: LeafletMapInstance | LeafletLayerGroup) => LeafletMarkerInstance;
+  bindPopup?: (text: string) => LeafletMarkerInstance;
+}
+
 interface LeafletApi {
   map: (id: string, options: Record<string, unknown>) => LeafletMapInstance;
   tileLayer: (url: string, options: Record<string, unknown>) => LeafletTileLayer;
   layerGroup: () => LeafletLayerGroup;
+  marker?: (pos: LatLngTuple, options?: Record<string, unknown>) => LeafletMarkerInstance;
+  circleMarker?: (pos: LatLngTuple, options?: Record<string, unknown>) => LeafletMarkerInstance;
+  divIcon?: (options?: Record<string, unknown>) => unknown;
   polygon: (positions: LatLngTuple[], options: Record<string, unknown>) => LeafletPolygon;
 }
 
@@ -71,8 +80,39 @@ let _windyReadyCallback: ((api: WindyApi) => void) | null = null;
 const WINDY_CALLBACK_NAME = '__taoyuanAirWindyReady';
 const scriptLoaders = new Map<string, Promise<boolean>>();
 const WINDY_DETAIL_ZOOM = 11;
+const TEDS_ICON_ZOOM = 13;
+const TEDS_NANO_ZOOM = 10;
 const DETAIL_MAX_ZOOM = 19;
 const MAP_FADE_MS = 220;
+const TEDS_MARKER_STYLE_ID = 'teds-marker-style';
+
+const ensureTEDSMarkerStyles = () => {
+  if (document.getElementById(TEDS_MARKER_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = TEDS_MARKER_STYLE_ID;
+  style.textContent = `
+    .teds-marker-shell {
+      background: transparent;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .teds-emoji-pin {
+      font-size: 18px;
+      line-height: 1;
+      user-select: none;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+const samplePointsByZoom = (points: TEDSPoint[], zoom: number) => {
+  const maxMarkers = zoom <= TEDS_NANO_ZOOM ? 1000 : zoom < 13 ? 1200 : 4000;
+  if (points.length <= maxMarkers) return points;
+  const step = Math.ceil(points.length / maxMarkers);
+  return points.filter((_, index) => index % step === 0);
+};
 
 const getWindowValue = <T,>(key: string) => (window as unknown as RuntimeWindow)[key] as T | undefined;
 
@@ -99,7 +139,7 @@ const getGridColor = (value: number) => {
   return `rgba(${r},${g},${b},0.4)`;
 };
 
-export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid }: LeafletMapProps) {
+export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress, focusGrid }: LeafletMapProps) {
   const [isDetailMode, setIsDetailMode] = useState(false);
   const mapRef = useRef<LeafletMapInstance | null>(null);
   const windyLeafletRef = useRef<LeafletApi | null>(null);
@@ -114,15 +154,73 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
   const mapModeRef = useRef(mapMode);
   const gridCellsRef = useRef<GridCell[]>(gridCells);
   const onGridPressRef = useRef(onGridPress);
+  const tedsPointsRef = useRef<TEDSPoint[]>(tedsPoints || []);
 
   const updateDetailMode = useCallback((next: boolean) => {
     isDetailModeRef.current = next;
     setIsDetailMode(next);
   }, []);
 
+  const renderTEDSPoints = useCallback((points: TEDSPoint[], L: LeafletApi, layerGroup: LeafletLayerGroup, mapInstance?: LeafletMapInstance) => {
+    if (!L || !layerGroup || !mapInstance) return;
+    layerGroup.clearLayers();
+    console.log(" TEDS 從後端撈到的點位總數：", points.length);
+    const zoom = mapInstance.getZoom();
+    const pointsToRender = samplePointsByZoom(points, zoom);
+
+    pointsToRender.forEach((point) => {
+      const pos: LatLngTuple = [point.latLng.latitude, point.latLng.longitude];
+      try {
+        const isNano = zoom < 12; 
+        
+        if (isNano) {
+          const targetL = L.circleMarker ? L : (window as any).L;
+          if (targetL && typeof targetL.circleMarker === 'function') {
+            const marker = targetL.circleMarker(pos, {
+              radius: zoom <= 10 ? 2.5 : 3.5,
+              stroke: false,
+              fillColor: "#d4567a", 
+              fillOpacity: 0.85,   
+              interactive: false,
+            });
+            marker.addTo(layerGroup);
+            return;
+          }
+        }
+
+        if (!L.marker) return;
+        
+        const icon = L.divIcon?.({
+          className: 'teds-marker-shell',
+          html: `<div class="teds-emoji-pin">📍</div>`, 
+          iconSize: [16, 36],
+          iconAnchor: [8, 36],    
+          popupAnchor: [0, -34],
+        });
+
+        const marker = L.marker(pos, {
+          title: point.name || point.id,
+          ...(icon ? { icon } : {}),
+        });
+        if (marker) {
+          marker.addTo(layerGroup);
+          if (typeof marker.bindPopup === 'function') {
+            marker.bindPopup(`<strong>${point.name || point.id}</strong><br/>Height: ${point.heightM || 'N/A'}m`);
+          }
+        }
+      } catch (e) {
+        // Silently skip markers that fail to render
+      }
+    });
+  }, []);
+
   useEffect(() => {
     gridCellsRef.current = gridCells;
   }, [gridCells]);
+
+  useEffect(() => {
+    tedsPointsRef.current = tedsPoints || [];
+  }, [tedsPoints]);
 
   useEffect(() => {
     mapModeRef.current = mapMode;
@@ -231,6 +329,7 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
       try {
         await loadLink('https://unpkg.com/leaflet@1.4.0/dist/leaflet.css', 'leaflet-css');
         await loadScript('https://unpkg.com/leaflet@1.4.0/dist/leaflet.js', 'leaflet-js');
+        ensureTEDSMarkerStyles();
         const L = getWindowValue<LeafletApi>('L');
         if (!L) return;
 
@@ -241,6 +340,11 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
           satMapRef.current = satMap;
           satLayerGroupRef.current = L.layerGroup().addTo(satMap);
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, satLayerGroupRef.current);
+          const satLayerGroup = satLayerGroupRef.current;
+          if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
+          satMap.on('zoomend', () => {
+            if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
+          });
         }
 
         const detailContainer = document.getElementById('detail-map');
@@ -253,9 +357,15 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
           detailMapRef.current = detailMap;
           detailLayerGroupRef.current = L.layerGroup().addTo(detailMap);
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, detailLayerGroupRef.current);
+          const detailLayerGroup = detailLayerGroupRef.current;
+          if (detailLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
           detailMap.on('zoomend', () => {
             if (isSyncingRef.current || mapModeRef.current !== '2D') return;
-            if (detailMap.getZoom() <= WINDY_DETAIL_ZOOM && isDetailModeRef.current) syncWindyFromDetail();
+            if (detailMap.getZoom() <= WINDY_DETAIL_ZOOM && isDetailModeRef.current) {
+              syncWindyFromDetail();
+            } else if (detailLayerGroup && tedsPointsRef.current.length > 0) {
+              renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
+            }
           });
         }
 
@@ -298,9 +408,16 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
           map.options.maxZoom = DETAIL_MAX_ZOOM;
           map.setMaxZoom?.(DETAIL_MAX_ZOOM);
           polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
+          const polygonLayerGroup = polygonLayerGroupRef.current;
+          if (polygonLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
           map.on('zoomend', () => {
             if (isSyncingRef.current || mapModeRef.current !== '2D') return;
-            if (map.getZoom() > WINDY_DETAIL_ZOOM) syncDetailFromWindy();
+            if (map.getZoom() > WINDY_DETAIL_ZOOM) {
+              syncDetailFromWindy();
+            } else if (polygonLayerGroup && tedsPointsRef.current.length > 0) {
+              // Re-render TEDS points at appropriate zoom level
+              renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
+            }
           });
           if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, WL, polygonLayerGroupRef.current);
         };
@@ -333,6 +450,15 @@ export default function LeafletMap({ gridCells, mapMode, onGridPress, focusGrid 
       if (L && satMapRef.current && satLayerGroupRef.current) renderPolygons(gridCells, L, satLayerGroupRef.current);
     }
   }, [gridCells, renderPolygons]);
+
+  useEffect(() => {
+    const L = getWindowValue<LeafletApi>('L');
+    const windyLeaflet = windyLeafletRef.current || L;
+    if (!windyLeaflet) return;
+    if (polygonLayerGroupRef.current && mapRef.current) renderTEDSPoints(tedsPointsRef.current, windyLeaflet, polygonLayerGroupRef.current, mapRef.current);
+    if (L && detailLayerGroupRef.current && detailMapRef.current) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroupRef.current, detailMapRef.current);
+    if (L && satLayerGroupRef.current && satMapRef.current) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroupRef.current, satMapRef.current);
+  }, [tedsPoints, renderTEDSPoints]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
