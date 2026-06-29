@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Plane } from 'lucide-react';
-import { UAVProfileChart } from '@/components/UAV/UAVProfileChart';
+import { UAVProfileChart, type ParamStats } from '@/components/UAV/UAVProfileChart';
 import { UAVParameterSelector } from '@/components/UAV/UAVParameterSelector';
 import { fetchFlights, type FlightSummary } from '@/lib/uavApi';
 import { DEFAULT_PARAMETERS, type ParameterId } from '@/components/UAV/uavConfig';
 
 /* ──────────────────────────────────────────────────────────── */
-/*  Design tokens (match the rest of the app)                   */
+/*  Design tokens                                               */
 /* ──────────────────────────────────────────────────────────── */
 const C = {
   rose:        '#D4567A',
@@ -117,6 +117,8 @@ export default function UAVProfilePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [parameters, setParameters] = useState<ParameterId[]>(DEFAULT_PARAMETERS);
   const [loadError, setLoadError]   = useState<string | null>(null);
+  // Stats received from UAVProfileChart after each successful fetch
+  const [paramStats, setParamStats] = useState<Record<string, ParamStats>>({});
 
   useEffect(() => {
     fetchFlights()
@@ -127,10 +129,18 @@ export default function UAVProfilePage() {
       .catch((err: Error) => setLoadError(err.message));
   }, []);
 
+  // Stable callback — useCallback prevents UAVProfileChart from re-fetching
+  // just because the page re-renders
+  const handleStatsReady = useCallback(
+    (stats: Record<string, ParamStats>) => setParamStats(stats),
+    [],
+  );
+
+  const selectedFlight = flights.find((f) => f.flight_id === selectedId);
+
   return (
-    <div
-      style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}
-    >
+    <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}>
+
       {/* ── Page header ── */}
       <div style={{ padding: '28px 40px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
@@ -180,7 +190,7 @@ export default function UAVProfilePage() {
             <FlightDropdown
               flights={flights}
               selected={selectedId ?? ''}
-              onSelect={setSelectedId}
+              onSelect={(id) => { setSelectedId(id); setParamStats({});}}
             />
           )}
         </div>
@@ -188,8 +198,12 @@ export default function UAVProfilePage() {
         {/* Divider */}
         <div style={{ height: 1, background: 'rgba(180,140,160,0.10)' }} />
 
-        {/* Parameter selector */}
-        <UAVParameterSelector selected={parameters} onChange={setParameters} />
+        {/* Parameter selector — receives paramStats so it can show ranges */}
+        <UAVParameterSelector
+          selected={parameters}
+          onChange={setParameters}
+          paramStats={paramStats}
+        />
 
         {parameters.length > 1 && (
           <p style={{ margin: 0, fontSize: 11, color: C.hint }}>
@@ -199,46 +213,70 @@ export default function UAVProfilePage() {
       </div>
 
       {/* ── Chart area ── */}
-      <div style={{ margin: '20px 40px 0' }}>
+      <div className="uav-chart-wrapper">
         {parameters.length === 0 ? (
-          <div
-            style={{
-              background: C.glass,
-              border: `1px solid rgba(212,86,122,0.08)`,
-              borderRadius: 16, padding: '48px 24px',
-              textAlign: 'center', color: C.hint, fontSize: 14, fontWeight: 600,
-            }}
-          >
-            請至少選擇一個參數
-          </div>
+          <div className="uav-placeholder">請至少選擇一個參數</div>
         ) : selectedId ? (
           <UAVProfileChart
             key={selectedId}
             flightId={selectedId}
-            flightDirection={flights.find(f => f.flight_id === selectedId)?.flight_direction ?? 'ascending'}
+            flightDirection={selectedFlight?.flight_direction ?? 'ascending'}
             parameters={parameters}
+            onStatsReady={handleStatsReady}
           />
         ) : (
-          <div
-            style={{
-              background: C.glass,
-              border: `1px solid rgba(212,86,122,0.08)`,
-              borderRadius: 16, padding: '48px 24px',
-              textAlign: 'center', color: C.hint, fontSize: 14, fontWeight: 600,
-            }}
-          >
-            請選擇飛行任務
-          </div>
+          <div className="uav-placeholder">請選擇飛行任務</div>
         )}
       </div>
 
-      {/* ── Inline styles ── */}
+      {/* ── Styles ── */}
       <style>{`
-        /* ── UAV Parameter Selector ─────────────────────────── */
+        /* ── Chart wrapper: fills most of the viewport ──────── */
+        .uav-chart-wrapper {
+          margin: 20px 40px 0;
+          /* Reserve space for header (~160px) + controls (~180px) + gaps */
+          height: calc(100vh - 340px);
+          min-height: 480px;
+        }
+
+        /* Profile card fills the wrapper height */
+        .uav-profile-card {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          background: ${C.glass};
+          border: 1px solid rgba(212,86,122,0.08);
+          border-radius: 16px;
+          box-shadow: ${C.glassShadow};
+          padding: 24px 28px;
+          box-sizing: border-box;
+        }
+
+        /* ResponsiveContainer inside gets the remaining height */
+        .uav-profile-card > .recharts-responsive-container {
+          flex: 1 1 0;
+          min-height: 0;
+        }
+
+        /* ── Placeholder cards ───────────────────────────────── */
+        .uav-placeholder {
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${C.glass};
+          border: 1px solid rgba(212,86,122,0.08);
+          border-radius: 16px;
+          color: ${C.hint};
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        /* ── Parameter selector ─────────────────────────────── */
         .uav-param-selector {
           display: flex;
           flex-wrap: wrap;
-          align-items: center;
+          align-items: flex-start;
           gap: 10px 12px;
         }
 
@@ -247,6 +285,7 @@ export default function UAVProfilePage() {
           font-weight: 800;
           color: ${C.muted};
           white-space: nowrap;
+          padding-top: 6px;
         }
 
         .uav-param-group {
@@ -266,8 +305,11 @@ export default function UAVProfilePage() {
         }
 
         .uav-param-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           padding: 5px 11px;
-          border-radius: 999px;
+          border-radius: 10px;
           border: 1.5px solid;
           cursor: pointer;
           font-size: 12px;
@@ -275,10 +317,15 @@ export default function UAVProfilePage() {
           font-family: inherit;
           transition: all 0.15s;
           line-height: 1.4;
+          gap: 1px;
         }
 
         .uav-param-btn:hover {
           filter: brightness(0.92);
+        }
+
+        .uav-param-btn-text {
+          white-space: nowrap;
         }
 
         .uav-param-unit {
@@ -286,15 +333,15 @@ export default function UAVProfilePage() {
           opacity: 0.75;
         }
 
-        /* ── Profile Card ────────────────────────────────────── */
-        .uav-profile-card {
-          background: ${C.glass};
-          border: 1px solid rgba(212,86,122,0.08);
-          border-radius: 16px;
-          box-shadow: ${C.glassShadow};
-          padding: 24px 28px;
+        /* Range label shown below the param name on active buttons */
+        .uav-param-range {
+          font-size: 10px;
+          font-weight: 500;
+          white-space: nowrap;
+          line-height: 1.2;
         }
 
+        /* ── Flight title ────────────────────────────────────── */
         .uav-flight-title {
           display: flex;
           flex-direction: column;
@@ -303,6 +350,7 @@ export default function UAVProfilePage() {
           font-weight: 700;
           color: ${C.text};
           margin-bottom: 8px;
+          flex-shrink: 0;
         }
 
         .uav-flight-meta {
@@ -311,6 +359,7 @@ export default function UAVProfilePage() {
           font-weight: 500;
         }
 
+        /* ── Norm legend ─────────────────────────────────────── */
         .uav-norm-legend {
           display: flex;
           flex-wrap: wrap;
@@ -318,6 +367,7 @@ export default function UAVProfilePage() {
           margin-bottom: 12px;
           font-size: 11px;
           font-weight: 600;
+          flex-shrink: 0;
         }
 
         .uav-norm-item {
@@ -364,6 +414,7 @@ export default function UAVProfilePage() {
           text-align: center;
           font-size: 14px;
           font-weight: 600;
+          flex-shrink: 0;
         }
 
         .uav-loading { color: ${C.hint}; }
@@ -375,9 +426,55 @@ export default function UAVProfilePage() {
           margin: 16px 0;
         }
 
+        /* ── Mobile portrait: rotate hint ───────────────────── */
+        .uav-rotate-hint {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          padding: 32px 24px;
+          color: ${C.muted};
+          text-align: center;
+        }
+
+        .uav-rotate-icon {
+          font-size: 48px;
+          display: inline-block;
+          animation: uav-spin-hint 2s ease-in-out infinite;
+        }
+
+        .uav-rotate-hint p {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 1.6;
+        }
+
+        @keyframes uav-spin-hint {
+          0%   { transform: rotate(0deg); }
+          40%  { transform: rotate(90deg); }
+          60%  { transform: rotate(90deg); }
+          100% { transform: rotate(90deg); }
+        }
+
         /* ── Responsive ──────────────────────────────────────── */
         @media (max-width: 768px) {
+          .uav-chart-wrapper {
+            margin: 16px 16px 0;
+            height: calc(100vh - 300px);
+          }
+          .uav-profile-card {
+            padding: 16px 16px;
+          }
           .uav-param-selector { gap: 8px 10px; }
+        }
+
+        @media (max-width: 600px) {
+          .uav-chart-wrapper {
+            margin: 12px 12px 0;
+          }
         }
       `}</style>
     </div>

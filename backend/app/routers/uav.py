@@ -39,4 +39,5 @@ async def get_profile(flight_id: str, db: AsyncSession = Depends(get_db)):
         {"fid": flight_id},
     )
     rows = result.mappings().all()
-    return [ProfileRow(**dict(r)) for r in rows]
+    # Use by_alias=True so "PM2.5" (quoted column) is serialised with its real name
+    return [ProfileRow(**dict(r)).model_dump(by_alias=True) for r in rows]

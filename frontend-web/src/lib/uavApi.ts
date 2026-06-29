@@ -21,7 +21,8 @@ export interface ProfileRow {
   wd:    number | null;
   theta: number | null;
   pm1:   number | null;
-  pm25:  number | null;
+  // "PM2.5" is quoted in the DB view — PostgreSQL preserves the dot in the column name
+  "PM2.5": number | null;
   pm10:  number | null;
   o3:    number | null;
   no2:   number | null;
