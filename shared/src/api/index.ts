@@ -105,7 +105,6 @@ export const getStations = async ({ pollutant, timestamp }: { pollutant: Polluta
   return mockStations;
 };
 
-// ── 🎯 這是修改後的連線報錯機制 ───────────────────────────────────
 export const getTEDSPoints = async (): Promise<TEDSPoint[]> => {
   try {
     const response = await fetch('/api/teds-points');
@@ -114,7 +113,6 @@ export const getTEDSPoints = async (): Promise<TEDSPoint[]> => {
     }
     return await response.json();
   } catch (error) {
-    // 這裡直接把錯誤拋給前端畫面處理，不使用假資料頂替
     console.error('TEDS Points API 連線失敗:', error);
     throw error;
   }
