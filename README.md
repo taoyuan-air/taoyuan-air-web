@@ -1,12 +1,21 @@
 ## 專案結構
 
+> 文件使用方式：
+>
+> - 整個專案安裝與啟動：看本文件。
+> - Web 前端、API 金鑰、數據檢索狀態：看 `frontend-web/README.md`。
+> - 原始資料放置方式：看 `data/DATA_GUIDE.md`。
+> - 資料庫 schema 與匯入流程：看 `database/README.md`。
+> - `TaoyuanAir登入功能指南與其他更新.md` 僅保留登入功能與遷移紀錄。
+
 ```text
 taoyuan-air/
 ├─ frontend-web/       # Next.js + React，桌面版與網頁版儀表板
 ├─ frontend-mobile/    # Expo + React Native，手機 App
+├─ backend/            # FastAPI + SQLAlchemy，歷史資料查詢 API（port 8001）
 ├─ shared/             # 共用 API、types、store、constants
 ├─ database/           # 資料庫 schema 與初始化相關檔案
-├─ data/               # 原始資料與匯入資料
+├─ data/               # 原始資料與匯入資料（過濾後的桃園 2025+ 資料已 tracked）
 ├─ scripts/            # 資料庫檢查、備份、匯入與轉換工具
 ├─ docs/               # 專案文件與資料來源說明
 └─ docker-compose.yml  # PostgreSQL + PostGIS + Redis
@@ -58,6 +67,7 @@ POSTGRES_DB=taoyuan_air
 ```env
 # frontend-web/.env.local
 NEXT_PUBLIC_MOE_API_KEY=your_moe_api_key_here
+NEXT_PUBLIC_CWA_API_KEY=your_cwa_api_key_here
 NEXT_PUBLIC_WINDY_API_KEY=your_windy_api_key_here
 NEXT_PUBLIC_TGOS_API_KEY=your_tgos_api_key_here
 ```
@@ -96,7 +106,28 @@ docker-compose ps
 scripts\check_db.bat
 ```
 
-#### 4. 啟動 Web 應用
+#### 4. 啟動 FastAPI Backend
+
+Data Explorer 的歷史資料查詢需要 FastAPI backend（port 8001）。
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install greenlet          # SQLAlchemy async 需要
+
+# 啟動（開發模式）
+uvicorn app.main:app --reload --port 8001
+```
+
+確認 `backend/.env` 內容（依 docker-compose 預設值）：
+
+```env
+DATABASE_URL=postgresql+asyncpg://taoyuan_user:***REMOVED***@localhost:5432/taoyuan_air
+```
+
+#### 5. 啟動 Web 應用
 
 在 repo root 執行：
 
@@ -113,7 +144,7 @@ npm run dev
 
 預設會啟動 Next.js 開發伺服器，通常位於 `http://localhost:3000`。
 
-#### 5. 啟動 Mobile App
+#### 6. 啟動 Mobile App
 
 在 repo root 執行：
 

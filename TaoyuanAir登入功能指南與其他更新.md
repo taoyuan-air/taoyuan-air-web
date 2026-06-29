@@ -2,12 +2,22 @@
 title: Taoyuan Air 登入功能完整設置指南與其他更新
 
 ---
+
+> **文件定位（2026-06-22 更新）**
+>
+> 本文件只保留登入/登出功能、使用者資料表遷移與 FastAPI 設置紀錄。
+> Web 前端環境變數、啟動方式與數據檢索目前狀態，請以
+> `frontend-web/README.md` 為準。
+>
+> 舊內容中的 `frontend-web/.env` 已不再作為主要設定方式；
+> 現在統一使用 `frontend-web/.env.local`。
+
 此分支除新增登出登入功能，也同時新增首頁dashboard的天氣卡片以及調整pm2.5趨勢條
 
 </br>
 
 ## 20260618 20:09更新
-1. frontend-web/.env
+1. `frontend-web/.env.local`
 需新增cwa api key (NEXT_PUBLIC_CWA_API_KEY)
 
 

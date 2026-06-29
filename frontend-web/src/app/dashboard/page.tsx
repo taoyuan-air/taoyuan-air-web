@@ -22,7 +22,9 @@ import {
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
 
 const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe').then(r => r.json());
+  fetch('/api/moe')
+    .then(r => r.json())
+    .then(response => response.data);
 
 const C = {
   rose: '#D4567A',
@@ -1499,7 +1501,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch(`/api/cwa?district=${encodeURIComponent(district)}`)
       .then(r => r.json())
-      .then(({ current, forecast, past1hrRain }) => {
+      .then(({ data: { current, forecast, past1hrRain } }) => {
         setCurrentWeather(current);
         setForecast(forecast);
         setPast1hrRain(past1hrRain);
