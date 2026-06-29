@@ -17,7 +17,6 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 CREATE TABLE IF NOT EXISTS wind_lidar_stations (
     station_id  VARCHAR(20)           PRIMARY KEY,
     county      VARCHAR(50)           NOT NULL DEFAULT '桃園市',
-    location    GEOMETRY(Point, 4326),
     latitude    DECIMAL(10, 8),
     longitude   DECIMAL(11, 8),
     altitude_m  DECIMAL(7, 1),                    -- 儀器離地高度（公尺）
@@ -27,7 +26,6 @@ CREATE TABLE IF NOT EXISTS wind_lidar_stations (
 );
 
 ALTER TABLE IF EXISTS wind_lidar_stations
-    ADD COLUMN IF NOT EXISTS location GEOMETRY(Point, 4326),
     ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
     ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8),
     ADD COLUMN IF NOT EXISTS altitude_m DECIMAL(7, 1),
@@ -36,11 +34,10 @@ ALTER TABLE IF EXISTS wind_lidar_stations
 
 -- 插入 TMA_328 儀器資料
 INSERT INTO wind_lidar_stations
-    (station_id, county, location, latitude, longitude, altitude_m)
+    (station_id, county, latitude, longitude, altitude_m)
 VALUES
-    ('TMA_328', '桃園市', ST_SetSRID(ST_MakePoint(121.11794722, 25.05283056), 4326), 25.05283056, 121.11794722, 36.0)
+    ('TMA_328', '桃園市', 25.05283056, 121.11794722, 36.0)
 ON CONFLICT (station_id) DO UPDATE SET
-    location   = EXCLUDED.location,
     latitude   = EXCLUDED.latitude,
     longitude  = EXCLUDED.longitude,
     altitude_m = EXCLUDED.altitude_m,
