@@ -14,6 +14,12 @@ interface Props {
   onChange: (params: ParameterId[]) => void;
   /** Stats from the last successful chart fetch — used to show ranges on active buttons */
   paramStats?: Record<string, ParamStats>;
+  /**
+   * Set of parameter IDs confirmed to have data in the current flight.
+   * null = still prefetching (show all buttons to avoid flash).
+   * When provided, buttons for parameters NOT in the set are hidden.
+   */
+  availableParams: Set<ParameterId> | null;
 }
 
 // Group parameters by category in display order
@@ -57,7 +63,7 @@ function RangeLabel({
   );
 }
 
-export function UAVParameterSelector({ selected, onChange, paramStats }: Props) {
+export function UAVParameterSelector({ selected, onChange, paramStats, availableParams }: Props) {
   function toggle(id: ParameterId) {
     if (selected.includes(id)) {
       onChange(selected.filter((p) => p !== id));
@@ -68,11 +74,15 @@ export function UAVParameterSelector({ selected, onChange, paramStats }: Props) 
 
   return (
     <div className="uav-param-selector">
-      <span className="uav-param-label">顯示參數：</span>
+      <span className="uav-param-label">顯示參數</span>
       {CATEGORY_ORDER.map((cat) => (
         <div key={cat} className="uav-param-group">
           <span className="uav-param-category">{CATEGORY_LABELS[cat]}</span>
           {byCategory[cat].map((id) => {
+            // availableParams === null means still loading → show all buttons.
+            // Once loaded, hide buttons for parameters with no data.
+            if (availableParams !== null && !availableParams.has(id)) return null;
+
             const cfg = PARAMETER_CONFIG[id];
             const active = selected.includes(id);
             return (
