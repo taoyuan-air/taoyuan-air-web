@@ -60,6 +60,48 @@ function ParamTooltip({ active, payload, label, paramId }: ParamTooltipProps) {
 export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChartProps) {
   const cfg = PARAMETER_CONFIG[paramId];
 
+  // Pre-compute the tick array so we know which value is the rightmost tick.
+  // For 'fixed' domain params (e.g. wind direction 0–360) we skip the nice-tick
+  // algorithm and use fixed ticks so the domain never gets stretched.
+  const { xTicks, effectiveDomain } = (() => {
+    if (!xDomain) return { xTicks: [] as number[], effectiveDomain: xDomain };
+    const [lo, hi] = xDomain;
+    const range = hi - lo;
+    if (range === 0) return { xTicks: [lo], effectiveDomain: xDomain };
+
+    // Fixed-domain parameters: use evenly-spaced ticks within [lo, hi] exactly
+    const cfg = PARAMETER_CONFIG[paramId];
+    if (cfg.domainType === 'fixed') {
+      const fixedStep = range / 4;
+      const fixedTicks = [0, 1, 2, 3, 4].map((i) => lo + fixedStep * i);
+      return { xTicks: fixedTicks, effectiveDomain: xDomain };
+    }
+
+    // Pick a "nice" step that gives roughly 4–5 intervals
+    const rawStep = range / 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const niceSteps = [1, 2, 2.5, 5, 10];
+    const step = magnitude * (niceSteps.find((s) => magnitude * s >= rawStep) ?? 10);
+
+    const start = Math.ceil(lo / step) * step;
+    const result: number[] = [];
+
+    // Extend upper bound to next full step so the last tick is always >= hi
+    const extendedHi = Math.ceil(hi / step) * step;
+    for (let v = start; v <= extendedHi + step * 0.001; v += step) {
+      result.push(Math.round(v / step) * step);
+    }
+
+    // The effective domain ceiling must match the last tick so lines don't clip
+    const lastTickVal = result[result.length - 1] ?? hi;
+    const newDomain: [number, number] = [lo, Math.max(hi, lastTickVal)];
+
+    return { xTicks: result, effectiveDomain: newDomain };
+  })();
+
+  // The last computed tick gets the unit label appended
+  const lastTick = xTicks.length > 0 ? xTicks[xTicks.length - 1] : null;
+
   return (
     <div
       className="uav-param-card"
@@ -102,12 +144,18 @@ export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChart
               width={52}
             />
 
-            {/* X axis = real values for this parameter */}
+            {/* X axis = real values; the rightmost tick shows the unit */}
             <XAxis
               dataKey={paramId}
               type="number"
-              domain={xDomain}
-              tickFormatter={(v: number) => v.toFixed(1)}
+              domain={effectiveDomain ?? xDomain}
+              ticks={xTicks}
+              tickFormatter={(v: number) => {
+                if (lastTick !== null && Math.abs(v - lastTick) < 0.0001) {
+                  return `${v.toFixed(1)} ${cfg.unit}`;
+                }
+                return v.toFixed(1);
+              }}
               tick={{ fontSize: 10, fill: '#7a6880' }}
             />
 

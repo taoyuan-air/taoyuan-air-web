@@ -2,7 +2,7 @@
 
 import { useEffect, useReducer, useRef } from 'react';
 import { fetchProfile, type ProfileRow } from '@/lib/uavApi';
-import { PARAMETER_CONFIG, computeParamDomain, type ParameterId } from './uavConfig';
+import { computeParamDomain, type ParameterId } from './uavConfig';
 import { UAVParamChart } from './UAVParamChart';
 
 /* ─── Types ──────────────────────────────────────────────────────────── */

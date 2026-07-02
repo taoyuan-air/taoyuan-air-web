@@ -22,13 +22,16 @@ interface Props {
   availableParams: Set<ParameterId> | null;
 }
 
+// Parameters intentionally excluded from the selector UI
+const HIDDEN_PARAMS = new Set<ParameterId>(['p']);
+
 // Group parameters by category in display order
 const CATEGORY_ORDER: CategoryId[] = ['meteorology', 'aerosol', 'gas'];
 
 const byCategory = CATEGORY_ORDER.reduce<Record<CategoryId, ParameterId[]>>(
   (acc, cat) => {
     acc[cat] = ALL_PARAMETER_IDS.filter(
-      (id) => PARAMETER_CONFIG[id].category === cat
+      (id) => PARAMETER_CONFIG[id].category === cat && !HIDDEN_PARAMS.has(id)
     );
     return acc;
   },
