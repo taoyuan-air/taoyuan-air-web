@@ -45,16 +45,23 @@ data/exports/**/*
 !data/exports/.gitkeep
 !data/README.md
 
-# CWA stations - keep folder structure, ignore files inside
-data/raw/cwa-stations/*
+# WindLidar - tracked in git
+!data/raw/WindLidar/
+!data/raw/WindLidar/*
+
+# CWA stations - Taoyuan filtered (2025+), tracked in git
 !data/raw/cwa-stations/
 !data/raw/cwa-stations/*/
+!data/raw/cwa-stations/**/*
 
-# TYDEP stations - keep folder structure, ignore files inside
-data/raw/tydep-stations/*
+# MOE stations - Taoyuan filtered (2025+), tracked in git
+!data/raw/moe-stations/
+!data/raw/moe-stations/*/
+!data/raw/moe-stations/**/*
+
+# TYDEP stations - tracked in git (single 25MB Excel, Taoyuan-only)
 !data/raw/tydep-stations/
-!data/raw/tydep-stations/*/
-!data/raw/tydep-stations/**/.gitkeep
+!data/raw/tydep-stations/**/*
 
 # TEDS point - keep folder structure, ignore files inside
 data/raw/teds-point/*
@@ -87,6 +94,7 @@ wheels/
 .installed.cfg
 *.egg
 venv/
+.venv/
 
 # Private documentation
 docs/

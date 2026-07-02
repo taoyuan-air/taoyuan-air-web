@@ -20,15 +20,10 @@ CREATE TABLE IF NOT EXISTS uav_flights (
     flight_direction  VARCHAR(20)   DEFAULT 'ascending', -- ascending / descending
     data_level        VARCHAR(5)    DEFAULT 'L3',
     data_release_date DATE,
-    project_name      VARCHAR(100),
-    instrument        VARCHAR(100),
     site_name         VARCHAR(100)  DEFAULT 'Guanyin',
-    location          GEOMETRY(Point, 4326),
     latitude          DECIMAL(10, 8) DEFAULT 25.0605,
     longitude         DECIMAL(11, 8) DEFAULT 121.1287,
-    ground_altitude_m DECIMAL(7, 1)  DEFAULT 17.0,    -- 地面海拔高度（公尺）
-    highest_flight_altitude_m DECIMAL(7, 1),
-    average_ascent_rate_ms    DECIMAL(4, 1),
+    altitude_m DECIMAL(7, 1)  DEFAULT 17.0,    -- 測站海拔高度（公尺）
     created_at        TIMESTAMP     DEFAULT NOW(),
     updated_at        TIMESTAMP     DEFAULT NOW()
 );
@@ -39,14 +34,9 @@ ALTER TABLE IF EXISTS uav_flights
     ADD COLUMN IF NOT EXISTS site_name VARCHAR(100),
     ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
     ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8),
-    ADD COLUMN IF NOT EXISTS ground_altitude_m DECIMAL(7, 1),
+    ADD COLUMN IF NOT EXISTS altitude_m DECIMAL(7, 1),
     ADD COLUMN IF NOT EXISTS takeoff_time TIMESTAMP,
     ADD COLUMN IF NOT EXISTS data_release_date DATE,
-    ADD COLUMN IF NOT EXISTS project_name VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS instrument VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS location GEOMETRY(Point, 4326),
-    ADD COLUMN IF NOT EXISTS highest_flight_altitude_m DECIMAL(7, 1),
-    ADD COLUMN IF NOT EXISTS average_ascent_rate_ms DECIMAL(4, 1);
 
 ALTER TABLE IF EXISTS uav_flights
     ALTER COLUMN flight_direction SET DEFAULT 'ascending',
@@ -58,38 +48,25 @@ ALTER TABLE IF EXISTS uav_flights
 
 -- 插入 6 次飛行任務
 INSERT INTO uav_flights
-    (flight_id, takeoff_time, flight_direction, data_level, data_release_date, project_name,
-     instrument, site_name, location, latitude, longitude, ground_altitude_m,
-     highest_flight_altitude_m, average_ascent_rate_ms)
+    (flight_id, takeoff_time, flight_direction, data_level, data_release_date,
+    site_name, latitude, longitude, altitude_m)
 VALUES
-    ('20260330_0025', '2026-03-30 00:25:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8),
-    ('20260330_0242', '2026-03-30 02:42:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8),
-    ('20260330_1433', '2026-03-30 14:33:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8),
-    ('20260330_1517', '2026-03-30 15:17:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8),
-    ('20260330_1601', '2026-03-30 16:01:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8),
-    ('20260330_1647', '2026-03-30 16:47:00', 'ascending', 'L3', '2026-04-17', '桃園環保局', 'Aeromount V2(A009)+POM(1781)', 'Guanyin', ST_SetSRID(ST_MakePoint(121.1287, 25.0605), 4326), 25.0605, 121.1287, 17.0, 301.0, 2.8)
+    ('20260330_0025', '2026-03-30 00:25:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
+    ('20260330_0242', '2026-03-30 02:42:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
+    ('20260330_1433', '2026-03-30 14:33:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
+    ('20260330_1517', '2026-03-30 15:17:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
+    ('20260330_1601', '2026-03-30 16:01:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
+    ('20260330_1647', '2026-03-30 16:47:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0)
 ON CONFLICT (flight_id) DO UPDATE SET
     takeoff_time              = EXCLUDED.takeoff_time,
     data_release_date         = EXCLUDED.data_release_date,
-    project_name              = EXCLUDED.project_name,
-    instrument                = EXCLUDED.instrument,
     flight_direction          = EXCLUDED.flight_direction,
     data_level                = EXCLUDED.data_level,
     site_name                 = EXCLUDED.site_name,
-    location                  = EXCLUDED.location,
     latitude                  = EXCLUDED.latitude,
     longitude                 = EXCLUDED.longitude,
-    ground_altitude_m         = EXCLUDED.ground_altitude_m,
-    highest_flight_altitude_m = EXCLUDED.highest_flight_altitude_m,
-    average_ascent_rate_ms    = EXCLUDED.average_ascent_rate_ms,
+    altitude_m                = EXCLUDED.altitude_m,
     updated_at                = NOW();
-
-CREATE INDEX IF NOT EXISTS idx_uav_flights_location
-    ON uav_flights USING GIST(location);
-
-UPDATE uav_flights
-SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. 量測參數定義表
@@ -100,12 +77,8 @@ CREATE TABLE IF NOT EXISTS uav_parameters (
     parameter_eng  VARCHAR(100) NOT NULL,
     unit           VARCHAR(20),
     category       VARCHAR(20),  -- altitude / meteorology / aerosol / gas
-    description    TEXT,
     created_at     TIMESTAMP    DEFAULT NOW()
 );
-
-ALTER TABLE IF EXISTS uav_parameters
-    ADD COLUMN IF NOT EXISTS description TEXT;
 
 INSERT INTO uav_parameters
     (parameter_id, parameter_name, parameter_eng, unit, category)
