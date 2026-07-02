@@ -63,6 +63,123 @@ function parameterColor(parameter: string, value: number): string {
   return C.primary;
 }
 
+type ParameterStatus = {
+  label: string;
+  color: string;
+  alpha: string;
+  border: string;
+};
+
+type DetailRangeItem = ParameterStatus & {
+  range: string;
+};
+
+function statusColors(color: string): Pick<ParameterStatus, 'color' | 'alpha' | 'border'> {
+  if (color === C.green) return { color: C.green, alpha: C.greenAlpha, border: C.greenBorder };
+  if (color === C.amber) return { color: C.amber, alpha: C.amberAlpha, border: C.amberBorder };
+  if (color === C.red) return { color: C.red, alpha: C.redAlpha, border: C.redBorder };
+  if (color === C.orange) return { color: C.orange, alpha: C.orangeAlpha, border: C.orangeBorder };
+  if (color === C.yellow) return { color: C.yellow, alpha: C.yellowAlpha, border: C.yellowBorder };
+  return { color: C.primary, alpha: C.primaryAlpha, border: C.primaryBorder };
+}
+
+function parameterStatus(parameter: string, value: number): ParameterStatus {
+  const color = parameterColor(parameter, value);
+  const colors = statusColors(color);
+
+  if (parameter === '氣溫') {
+    if (value <= 6) return { label: '非常寒冷', ...statusColors(C.orange) };
+    if (value <= 10) return { label: '寒冷', ...statusColors(C.yellow) };
+    if (value >= 38) return { label: '高溫橙燈參考', ...statusColors(C.orange) };
+    if (value >= 36) return { label: '高溫黃燈參考', ...statusColors(C.yellow) };
+    return { label: '一般', ...statusColors(C.green) };
+  }
+
+  if (parameter === '1小時雨量') {
+    if (value >= 40) return { label: '大雨', ...statusColors(C.orange) };
+    if (value > 0) return { label: '有雨', ...statusColors(C.amber) };
+    return { label: '無雨', ...statusColors(C.green) };
+  }
+
+  if (color === C.red) return { label: '異常', ...colors };
+  if (color === C.amber) return { label: '注意', ...colors };
+  return { label: '正常', ...colors };
+}
+
+function detailRangeItems(parameter: string, unit: string): DetailRangeItem[] {
+  const item = (label: string, range: string, color: string): DetailRangeItem => ({
+    label,
+    range,
+    ...statusColors(color),
+  });
+
+  switch (parameter) {
+    case 'PM2.5':
+      return [
+        item('正常', `0-15.4 ${unit}`, C.green),
+        item('注意', `15.5-35.4 ${unit}`, C.amber),
+        item('異常', `35.5 ${unit} 以上`, C.red),
+      ];
+    case 'PM10':
+      return [
+        item('正常', `0-50 ${unit}`, C.green),
+        item('注意', `51-100 ${unit}`, C.amber),
+        item('異常', `101 ${unit} 以上`, C.red),
+      ];
+    case 'O3':
+      return [
+        item('正常', `0-54 ${unit}`, C.green),
+        item('注意', `55-70 ${unit}`, C.amber),
+        item('異常', `71 ${unit} 以上`, C.red),
+      ];
+    case 'NO2':
+      return [
+        item('正常', `0-53 ${unit}`, C.green),
+        item('注意', `54-100 ${unit}`, C.amber),
+        item('異常', `101 ${unit} 以上`, C.red),
+      ];
+    case 'SO2':
+      return [
+        item('正常', `0-35 ${unit}`, C.green),
+        item('注意', `36-75 ${unit}`, C.amber),
+        item('異常', `76 ${unit} 以上`, C.red),
+      ];
+    case 'CO':
+      return [
+        item('正常', `0-4.4 ${unit}`, C.green),
+        item('注意', `4.5-9.4 ${unit}`, C.amber),
+        item('異常', `9.5 ${unit} 以上`, C.red),
+      ];
+    case '氣溫':
+      return [
+        item('寒冷', `10 ${unit} 以下`, C.yellow),
+        item('非常寒冷', `6 ${unit} 以下`, C.orange),
+        item('高溫黃燈參考', `36 ${unit} 以上`, C.yellow),
+        item('高溫橙燈參考', `38 ${unit} 以上`, C.orange),
+      ];
+    case '1小時雨量':
+      return [
+        item('無雨', `0 ${unit}`, C.green),
+        item('有雨', `0-40 ${unit}`, C.amber),
+        item('大雨', `40 ${unit} 以上`, C.orange),
+      ];
+    case '相對濕度':
+      return [
+        item('正常', `0-80 ${unit}`, C.green),
+        item('注意', `81-90 ${unit}`, C.amber),
+        item('異常', `91 ${unit} 以上`, C.red),
+      ];
+    case '風速':
+      return [
+        item('正常', `0-10 ${unit}`, C.green),
+        item('注意', `11-15 ${unit}`, C.amber),
+        item('異常', `16 ${unit} 以上`, C.red),
+      ];
+    default:
+      return [];
+  }
+}
+
 const ARC_R = 45, ARC_CX = 55, ARC_CY = 58, ARC_LEN = Math.PI * ARC_R;
 
 function polarToXY(deg: number) {
@@ -366,11 +483,14 @@ function StatChip({ icon: Icon, value, label, color }: {
 
 /* ─── Station card ───────────────────────────────────────────── */
 function StationCard({ station }: { station: StationData }) {
+  const [showDetails, setShowDetails] = useState(false);
   const pColor  = parameterColor(station.parameter, station.value);
+  const status = parameterStatus(station.parameter, station.value);
+  const detailItems = detailRangeItems(station.parameter, station.unit);
   const isWeather = station.source === '氣象署';
-  const sColor  = station.passed ? C.green : C.red;
-  const sAlpha  = station.passed ? C.greenAlpha : C.redAlpha;
-  const sBorder = station.passed ? C.greenBorder : C.redBorder;
+  const sColor  = status.color;
+  const sAlpha  = status.alpha;
+  const sBorder = status.border;
 
   const TrendIcon  = station.trend === '上升中' ? TrendingUp : station.trend === '下降中' ? TrendingDown : Minus;
   const tColor  = station.trend === '上升中' ? C.red   : station.trend === '下降中' ? C.green : C.hint;
@@ -385,6 +505,93 @@ function StationCard({ station }: { station: StationData }) {
       boxShadow: '0 4px 16px rgba(180,140,160,0.10)',
       overflow: 'hidden', display: 'flex', flexDirection: 'column',
     }}>
+      {showDetails ? (
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
+            <div>
+              <p style={{ fontSize: 17, fontWeight: 800, color: C.text, lineHeight: 1.25 }}>
+                {station.parameter}｜分級說明
+              </p>
+              <p style={{ fontSize: 12, color: C.muted, fontWeight: 600, marginTop: 4 }}>
+                {station.station}
+              </p>
+            </div>
+            <span style={{
+              flexShrink: 0,
+              padding: '5px 10px',
+              borderRadius: 99,
+              backgroundColor: status.alpha,
+              border: `1px solid ${status.border}`,
+              color: status.color,
+              fontSize: 12,
+              fontWeight: 800,
+            }}>
+              {status.label}
+            </span>
+          </div>
+
+          <div style={{
+            padding: 14,
+            borderRadius: 16,
+            backgroundColor: `${pColor}10`,
+            border: `1px solid ${pColor}28`,
+            marginBottom: 14,
+          }}>
+            <p style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 4 }}>目前值</p>
+            <p style={{ fontSize: 28, lineHeight: 1, color: pColor, fontWeight: 850 }}>
+              {station.value}
+              <span style={{ fontSize: 13, color: C.muted, marginLeft: 6 }}>{station.unit}</span>
+            </p>
+          </div>
+
+          {detailItems.length > 0 && (
+            <div style={{ display: 'grid', gap: 7, marginBottom: 14 }}>
+              {detailItems.map(item => {
+                const isActive = item.label === status.label;
+                return (
+                  <div
+                    key={`${station.id}-${item.label}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 12,
+                      backgroundColor: isActive ? item.alpha : 'rgba(255,255,255,0.55)',
+                      border: `1px solid ${isActive ? item.border : 'rgba(0,0,0,0.05)'}`,
+                      fontSize: 12,
+                      fontWeight: 750,
+                    }}
+                  >
+                    <span style={{ color: item.color }}>{item.label}</span>
+                    <span style={{ color: C.muted, whiteSpace: 'nowrap' }}>{item.range}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ marginTop: 'auto', display: 'grid', gap: 8 }}>
+            <p style={{ fontSize: 11, color: C.hint, fontWeight: 600, lineHeight: 1.55 }}>
+              資料來源：{station.source}・{station.version}・{station.time}
+              {isWeather && '。高溫紅燈、低溫紅燈與豪雨以上分級需要連續時段資料，此頁僅以目前可取得的即時值作參考。'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDetails(false)}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
+                backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`,
+                fontSize: 13, fontWeight: 800, color: C.primary,
+              }}
+            >
+              返回卡片
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -398,7 +605,7 @@ function StationCard({ station }: { station: StationData }) {
             backgroundColor: sAlpha, border: `1px solid ${sBorder}`,
             fontSize: 12, fontWeight: 700, color: sColor,
           }}>
-            {station.passed ? '正常' : '異常'}
+            {status.label}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -463,16 +670,22 @@ function StationCard({ station }: { station: StationData }) {
             )}
           </div>
         </div>
-        <button style={{
-          width: '100%', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
-          backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
-          fontSize: 13, fontWeight: 700, color: C.primary,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        }}>
+        <button
+          type="button"
+          onClick={() => setShowDetails(true)}
+          style={{
+            width: '100%', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
+            backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
+            fontSize: 13, fontWeight: 700, color: C.primary,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
           <MapPin size={14} strokeWidth={2} />
-          查看完整監測資料
+          查看詳細資料
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 }
