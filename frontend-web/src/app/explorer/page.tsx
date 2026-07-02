@@ -42,18 +42,24 @@ const GAUGE_PARAMS: Record<string, { max: number; marker: number }> = {
   'CO':    { max: 15,  marker: 4.4  },
   'VOCs':  { max: 200, marker: 50   },
   '氣溫':  { max: 45,  marker: 35   },
+  '相對濕度': { max: 100, marker: 80 },
+  '風速': { max: 20, marker: 10 },
+  '1小時雨量': { max: 80, marker: 15 },
 };
 
-function pollutantColor(pollutant: string, value: number): string {
-  if (pollutant === 'PM2.5') return value <= 15.4 ? C.primary : value <= 35.4 ? C.amber : C.red;
-  if (pollutant === 'PM10')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
-  if (pollutant === 'O3')    return value <= 54   ? C.primary : value <= 70   ? C.amber : C.red;
-  if (pollutant === 'NOx')   return value <= 100  ? C.primary : value <= 150  ? C.amber : C.red;
-  if (pollutant === 'NO2')   return value <= 53   ? C.primary : value <= 100  ? C.amber : C.red;
-  if (pollutant === 'SO2')   return value <= 35   ? C.primary : value <= 75   ? C.amber : C.red;
-  if (pollutant === 'CO')    return value <= 4.4  ? C.primary : value <= 9.4  ? C.amber : C.red;
-  if (pollutant === 'VOCs')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
-  if (pollutant === '氣溫')  return value <= 35   ? C.primary : value <= 38   ? C.amber : C.red;
+function parameterColor(parameter: string, value: number): string {
+  if (parameter === 'PM2.5') return value <= 15.4 ? C.primary : value <= 35.4 ? C.amber : C.red;
+  if (parameter === 'PM10')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
+  if (parameter === 'O3')    return value <= 54   ? C.primary : value <= 70   ? C.amber : C.red;
+  if (parameter === 'NOx')   return value <= 100  ? C.primary : value <= 150  ? C.amber : C.red;
+  if (parameter === 'NO2')   return value <= 53   ? C.primary : value <= 100  ? C.amber : C.red;
+  if (parameter === 'SO2')   return value <= 35   ? C.primary : value <= 75   ? C.amber : C.red;
+  if (parameter === 'CO')    return value <= 4.4  ? C.primary : value <= 9.4  ? C.amber : C.red;
+  if (parameter === 'VOCs')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
+  if (parameter === '氣溫')  return value <= 35   ? C.primary : value <= 38   ? C.amber : C.red;
+  if (parameter === '相對濕度') return value <= 80 ? C.primary : value <= 90 ? C.amber : C.red;
+  if (parameter === '風速') return value <= 10 ? C.primary : value <= 15 ? C.amber : C.red;
+  if (parameter === '1小時雨量') return value <= 15 ? C.primary : value <= 40 ? C.amber : C.red;
   return C.primary;
 }
 
@@ -64,9 +70,14 @@ function polarToXY(deg: number) {
   return { x: ARC_CX + ARC_R * Math.cos(rad), y: ARC_CY - ARC_R * Math.sin(rad) };
 }
 
-function GaugeArc({ value, pollutant, unit }: { value: number; pollutant: string; unit: string }) {
-  const { max, marker } = GAUGE_PARAMS[pollutant] ?? { max: 200, marker: 100 };
-  const color = pollutantColor(pollutant, value);
+// Keep SVG attributes stable between server render and browser hydration.
+function svgNumber(value: number): string {
+  return Number(value.toFixed(3)).toString();
+}
+
+function GaugeArc({ value, parameter, unit }: { value: number; parameter: string; unit: string }) {
+  const { max, marker } = GAUGE_PARAMS[parameter] ?? { max: 200, marker: 100 };
+  const color = parameterColor(parameter, value);
   const dashOffset = ARC_LEN * (1 - Math.min(value / max, 1));
   const markerAngle = Math.min(marker / max, 1) * 180;
   const mp = polarToXY(markerAngle);
@@ -83,10 +94,10 @@ function GaugeArc({ value, pollutant, unit }: { value: number; pollutant: string
       <path
         d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`}
         fill="none" stroke={color} strokeWidth={7} strokeLinecap="round"
-        strokeDasharray={ARC_LEN} strokeDashoffset={dashOffset}
+        strokeDasharray={svgNumber(ARC_LEN)} strokeDashoffset={svgNumber(dashOffset)}
       />
-      <line x1={mp.x} y1={mp.y} x2={lx} y2={ly} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" />
-      <text x={lx} y={ly - 3} fontSize={9} fill="#bbb" textAnchor="middle">{marker}</text>
+      <line x1={svgNumber(mp.x)} y1={svgNumber(mp.y)} x2={svgNumber(lx)} y2={svgNumber(ly)} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" />
+      <text x={svgNumber(lx)} y={svgNumber(ly - 3)} fontSize={9} fill="#bbb" textAnchor="middle">{marker}</text>
       <text x={ARC_CX} y={50} fontSize={22} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
       <text x={ARC_CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">{unit}</text>
     </svg>
@@ -150,14 +161,14 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId, renderOptio
   );
 }
 
-/* ─── Data ───────────────────────────────────────────────────── */
+/* ─── Data model ─────────────────────────────────────────────── */
 interface StationData {
   id: number | string;
   district: string;
   station: string;
   time: string;
   passed: boolean;
-  pollutant: string;
+  parameter: string;
   value: number;
   unit: string;
   source: string;
@@ -191,18 +202,41 @@ interface ExplorerHistoryResponse {
 }
 
 const MICRO_SENSOR_MOCK_DATA: StationData[] = [
-  { id: 9001, district: '蘆竹工業區', station: 'Micro-Sensor A04', time: '13:45', passed: false, pollutant: 'PM2.5', value: 48, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '蘆竹區', trend: '上升中', aqi: 128, temperature: 28, humidity: 72 },
-  { id: 9002, district: '桃園市區', station: 'Micro-Sensor B12', time: '11:15', passed: false, pollutant: 'NOx', value: 85, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
-  { id: 9003, district: '觀音工業區', station: 'Micro-Sensor B07', time: '昨日 23:30', passed: false, pollutant: 'PM2.5', value: 52, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '觀音區', trend: '上升中', aqi: 140, temperature: 23, humidity: 80 },
-  { id: 9004, district: '中壢工業區', station: 'Micro-Sensor D05', time: '昨日 18:45', passed: true, pollutant: 'VOCs', value: 38, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 76, temperature: 27, humidity: 66 },
-  { id: 9005, district: '中壢市中心', station: 'Micro-Sensor G02', time: '6天前 09:45', passed: true, pollutant: 'VOCs', value: 25, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 48, temperature: 24, humidity: 72 },
-  { id: 9006, district: '大園住宅區', station: 'Micro-Sensor H09', time: '5天前 12:10', passed: true, pollutant: 'PM2.5', value: 18, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '大園區', trend: '下降中', aqi: 62, temperature: 26, humidity: 69 },
+  { id: 9001, district: '蘆竹工業區', station: 'Micro-Sensor A04', time: '13:45', passed: false, parameter: 'PM2.5', value: 48, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '蘆竹區', trend: '上升中', aqi: 128, temperature: 28, humidity: 72 },
+  { id: 9002, district: '桃園市區', station: 'Micro-Sensor B12', time: '11:15', passed: false, parameter: 'NOx', value: 85, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
+  { id: 9003, district: '觀音工業區', station: 'Micro-Sensor B07', time: '昨日 23:30', passed: false, parameter: 'PM2.5', value: 52, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '觀音區', trend: '上升中', aqi: 140, temperature: 23, humidity: 80 },
+  { id: 9004, district: '中壢工業區', station: 'Micro-Sensor D05', time: '昨日 18:45', passed: true, parameter: 'VOCs', value: 38, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 76, temperature: 27, humidity: 66 },
+  { id: 9005, district: '中壢市中心', station: 'Micro-Sensor G02', time: '6天前 09:45', passed: true, parameter: 'VOCs', value: 25, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 48, temperature: 24, humidity: 72 },
+  { id: 9006, district: '大園住宅區', station: 'Micro-Sensor H09', time: '5天前 12:10', passed: true, parameter: 'PM2.5', value: 18, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '大園區', trend: '下降中', aqi: 62, temperature: 26, humidity: 69 },
+];
+
+// Temporary stand-in until NAQO schema/import/API are implemented.
+const NAQO_MOCK_DATA: StationData[] = [
+  { id: 'naqo-1', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'PM2.5', value: 16, unit: 'μg/m³', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 58, temperature: 27, humidity: 70 },
+  { id: 'naqo-2', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'O3', value: 42, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '下降中', aqi: 52, temperature: 27, humidity: 70 },
+  { id: 'naqo-3', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'CO', value: 0.4, unit: 'ppm', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
 ];
 
 const TIME_TABS = ['近24小時', '近3天', '近7天'] as const;
-const POLLUTANTS = ['全部污染物', 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO', 'VOCs', '氣溫'];
-const REGIONS    = ['所有區域', '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區'];
-const SOURCES    = ['全部來源', '環境部', '桃園市環保局', '氣象署', '微感測器'];
+
+/* ─── Filter settings ───────────────────────────────────────── */
+const DEFAULT_PARAMETER = '全部量測參數';
+const DEFAULT_SOURCE = '全部來源';
+
+const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO', 'VOCs', '氣溫', '相對濕度', '風速', '1小時雨量'];
+
+// 新增資料來源時，請同步補上該來源可查詢的量測參數。
+const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
+  [DEFAULT_SOURCE]: PARAMETER_OPTIONS,
+  環境部: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
+  桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
+  氣象署: [DEFAULT_PARAMETER, '氣溫', '相對濕度', '風速', '1小時雨量'],
+  微感測器: [DEFAULT_PARAMETER, 'PM2.5', 'NOx', 'VOCs'],
+  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
+};
+
+const REGIONS    = ['所有區域', '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區'];
+const SOURCES    = [DEFAULT_SOURCE, '環境部', '桃園市環保局', '氣象署', '微感測器', '中大空品站'];
 
 const MOE_REGION_MAP: Record<string, string> = {
   桃園: '桃園區',
@@ -213,7 +247,7 @@ const MOE_REGION_MAP: Record<string, string> = {
   觀音: '觀音區',
 };
 
-const MOE_POLLUTANTS: Array<{
+const MOE_PARAMETERS: Array<{
   id: string;
   unit: string;
   value: (station: MoeStationData) => number;
@@ -225,6 +259,18 @@ const MOE_POLLUTANTS: Array<{
   { id: 'NO2', unit: 'ppb', value: station => station.no2 },
   { id: 'SO2', unit: 'ppb', value: station => station.so2 },
   { id: 'CO', unit: 'ppm', value: station => station.co },
+];
+
+const CWA_PARAMETERS: Array<{
+  id: string;
+  unit: string;
+  value: (weather: ExplorerCwaWeatherBundle) => number;
+  passed: (value: number) => boolean;
+}> = [
+  { id: '氣溫', unit: '°C', value: weather => Number(weather.current.temperature), passed: value => value <= 38 },
+  { id: '相對濕度', unit: '%', value: weather => Number(weather.current.humidity), passed: value => value <= 90 },
+  { id: '風速', unit: 'm/s', value: weather => Number(weather.current.windSpeed), passed: value => value <= 15 },
+  { id: '1小時雨量', unit: 'mm', value: weather => Number(weather.past1hrRain), passed: value => value <= 40 },
 ];
 
 function formatObservationTime(value?: string): string {
@@ -246,15 +292,15 @@ function buildMoeCards(stations: MoeStationData[]): StationData[] {
   ).filter(station => station.sitename in MOE_REGION_MAP);
 
   return latestByStation.flatMap((station, stationIndex) =>
-    MOE_POLLUTANTS.map((pollutant, pollutantIndex) => ({
-      id: 1000 + stationIndex * 100 + pollutantIndex,
+    MOE_PARAMETERS.map((parameter, parameterIndex) => ({
+      id: 1000 + stationIndex * 100 + parameterIndex,
       district: `${station.sitename}測站`,
       station: `環境部 ${station.sitename}`,
       time: formatObservationTime(station.datacreationdate),
       passed: station.aqi <= 100,
-      pollutant: pollutant.id,
-      value: pollutant.value(station),
-      unit: pollutant.unit,
+      parameter: parameter.id,
+      value: parameter.value(station),
+      unit: parameter.unit,
       source: '環境部',
       version: '即時 API',
       region: MOE_REGION_MAP[station.sitename] ?? `${station.sitename}區`,
@@ -264,36 +310,42 @@ function buildMoeCards(stations: MoeStationData[]): StationData[] {
   );
 }
 
-function buildCwaCard(weather: ExplorerCwaWeatherBundle, region: string): StationData {
+function buildCwaCards(weather: ExplorerCwaWeatherBundle, region: string): StationData[] {
   const temperature = Number(weather.current.temperature);
   const humidity = Number(weather.current.humidity);
-  return {
-    id: 8001,
-    district: region,
-    station: `氣象署 · ${weather.current.weather}`,
-    time: '目前觀測',
-    passed: temperature <= 38,
-    pollutant: '氣溫',
-    value: Number.isFinite(temperature) ? temperature : 0,
-    unit: '°C',
-    source: '氣象署',
-    version: weather.isFallback ? '模擬資料' : '觀測 API',
-    region,
-    trend: '穩定中',
-    aqi: 0,
-    temperature: Number.isFinite(temperature) ? temperature : undefined,
-    humidity: Number.isFinite(humidity) ? humidity : undefined,
-  };
+  const stationLabel = `${weather.current.stationName ?? region}${weather.current.stationType ?? ''}`;
+
+  return CWA_PARAMETERS.map(parameter => {
+    const value = parameter.value(weather);
+
+    return {
+      id: `cwa-${region}-${parameter.id}`,
+      district: region,
+      station: `氣象署 · ${weather.current.stationName ?? weather.current.weather}`,
+      time: '目前觀測',
+      passed: Number.isFinite(value) ? parameter.passed(value) : false,
+      parameter: parameter.id,
+      value: Number.isFinite(value) ? value : 0,
+      unit: parameter.unit,
+      source: '氣象署',
+      version: weather.isFallback ? '模擬資料' : `即時 API · ${stationLabel}`,
+      region,
+      trend: '穩定中',
+      aqi: 0,
+      temperature: Number.isFinite(temperature) ? temperature : undefined,
+      humidity: Number.isFinite(humidity) ? humidity : undefined,
+    };
+  });
 }
 
-function getPollutantDisplay(p: string): React.ReactNode {
-  switch (p) {
+function getParameterDisplay(parameter: string): React.ReactNode {
+  switch (parameter) {
     case 'PM2.5': return <>PM<sub className="text-xs">2.5</sub></>;
     case 'O3': return <>O<sub className="text-xs">3</sub></>;
     case 'NOx': return <>NO<sub className="text-xs">x</sub></>;
     case 'NO2': return <>NO<sub className="text-xs">2</sub></>;
     case 'SO2': return <>SO<sub className="text-xs">2</sub></>;
-    default: return p;
+    default: return parameter;
   }
 }
 
@@ -314,7 +366,7 @@ function StatChip({ icon: Icon, value, label, color }: {
 
 /* ─── Station card ───────────────────────────────────────────── */
 function StationCard({ station }: { station: StationData }) {
-  const pColor  = pollutantColor(station.pollutant, station.value);
+  const pColor  = parameterColor(station.parameter, station.value);
   const isWeather = station.source === '氣象署';
   const sColor  = station.passed ? C.green : C.red;
   const sAlpha  = station.passed ? C.greenAlpha : C.redAlpha;
@@ -371,7 +423,7 @@ function StationCard({ station }: { station: StationData }) {
             padding: '3px 12px', borderRadius: 99,
             backgroundColor: `${pColor}18`, border: `1px solid ${pColor}40`,
           }}>
-            {getPollutantDisplay(station.pollutant)}
+            {getParameterDisplay(station.parameter)}
           </span>
           <span style={{
             fontSize: 12, fontWeight: 600, color: C.muted,
@@ -381,7 +433,7 @@ function StationCard({ station }: { station: StationData }) {
             {isWeather ? '氣象觀測' : `AQI ${station.aqi}`}
           </span>
         </div>
-        <GaugeArc value={station.value} pollutant={station.pollutant} unit={station.unit} />
+        <GaugeArc value={station.value} parameter={station.parameter} unit={station.unit} />
       </div>
 
       {/* Footer */}
@@ -429,13 +481,13 @@ function StationCard({ station }: { station: StationData }) {
 export default function ExplorerPage() {
   const [searchText, setSearchText]           = useState('');
   const [activeTime, setActiveTime]           = useState<typeof TIME_TABS[number]>('近24小時');
-  const [selectedPollutant, setSelectedPollutant] = useState(POLLUTANTS[0]);
+  const [selectedParameter, setSelectedParameter] = useState(PARAMETER_OPTIONS[0]);
   const [selectedRegion, setSelectedRegion]   = useState(REGIONS[0]);
   const [selectedSource, setSelectedSource]   = useState(SOURCES[0]);
   const [openId, setOpenId]                   = useState<string | null>(null);
   const [isMobile, setIsMobile]               = useState(false);
   const [moeStations, setMoeStations]         = useState<MoeStationData[]>([]);
-  const [cwaWeather, setCwaWeather]           = useState<ExplorerCwaWeatherBundle | null>(null);
+  const [cwaCards, setCwaCards]               = useState<StationData[]>([]);
   const [historyData, setHistoryData]         = useState<StationData[]>([]);
   const [moeLoading, setMoeLoading]           = useState(true);
   const [cwaLoading, setCwaLoading]           = useState(true);
@@ -479,90 +531,123 @@ export default function ExplorerPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const district = selectedRegion === REGIONS[0] ? '中壢區' : selectedRegion;
 
-    fetch(`/api/cwa?district=${encodeURIComponent(district)}`, { signal: controller.signal })
-      .then(async response => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json() as Promise<CwaApiResponse>;
-      })
-      .then(response => {
-        setCwaWeather({
-          ...response.data,
-          isFallback: response.isFallback,
-        });
-        setCwaError(response.isFallback ? '氣象署 API 金鑰尚未設定，目前顯示模擬天氣資料。' : '');
-      })
-      .catch(error => {
+    const loadCwaCards = async () => {
+      // The CWA API route accepts one district at a time, so "all regions"
+      // fan out to the visible Taoyuan districts instead of defaulting to Zhongli.
+      const districts = selectedRegion === REGIONS[0] ? REGIONS.slice(1) : [selectedRegion];
+
+      setCwaLoading(true);
+      try {
+        const results = await Promise.all(
+          districts.map(async district => {
+            const response = await fetch(`/api/cwa?district=${encodeURIComponent(district)}`, {
+              signal: controller.signal,
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return {
+              district,
+              payload: await response.json() as CwaApiResponse,
+            };
+          })
+        );
+
+        if (controller.signal.aborted) return;
+        setCwaCards(
+          results
+            .filter(({ payload }) => !payload.isFallback)
+            .flatMap(({ district, payload }) => buildCwaCards({
+              ...payload.data,
+              isFallback: payload.isFallback,
+            }, district))
+        );
+        setCwaError(results.some(({ payload }) => payload.isFallback)
+          ? '氣象署 API 金鑰尚未設定或部分測站無資料，目前未顯示 fallback 氣象資料。'
+          : '');
+      } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
+        setCwaCards([]);
         setCwaError('氣象署資料載入失敗，請稍後再試。');
-      })
-      .finally(() => {
+      } finally {
         if (!controller.signal.aborted) setCwaLoading(false);
-      });
+      }
+    };
+
+    void loadCwaCards();
 
     return () => controller.abort();
   }, [selectedRegion]);
 
   useEffect(() => {
     if (activeTime === '近24小時') {
-      setHistoryData([]);
-      setHistoryLatestAt({});
-      setHistoryError('');
-      setHistoryLoading(false);
       return;
     }
 
     const days = activeTime === '近7天' ? 7 : 3;
     const controller = new AbortController();
-    setHistoryLoading(true);
 
-    fetch(`/api/explorer/history?days=${days}`, { signal: controller.signal })
-      .then(async response => {
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const response = await fetch(`/api/explorer/history?days=${days}`, { signal: controller.signal });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json() as Promise<ExplorerHistoryResponse>;
-      })
-      .then(response => {
-        setHistoryData(response.data);
-        setHistoryLatestAt(response.latestAt ?? {});
-        setHistoryError(response.error ? '歷史資料庫查詢失敗，請確認後端與資料庫連線。' : '');
-      })
-      .catch(error => {
+        const data = await response.json() as ExplorerHistoryResponse;
+
+        if (controller.signal.aborted) return;
+        setHistoryData(data.data);
+        setHistoryLatestAt(data.latestAt ?? {});
+        setHistoryError(data.error ? '歷史資料庫查詢失敗，請確認後端與資料庫連線。' : '');
+      } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
         setHistoryError('歷史資料庫尚未連線，請確認 FastAPI 後端與 PostgreSQL 已啟動。');
-      })
-      .finally(() => {
+      } finally {
         if (!controller.signal.aborted) setHistoryLoading(false);
-      });
+      }
+    };
+
+    void loadHistory();
 
     return () => controller.abort();
   }, [activeTime]);
 
   const closeDropdown = useCallback(() => setOpenId(null), []);
 
+  const parameterOptions = SOURCE_PARAMETER_OPTIONS[selectedSource] ?? PARAMETER_OPTIONS;
+
+  const handleSourceSelect = useCallback((source: string) => {
+    const nextOptions = SOURCE_PARAMETER_OPTIONS[source] ?? PARAMETER_OPTIONS;
+
+    // Reset parameter only when the current one is not valid for the new source.
+    setSelectedSource(source);
+    setSelectedParameter(current =>
+      nextOptions.includes(current) ? current : nextOptions[0]
+    );
+  }, []);
+
   const allMonitoringData = useMemo(() => {
     const moeCards = buildMoeCards(moeStations);
-    const weatherRegion = selectedRegion === REGIONS[0] ? '中壢區' : selectedRegion;
-    const cwaCards = cwaWeather && !cwaWeather.isFallback ? [buildCwaCard(cwaWeather, weatherRegion)] : [];
 
-    // 有即時 API 資料的來源不顯示 DB 歷史版本；API 失敗才 fallback 到歷史
-    const moeSource   = moeCards.length > 0 ? moeCards : historyData.filter(d => d.source === '環境部');
-    const cwaSource   = cwaCards.length > 0 ? cwaCards : historyData.filter(d => d.source === '氣象署');
+    // 資料顯示規則：
+    // 1. 即時 API 資料在所有時間分頁都顯示，方便使用者看到最新狀態。
+    // 2. 歷史資料只在近 3 天 / 近 7 天分頁補上，避免近 24 小時重複顯示。
+    const moeHistory = historyData.filter(d => d.source === '環境部');
+    const cwaHistory = historyData.filter(d => d.source === '氣象署');
     const tydepSource = historyData.filter(d => d.source === '桃園市環保局');
+    const historySource = activeTime === '近24小時' ? [] : [...tydepSource, ...moeHistory, ...cwaHistory];
 
-    return [...tydepSource, ...moeSource, ...cwaSource, ...MICRO_SENSOR_MOCK_DATA];
-  }, [historyData, moeStations, cwaWeather, selectedRegion]);
+    return [...moeCards, ...cwaCards, ...historySource, ...NAQO_MOCK_DATA, ...MICRO_SENSOR_MOCK_DATA];
+  }, [activeTime, historyData, moeStations, cwaCards]);
 
   const filtered = useMemo(() => allMonitoringData.filter(item => {
     if (searchText) {
       const q = searchText.toLowerCase();
       if (!item.district.toLowerCase().includes(q) && !item.station.toLowerCase().includes(q)) return false;
     }
-    if (selectedPollutant !== POLLUTANTS[0] && item.pollutant !== selectedPollutant) return false;
+    if (selectedParameter !== parameterOptions[0] && item.parameter !== selectedParameter) return false;
     if (selectedRegion    !== REGIONS[0]    && item.region    !== selectedRegion)    return false;
     if (selectedSource    !== SOURCES[0]    && item.source    !== selectedSource)    return false;
     return true;
-  }), [allMonitoringData, searchText, selectedPollutant, selectedRegion, selectedSource]);
+  }), [allMonitoringData, searchText, selectedParameter, selectedRegion, selectedSource, parameterOptions]);
 
   const stationSummary = useMemo(() => {
     const stations = new Map<string, StationData>();
@@ -598,7 +683,9 @@ export default function ExplorerPage() {
     ? '桃園市環保局資料庫目前尚未匯入觀測資料，或後端尚未連上 PostgreSQL。'
     : selectedSource === '微感測器'
       ? '微感測器資料庫尚未建立，目前顯示的是介面測試用模擬資料。'
-      : historyError
+      : selectedSource === '中大空品站'
+        ? '中大空品站資料庫尚未建立，目前顯示的是介面測試用模擬資料。'
+      : activeTime !== '近24小時' && historyError
         ? historyError
       : selectedSource === '環境部' && moeError
         ? moeError
@@ -687,9 +774,9 @@ export default function ExplorerPage() {
           {!isMobile && <div style={{ width: 1, height: 24, backgroundColor: 'rgba(180,140,160,0.20)', margin: '0 2px' }} />}
 
           <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-            <Dropdown id="pollutant" value={selectedPollutant} options={POLLUTANTS} onSelect={setSelectedPollutant} openId={openId} setOpenId={setOpenId} renderOption={getPollutantDisplay} />
+            <Dropdown id="parameter" value={selectedParameter} options={parameterOptions} onSelect={setSelectedParameter} openId={openId} setOpenId={setOpenId} renderOption={getParameterDisplay} />
             <Dropdown id="region"    value={selectedRegion}    options={REGIONS}    onSelect={setSelectedRegion}    openId={openId} setOpenId={setOpenId} />
-            <Dropdown id="source"    value={selectedSource}    options={SOURCES}    onSelect={setSelectedSource}    openId={openId} setOpenId={setOpenId} />
+            <Dropdown id="source"    value={selectedSource}    options={SOURCES}    onSelect={handleSourceSelect}    openId={openId} setOpenId={setOpenId} />
           </div>
 
           <span style={{ marginLeft: 'auto', fontSize: 13, color: C.muted, fontWeight: 600 }}>
@@ -748,7 +835,7 @@ export default function ExplorerPage() {
             <p style={{ fontSize: 13, color: C.hint }}>
               {selectedSource === '桃園市環保局'
                 ? '完成 TYDEP 資料匯入與 API 串接後，資料會顯示在這裡'
-                : '嘗試調整時間、污染物、區域或來源篩選條件'}
+                : '嘗試調整時間、量測參數、區域或來源篩選條件'}
             </p>
           </div>
         ) : (

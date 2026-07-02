@@ -14,7 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-TW">
+    // Browser extensions can inject attributes before React hydrates the app.
+    <html lang="zh-TW" suppressHydrationWarning>
       <body style={{ minHeight: '100vh' }}>
         <AuthProvider>
           <TopNav />
