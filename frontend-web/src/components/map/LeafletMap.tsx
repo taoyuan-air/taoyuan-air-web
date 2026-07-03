@@ -615,6 +615,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
               width: 32,
               height: 32,
               borderRadius: 10,
+              flexShrink: 0, 
               border: '1px solid rgba(106,141,115,0.38)',
               background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
               cursor: 'pointer',
@@ -633,7 +634,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
             step={1}
             value={zoomLevel}
             onChange={(e) => handleZoomRequest(Number(e.target.value))}
-            style={{ flex: 1, accentColor: '#d4567a', height: 24 }}
+            style={{ flex: 1, minWidth: 0, accentColor: '#d4567a', height: 24 }}
           />
           <button
             onClick={() => handleZoomRequest(zoomLevel + 1)}
@@ -641,6 +642,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
               width: 32,
               height: 32,
               borderRadius: 10,
+              flexShrink: 0, 
               border: '1px solid rgba(106,141,115,0.38)',
               background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
               cursor: 'pointer',
