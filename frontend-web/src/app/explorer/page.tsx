@@ -242,15 +242,15 @@ function detailRangeItems(parameter: string, unit: string): DetailRangeItem[] {
     return [
       detailItem('非常寒冷', `6 ${unit} 以下`, C.orange, 6),
       detailItem('寒冷', `6–10 ${unit}`, C.yellow, 10),
-      detailItem('一般', `10–36 ${unit}`, C.green, 35.9),
-      detailItem('高溫黃燈', `36–38 ${unit}`, C.yellow, 37.9),
+      detailItem('一般', `10–36 ${unit}`, C.green, 36),
+      detailItem('高溫黃燈', `36–38 ${unit}`, C.yellow, 38),
       detailItem('高溫橙燈', `38 ${unit} 以上`, C.orange),
     ];
     case '1小時雨量':
     return [
       detailItem('無雨', `0 ${unit}`, C.green, 0),
-      detailItem('有雨', `0.1-9.9 ${unit}`, C.yellow, 9.9),
-      detailItem('大雨', `10-39.9 ${unit}`, C.orange, 39.9),
+      detailItem('有雨', `0-10 ${unit}`, C.yellow, 10),
+      detailItem('大雨', `10-40 ${unit}`, C.orange, 40),
       detailItem('豪雨', `40 ${unit} 以上`, C.maroon),
     ];
     case '風速':
@@ -309,7 +309,7 @@ function GaugeArc({ value, parameter, unit }: { value: number; parameter: string
   const isAqi = parameter in AQI_RANGES;
 
   // AQI 參數：動態顯示目前級別起往後 3 個門檻
-  // 其他參數：維持原本單一固定 marker
+  // 氣象參數：顯示目前所在級別的 upper（即下一級的起始門檻）
   const markers: number[] = [];
   if (isAqi) {
     const ranges = detailRangeItems(parameter, unit);
@@ -323,7 +323,14 @@ function GaugeArc({ value, parameter, unit }: { value: number; parameter: string
     }
     if (markers.length === 0) markers.push(gaugeConfig.marker);
   } else {
-    markers.push(gaugeConfig.marker);
+    const ranges = detailRangeItems(parameter, unit);
+    const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
+    if (currentLevelIndex >= 0 && Number.isFinite(ranges[currentLevelIndex].upper)) {
+      markers.push(ranges[currentLevelIndex].upper);
+    } else {
+      const last = [...ranges].reverse().find(item => Number.isFinite(item.upper));
+      markers.push(last ? last.upper : gaugeConfig.marker);
+    }
   }
 
   const dashOffset = ARC_LEN * (1 - Math.min(value / gaugeConfig.max, 1));
