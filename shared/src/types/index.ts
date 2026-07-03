@@ -118,6 +118,10 @@ export interface Meta {
 }
 
 export interface CurrentWeatherData {
+  stationId?: string;
+  stationName?: string;
+  stationType?: string;
+  district?: string;
   temperature: string;
   weather: string;
   humidity: string;

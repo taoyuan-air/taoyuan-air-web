@@ -5,6 +5,66 @@ declare const process: { env: Record<string, string | undefined> };
 
 export type WeatherIconKey = 'sun' | 'cloud' | 'cloud-rain' | 'cloud-drizzle' | 'cloud-lightning';
 
+const CWA_DISTRICT_STATION_MAP: Record<string, string> = {
+  // CWA current-weather data is station-based, so each district points to one representative station.
+  // 對應依 cwa_stations_schema.sql 內各測站 address 所在行政區挑一個代表測站。
+  新屋區: '467050',
+  楊梅區: 'C0C660',
+  復興區: 'C0C460',
+  觀音區: 'C0C740',
+  大園區: 'C0C720',
+  大溪區: 'C0C630',
+  中壢區: 'C0C700',
+  龜山區: 'C0C680',
+  龍潭區: 'C0C670',
+  平鎮區: 'C0C650',
+  蘆竹區: 'C0C620',
+  八德區: 'C0C490',
+};
+
+const CWA_STATION_META: Record<string, { name: string; type: string }> = {
+  '467050': { name: '新屋', type: '署屬有人站' },
+  C1C510: { name: '水尾', type: '署屬自動站' },
+  C0C800: { name: '四稜', type: '署屬自動站' },
+  C0C790: { name: '東眼山', type: '署屬自動站' },
+  C0C750: { name: '新興坑尾', type: '署屬自動站' },
+  C0C740: { name: '觀音工業區', type: '署屬自動站' },
+  C0C730: { name: '中大臨海站', type: '署屬自動站' },
+  C0C720: { name: '竹圍', type: '署屬自動站' },
+  C0C710: { name: '大溪永福', type: '署屬自動站' },
+  C0C700: { name: '中壢', type: '署屬自動站' },
+  C0C680: { name: '龜山', type: '署屬自動站' },
+  C0C670: { name: '龍潭', type: '署屬自動站' },
+  C0C660: { name: '楊梅', type: '署屬自動站' },
+  C0C650: { name: '平鎮', type: '署屬自動站' },
+  C0C630: { name: '大溪', type: '署屬自動站' },
+  C0C620: { name: '蘆竹', type: '署屬自動站' },
+  C0C490: { name: '八德', type: '署屬自動站' },
+  C0C460: { name: '復興', type: '署屬自動站' },
+  '72C440': { name: '桃園農改場', type: '農業站' },
+  '82C160': { name: '茶改場', type: '農業站' },
+  A2C560: { name: '農工中心', type: '農業站' },
+  C2C410: { name: '中央大學', type: '農業站' },
+  C2C590: { name: '觀音', type: '農業站' },
+};
+
+const getCwaStationId = (station: any): string | undefined =>
+  station?.StationId ?? station?.StationID ?? station?.Station?.StationId ?? station?.Station?.StationID;
+
+const getCwaTownName = (station: any): string | undefined =>
+  station?.GeoInfo?.TownName ?? station?.StationPosition?.TownName;
+
+const pickCwaStation = (stations: any[], district: string): any | undefined => {
+  const stationId = CWA_DISTRICT_STATION_MAP[district];
+  if (stationId) {
+    const exact = stations.find(station => getCwaStationId(station) === stationId);
+    if (exact) return exact;
+  }
+
+  const keyword = district.replace('區', '');
+  return stations.find(station => getCwaTownName(station)?.includes(keyword)) ?? stations[0];
+};
+
 export const getWeatherIconKey = (w: string): WeatherIconKey => {
   if (w.includes('雷')) return 'cloud-lightning';
   if (w.includes('大雨') || w.includes('豪雨')) return 'cloud-rain';
@@ -71,8 +131,8 @@ async function _fetchCurrentWeather(
     const stations: any[] = json?.records?.Station ?? [];
     if (stations.length === 0) return { data: MOCK_CURRENT_WEATHER, isFallback: true };
 
-    const keyword = district.replace('區', '');
-    const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? stations[0];
+    const st = pickCwaStation(stations, district);
+    if (!st) return { data: MOCK_CURRENT_WEATHER, isFallback: true };
     const obs = st.WeatherElement ?? {};
 
     const parseNum = (val: any, fallback: string, round = false) => {
@@ -86,9 +146,18 @@ async function _fetchCurrentWeather(
       }
       return round ? String(Math.round(n)) : String(n);
     };
-    console.log(`[CWA] 現況 ${st.StationName ?? keyword} → ${obs.AirTemperature}°C ${obs.Weather}`);
+    const stationId = getCwaStationId(st);
+    const stationMeta = stationId ? CWA_STATION_META[stationId] : undefined;
+    const stationName = stationMeta?.name ?? st.StationName;
+    const stationType = stationMeta?.type;
+
+    console.log(`[CWA] 現況 ${stationName ?? district} → ${obs.AirTemperature}°C ${obs.Weather}`);
     return {
       data: {
+        stationId,
+        stationName,
+        stationType,
+        district,
         temperature: parseNum(obs.AirTemperature, MOCK_CURRENT_WEATHER.temperature, true),
         weather: (obs.Weather && obs.Weather !== '-99') ? obs.Weather : MOCK_CURRENT_WEATHER.weather,
         humidity: parseNum(obs.RelativeHumidity, MOCK_CURRENT_WEATHER.humidity),
@@ -236,8 +305,7 @@ export const fetchPast1hrRainfall = async (
     }
     const json = await res.json();
     const stations: any[] = json?.records?.Station ?? [];
-    const keyword = district.replace('區', '');
-    const st = stations.find(s => s.GeoInfo?.TownName?.includes(keyword)) ?? null;
+    const st = pickCwaStation(stations, district) ?? null;
     return st?.RainfallElement?.Past1hr?.Precipitation ?? '0.0';
   } catch (err) {
     console.error('[CWA] 雨量資料請求失敗：', err);

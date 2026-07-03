@@ -1,4 +1,5 @@
 from decimal import Decimal
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -11,7 +12,7 @@ from ..database import get_db
 router = APIRouter(prefix="/explorer", tags=["explorer"])
 
 
-POLLUTANT_LABELS = {
+PARAMETER_LABELS = {
     "PM2.5": "PM2.5",
     "PM25": "PM2.5",
     "PM10": "PM10",
@@ -56,24 +57,34 @@ def _district_for(station_name: str, fallback: Optional[str] = None) -> str:
     return "桃園市"
 
 
+def _district_from_address(address: Optional[str]) -> Optional[str]:
+    if not address:
+        return None
+    match = re.search(r"桃園市([\u4e00-\u9fff]{1,4}區)", address)
+    return match.group(1) if match else None
+
+
 def _history_record(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     value = _as_float(row.get("value"))
     if value is None:
         return None
 
     observed_at = row["observed_at"]
-    pollutant = POLLUTANT_LABELS.get(row["pollutant"], row["pollutant"])
+    parameter = PARAMETER_LABELS.get(row["parameter"], row["parameter"])
     station_name = row["station_name"]
     source = row["source"]
-    district = _district_for(station_name, row.get("district"))
+    district = _district_for(
+        station_name,
+        row.get("district") or _district_from_address(row.get("address")),
+    )
 
     return {
-        "id": f"{source}:{row['station_id']}:{pollutant}:{observed_at.isoformat()}",
+        "id": f"{source}:{row['station_id']}:{parameter}:{observed_at.isoformat()}",
         "source": source,
         "station": f"{source} {station_name}",
         "district": district,
         "region": district,
-        "pollutant": pollutant,
+        "parameter": parameter,
         "value": round(value, 3),
         "unit": row.get("unit") or "",
         "time": observed_at.strftime("%m/%d %H:%M"),
@@ -117,7 +128,7 @@ async def _fetch_air_history(
             h.station_id,
             s.station_name,
             h.monitor_date AS observed_at,
-            h.pollutant_eng_name AS pollutant,
+            h.pollutant_eng_name AS parameter,
             h.concentration_numeric AS value,
             h.unit
             {station_extra}
@@ -151,10 +162,11 @@ async def _fetch_cwa_history(db: AsyncSession, days: int) -> List[Dict[str, Any]
             h.station_id,
             s.station_name,
             h.monitor_date AS observed_at,
-            '氣溫' AS pollutant,
+            '氣溫' AS parameter,
             h.concentration_numeric AS value,
             '°C' AS unit,
-            NULL AS district
+            NULL AS district,
+            s.address
         FROM cwa_hourly_data h
         JOIN cwa_stations s ON s.station_id = h.station_id
         WHERE h.monitor_date >= NOW() - (:days * INTERVAL '1 day')
