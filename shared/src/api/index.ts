@@ -1,7 +1,7 @@
 import {
   GridCell, Station, VerticalProfile, ForecastSeries,
   EventItem, Alert, Meta, HealthAdvisory, Pollutant,
-  TargetType, Scenario, TEDSPoint // 💡TEDSPoint 統一加進來這裡了
+  TargetType, Scenario, TEDSPoint, ExamPoint 
 } from '../types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -233,4 +233,17 @@ export const getHealthAdvisory = async ({ pollutant, value, trend }: { pollutant
   }
 
   return { aqi, level, outdoorActivity, maskRequired, sensitiveGroups, summary };
+};
+
+export const getExamPoints = async (): Promise<ExamPoint[]> => {
+  try {
+    const response = await fetch('/api/exam-points');
+    if (!response.ok) {
+      throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Exam Points API 連線失敗:', error);
+    throw error;
+  }
 };

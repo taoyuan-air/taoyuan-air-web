@@ -146,3 +146,11 @@ export interface TEDSPoint {
   heightM?: number;
   source?: string;
 }
+
+export interface ExamPoint {
+  id: string;
+  name: string;
+  latLng: LatLng;
+  source: '汞';
+  note?: string;
+}
