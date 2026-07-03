@@ -29,6 +29,12 @@ const C = {
   green:         '#059669',
   greenAlpha:    'rgba(5,150,105,0.12)',
   greenBorder:   'rgba(5,150,105,0.28)',
+  purple:        '#7C3AED',
+  purpleAlpha:   'rgba(124,58,237,0.12)',
+  purpleBorder:  'rgba(124,58,237,0.30)',
+  maroon:        '#9F1239',
+  maroonAlpha:   'rgba(159,18,57,0.12)',
+  maroonBorder:  'rgba(159,18,57,0.30)',
   glass:         'rgba(255,255,255,0.60)',
   glassBorder:   'rgba(255,255,255,0.80)',
   glassShadow:   '0 4px 16px rgba(180,140,160,0.10)',
@@ -42,30 +48,29 @@ const GAUGE_PARAMS: Record<string, { max: number; marker: number }> = {
   'PM2.5': { max: 150, marker: 15.4 },
   'PM10':  { max: 250, marker: 50   },
   'O3':    { max: 200, marker: 54   },
-  'NOx':   { max: 200, marker: 100  },
   'NO2':   { max: 200, marker: 53   },
   'SO2':   { max: 100, marker: 35   },
   'CO':    { max: 15,  marker: 4.4  },
-  'VOCs':  { max: 200, marker: 50   },
   '氣溫':  { max: 45,  marker: 35   },
-  '相對濕度': { max: 100, marker: 80 },
   '風速': { max: 20, marker: 10 },
   '1小時雨量': { max: 80, marker: 15 },
 };
 
 function parameterColor(parameter: string, value: number): string {
+  const aqiItems = aqiRangeItems(parameter);
+  if (aqiItems.length > 0) {
+    return (aqiItems.find(item => value <= item.upper) ?? aqiItems[aqiItems.length - 1]).color;
+  }
+
+  const weatherStatus = parameterWeatherStatus(parameter, value);
+  if (weatherStatus) return weatherStatus.color;
+
   if (parameter === 'PM2.5') return value <= 15.4 ? C.primary : value <= 35.4 ? C.amber : C.red;
   if (parameter === 'PM10')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
   if (parameter === 'O3')    return value <= 54   ? C.primary : value <= 70   ? C.amber : C.red;
-  if (parameter === 'NOx')   return value <= 100  ? C.primary : value <= 150  ? C.amber : C.red;
   if (parameter === 'NO2')   return value <= 53   ? C.primary : value <= 100  ? C.amber : C.red;
   if (parameter === 'SO2')   return value <= 35   ? C.primary : value <= 75   ? C.amber : C.red;
   if (parameter === 'CO')    return value <= 4.4  ? C.primary : value <= 9.4  ? C.amber : C.red;
-  if (parameter === 'VOCs')  return value <= 50   ? C.primary : value <= 100  ? C.amber : C.red;
-  if (parameter === '氣溫')  return value <= 35   ? C.primary : value <= 38   ? C.amber : C.red;
-  if (parameter === '相對濕度') return value <= 80 ? C.primary : value <= 90 ? C.amber : C.red;
-  if (parameter === '風速') return value <= 10 ? C.primary : value <= 15 ? C.amber : C.red;
-  if (parameter === '1小時雨量') return value <= 15 ? C.primary : value <= 40 ? C.amber : C.red;
   return C.primary;
 }
 
@@ -78,7 +83,97 @@ type ParameterStatus = {
 
 type DetailRangeItem = ParameterStatus & {
   range: string;
+  upper: number;
 };
+
+// AQI 背板顏色設定：這裡控制「分級說明」每一列的文字、邊框、淡底色。
+// 如果之後想微調成更接近設計稿，只改 C 裡的色碼或這個順序即可。
+// 順序要和 AQI_LABELS、AQI_RANGES 的每一列一致。
+const AQI_COLORS = [
+  statusColors(C.green),
+  statusColors(C.yellow),
+  statusColors(C.orange),
+  statusColors(C.red),
+  statusColors(C.purple),
+  statusColors(C.maroon),
+];
+
+const AQI_LABELS = [
+  '良好',
+  '普通',
+  '對敏感族群不健康',
+  '對所有族群不健康',
+  '非常不健康',
+  '危害',
+];
+
+// 空氣品質官方級距：
+// - 畫面上採六列呈現，和背板設計一致。
+// - 官方 AQI 表格中「危害」有 301-400、401-500 兩列；這裡合併成同一列，
+//   讓卡片背面維持簡潔，範圍則涵蓋兩列完整數值。
+// - O3、CO 使用 ppm；PM2.5、PM10 使用 μg/m³；SO2、NO2 使用 ppb。
+const AQI_RANGES: Record<string, Array<{ upper: number; display: string }>> = {
+  O3: [
+    { upper: 54, display: '0.000-0.054 ppm' },
+    { upper: 70, display: '0.055-0.070 ppm' },
+    { upper: 85, display: '0.071-0.085 ppm' },
+    { upper: 105, display: '0.086-0.105 ppm' },
+    { upper: 200, display: '0.106-0.200 ppm' },
+    { upper: 604, display: '0.405-0.604 ppm（小時值）' },
+  ],
+  'PM2.5': [
+    { upper: 12.4, display: '0.0-12.4 μg/m³' },
+    { upper: 30.4, display: '12.5-30.4 μg/m³' },
+    { upper: 50.4, display: '30.5-50.4 μg/m³' },
+    { upper: 125.4, display: '50.5-125.4 μg/m³' },
+    { upper: 225.4, display: '125.5-225.4 μg/m³' },
+    { upper: 500.4, display: '225.5-500.4 μg/m³' },
+  ],
+  PM10: [
+    { upper: 30, display: '0-30 μg/m³' },
+    { upper: 75, display: '31-75 μg/m³' },
+    { upper: 190, display: '76-190 μg/m³' },
+    { upper: 354, display: '191-354 μg/m³' },
+    { upper: 424, display: '355-424 μg/m³' },
+    { upper: 604, display: '425-604 μg/m³' },
+  ],
+  CO: [
+    { upper: 4.4, display: '0-4.4 ppm' },
+    { upper: 9.4, display: '4.5-9.4 ppm' },
+    { upper: 12.4, display: '9.5-12.4 ppm' },
+    { upper: 15.4, display: '12.5-15.4 ppm' },
+    { upper: 30.4, display: '15.5-30.4 ppm' },
+    { upper: 50.4, display: '30.5-50.4 ppm' },
+  ],
+  SO2: [
+    { upper: 8, display: '0-8 ppb' },
+    { upper: 65, display: '9-65 ppb' },
+    { upper: 160, display: '66-160 ppb' },
+    { upper: 304, display: '161-304 ppb' },
+    { upper: 604, display: '305-604 ppb' },
+    { upper: 1004, display: '605-1004 ppb' },
+  ],
+  NO2: [
+    { upper: 21, display: '0-21 ppb' },
+    { upper: 100, display: '22-100 ppb' },
+    { upper: 360, display: '101-360 ppb' },
+    { upper: 649, display: '361-649 ppb' },
+    { upper: 1249, display: '650-1249 ppb' },
+    { upper: 2049, display: '1250-2049 ppb' },
+  ],
+};
+
+function aqiRangeItems(parameter: string): DetailRangeItem[] {
+  const ranges = AQI_RANGES[parameter];
+  if (!ranges) return [];
+
+  return ranges.map((range, index) => ({
+    label: AQI_LABELS[index],
+    range: range.display,
+    upper: range.upper,
+    ...AQI_COLORS[index],
+  }));
+}
 
 function statusColors(color: string): Pick<ParameterStatus, 'color' | 'alpha' | 'border'> {
   if (color === C.green) return { color: C.green, alpha: C.greenAlpha, border: C.greenBorder };
@@ -86,100 +181,89 @@ function statusColors(color: string): Pick<ParameterStatus, 'color' | 'alpha' | 
   if (color === C.red) return { color: C.red, alpha: C.redAlpha, border: C.redBorder };
   if (color === C.orange) return { color: C.orange, alpha: C.orangeAlpha, border: C.orangeBorder };
   if (color === C.yellow) return { color: C.yellow, alpha: C.yellowAlpha, border: C.yellowBorder };
+  if (color === C.purple) return { color: C.purple, alpha: C.purpleAlpha, border: C.purpleBorder };
+  if (color === C.maroon) return { color: C.maroon, alpha: C.maroonAlpha, border: C.maroonBorder };
   return { color: C.primary, alpha: C.primaryAlpha, border: C.primaryBorder };
 }
 
+function detailItem(label: string, range: string, color: string, upper = Number.POSITIVE_INFINITY): DetailRangeItem {
+  return {
+    label,
+    range,
+    upper,
+    ...statusColors(color),
+  };
+}
+
+function parameterWeatherStatus(parameter: string, value: number): ParameterStatus | null {
+  const ranges = detailRangeItems(parameter, '');
+  if (!['氣溫', '風速', '1小時雨量'].includes(parameter) || ranges.length === 0) return null;
+
+  const active = ranges.find(item => value <= item.upper) ?? ranges[ranges.length - 1];
+  return {
+    label: active.label,
+    color: active.color,
+    alpha: active.alpha,
+    border: active.border,
+  };
+}
+
 function parameterStatus(parameter: string, value: number): ParameterStatus {
+  const aqiItems = aqiRangeItems(parameter);
+  if (aqiItems.length > 0) {
+    const active = aqiItems.find(item => value <= item.upper) ?? aqiItems[aqiItems.length - 1];
+    return {
+      label: active.label,
+      color: active.color,
+      alpha: active.alpha,
+      border: active.border,
+    };
+  }
+
+  const weatherStatus = parameterWeatherStatus(parameter, value);
+  if (weatherStatus) return weatherStatus;
+
   const color = parameterColor(parameter, value);
   const colors = statusColors(color);
-
-  if (parameter === '氣溫') {
-    if (value <= 6) return { label: '非常寒冷', ...statusColors(C.orange) };
-    if (value <= 10) return { label: '寒冷', ...statusColors(C.yellow) };
-    if (value >= 38) return { label: '高溫橙燈參考', ...statusColors(C.orange) };
-    if (value >= 36) return { label: '高溫黃燈參考', ...statusColors(C.yellow) };
-    return { label: '一般', ...statusColors(C.green) };
-  }
-
-  if (parameter === '1小時雨量') {
-    if (value >= 40) return { label: '大雨', ...statusColors(C.orange) };
-    if (value > 0) return { label: '有雨', ...statusColors(C.amber) };
-    return { label: '無雨', ...statusColors(C.green) };
-  }
-
   if (color === C.red) return { label: '異常', ...colors };
   if (color === C.amber) return { label: '注意', ...colors };
   return { label: '正常', ...colors };
 }
 
 function detailRangeItems(parameter: string, unit: string): DetailRangeItem[] {
-  const item = (label: string, range: string, color: string): DetailRangeItem => ({
-    label,
-    range,
-    ...statusColors(color),
-  });
+  const aqiItems = aqiRangeItems(parameter);
+  if (aqiItems.length > 0) return aqiItems;
 
   switch (parameter) {
-    case 'PM2.5':
-      return [
-        item('正常', `0-15.4 ${unit}`, C.green),
-        item('注意', `15.5-35.4 ${unit}`, C.amber),
-        item('異常', `35.5 ${unit} 以上`, C.red),
-      ];
-    case 'PM10':
-      return [
-        item('正常', `0-50 ${unit}`, C.green),
-        item('注意', `51-100 ${unit}`, C.amber),
-        item('異常', `101 ${unit} 以上`, C.red),
-      ];
-    case 'O3':
-      return [
-        item('正常', `0-54 ${unit}`, C.green),
-        item('注意', `55-70 ${unit}`, C.amber),
-        item('異常', `71 ${unit} 以上`, C.red),
-      ];
-    case 'NO2':
-      return [
-        item('正常', `0-53 ${unit}`, C.green),
-        item('注意', `54-100 ${unit}`, C.amber),
-        item('異常', `101 ${unit} 以上`, C.red),
-      ];
-    case 'SO2':
-      return [
-        item('正常', `0-35 ${unit}`, C.green),
-        item('注意', `36-75 ${unit}`, C.amber),
-        item('異常', `76 ${unit} 以上`, C.red),
-      ];
-    case 'CO':
-      return [
-        item('正常', `0-4.4 ${unit}`, C.green),
-        item('注意', `4.5-9.4 ${unit}`, C.amber),
-        item('異常', `9.5 ${unit} 以上`, C.red),
-      ];
     case '氣溫':
       return [
-        item('寒冷', `10 ${unit} 以下`, C.yellow),
-        item('非常寒冷', `6 ${unit} 以下`, C.orange),
-        item('高溫黃燈參考', `36 ${unit} 以上`, C.yellow),
-        item('高溫橙燈參考', `38 ${unit} 以上`, C.orange),
+        detailItem('非常寒冷', `6 ${unit} 以下`, C.orange, 6),
+        detailItem('寒冷', `6.1-10 ${unit}`, C.yellow, 10),
+        detailItem('一般', `10.1-35.9 ${unit}`, C.green, 35.9),
+        detailItem('高溫黃燈參考', `36-37.9 ${unit}`, C.yellow, 37.9),
+        detailItem('高溫橙燈參考', `38 ${unit} 以上`, C.orange),
       ];
     case '1小時雨量':
       return [
-        item('無雨', `0 ${unit}`, C.green),
-        item('有雨', `0-40 ${unit}`, C.amber),
-        item('大雨', `40 ${unit} 以上`, C.orange),
-      ];
-    case '相對濕度':
-      return [
-        item('正常', `0-80 ${unit}`, C.green),
-        item('注意', `81-90 ${unit}`, C.amber),
-        item('異常', `91 ${unit} 以上`, C.red),
+        detailItem('無雨', `0 ${unit}`, C.green, 0),
+        detailItem('有雨', `0.1-39.9 ${unit}`, C.amber, 39.9),
+        detailItem('大雨', `40 ${unit} 以上`, C.orange),
       ];
     case '風速':
       return [
-        item('正常', `0-10 ${unit}`, C.green),
-        item('注意', `11-15 ${unit}`, C.amber),
-        item('異常', `16 ${unit} 以上`, C.red),
+        detailItem('無風', `0.0-0.2 ${unit}`, C.green, 0.2),
+        detailItem('軟風', `0.3-1.5 ${unit}`, C.green, 1.5),
+        detailItem('輕風', `1.6-3.3 ${unit}`, C.green, 3.3),
+        detailItem('微風', `3.4-5.4 ${unit}`, C.green, 5.4),
+        detailItem('和風', `5.5-7.9 ${unit}`, C.green, 7.9),
+        detailItem('清風', `8.0-10.7 ${unit}`, C.amber, 10.7),
+        detailItem('強風', `10.8-13.8 ${unit}`, C.amber, 13.8),
+        detailItem('疾風', `13.9-17.1 ${unit}`, C.red, 17.1),
+        detailItem('烈風', `17.2-20.7 ${unit}`, C.red, 20.7),
+        detailItem('狂風', `20.8-24.4 ${unit}`, C.red, 24.4),
+        detailItem('暴風', `24.5-28.4 ${unit}`, C.red, 28.4),
+        detailItem('強烈暴風', `28.5-32.6 ${unit}`, C.red, 32.6),
+        detailItem('颶風', `32.7 ${unit} 以上`, C.red),
       ];
     default:
       return [];
@@ -237,12 +321,13 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId, renderOptio
   const isOpen = openId === id;
   const isActive = value !== options[0];
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', minWidth: 0 }}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpenId(isOpen ? null : id); }}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
           padding: '9px 16px', borderRadius: 999, cursor: 'pointer',
+          maxWidth: '100%',
           backgroundColor: isActive ? C.primaryAlpha : C.glass,
           border: `1px solid ${isActive ? C.primaryBorder : C.glassBorder}`,
           boxShadow: C.glassShadow,
@@ -251,7 +336,9 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId, renderOptio
           transition: 'all 0.15s',
         }}
       >
-        {renderOption ? renderOption(value) : value}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {renderOption ? renderOption(value) : value}
+        </span>
         <ChevronDown
           size={14} strokeWidth={2.5}
           style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
@@ -326,10 +413,10 @@ interface ExplorerHistoryResponse {
 
 const MICRO_SENSOR_MOCK_DATA: StationData[] = [
   { id: 9001, district: '蘆竹工業區', station: 'Micro-Sensor A04', time: '13:45', passed: false, parameter: 'PM2.5', value: 48, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '蘆竹區', trend: '上升中', aqi: 128, temperature: 28, humidity: 72 },
-  { id: 9002, district: '桃園市區', station: 'Micro-Sensor B12', time: '11:15', passed: false, parameter: 'NOx', value: 85, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
+  { id: 9002, district: '桃園市區', station: 'Micro-Sensor B12', time: '11:15', passed: false, parameter: 'PM2.5', value: 35, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
   { id: 9003, district: '觀音工業區', station: 'Micro-Sensor B07', time: '昨日 23:30', passed: false, parameter: 'PM2.5', value: 52, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '觀音區', trend: '上升中', aqi: 140, temperature: 23, humidity: 80 },
-  { id: 9004, district: '中壢工業區', station: 'Micro-Sensor D05', time: '昨日 18:45', passed: true, parameter: 'VOCs', value: 38, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 76, temperature: 27, humidity: 66 },
-  { id: 9005, district: '中壢市中心', station: 'Micro-Sensor G02', time: '6天前 09:45', passed: true, parameter: 'VOCs', value: 25, unit: 'ppb', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 48, temperature: 24, humidity: 72 },
+  { id: 9004, district: '中壢工業區', station: 'Micro-Sensor D05', time: '昨日 18:45', passed: true, parameter: 'PM2.5', value: 28, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 76, temperature: 27, humidity: 66 },
+  { id: 9005, district: '中壢市中心', station: 'Micro-Sensor G02', time: '6天前 09:45', passed: true, parameter: 'PM2.5', value: 12, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 48, temperature: 24, humidity: 72 },
   { id: 9006, district: '大園住宅區', station: 'Micro-Sensor H09', time: '5天前 12:10', passed: true, parameter: 'PM2.5', value: 18, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '大園區', trend: '下降中', aqi: 62, temperature: 26, humidity: 69 },
 ];
 
@@ -345,21 +432,48 @@ const TIME_TABS = ['近24小時', '近3天', '近7天'] as const;
 /* ─── Filter settings ───────────────────────────────────────── */
 const DEFAULT_PARAMETER = '全部量測參數';
 const DEFAULT_SOURCE = '全部來源';
+const DEFAULT_REGION = '所有區域';
 
-const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO', 'VOCs', '氣溫', '相對濕度', '風速', '1小時雨量'];
+const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', '氣溫', '風速', '1小時雨量'];
 
 // 新增資料來源時，請同步補上該來源可查詢的量測參數。
 const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
   [DEFAULT_SOURCE]: PARAMETER_OPTIONS,
-  環境部: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
-  桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
-  氣象署: [DEFAULT_PARAMETER, '氣溫', '相對濕度', '風速', '1小時雨量'],
-  微感測器: [DEFAULT_PARAMETER, 'PM2.5', 'NOx', 'VOCs'],
-  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NOx', 'NO2', 'SO2', 'CO'],
+  環境部: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
+  桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
+  氣象署: [DEFAULT_PARAMETER, '氣溫', '風速', '1小時雨量'],
+  微感測器: [DEFAULT_PARAMETER, 'PM2.5'],
+  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
 };
 
-const REGIONS    = ['所有區域', '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區'];
+const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區'];
 const SOURCES    = [DEFAULT_SOURCE, '環境部', '桃園市環保局', '氣象署', '微感測器', '中大空品站'];
+const CWA_REGION_OPTIONS = [
+  DEFAULT_REGION,
+  '新屋區',
+  '楊梅區',
+  '復興區',
+  '觀音區',
+  '大園區',
+  '大溪區',
+  '中壢區',
+  '龜山區',
+  '龍潭區',
+  '平鎮區',
+  '蘆竹區',
+  '八德區',
+];
+
+// 區域下拉選單也要跟著資料來源收斂，避免環境部出現沒有測站的行政區。
+const SOURCE_REGION_OPTIONS: Record<string, string[]> = {
+  [DEFAULT_SOURCE]: REGIONS,
+  環境部: [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區'],
+  桃園市環保局: [DEFAULT_REGION, '蘆竹區', '中壢區', '龜山區', '觀音區'],
+  // 氣象署依 cwa_stations_schema.sql 的 address 欄位取出有測站的行政區。
+  氣象署: CWA_REGION_OPTIONS,
+  微感測器: [DEFAULT_REGION, '桃園區', '中壢區', '大園區', '觀音區', '蘆竹區'],
+  中大空品站: [DEFAULT_REGION, '中壢區'],
+};
 
 const MOE_REGION_MAP: Record<string, string> = {
   桃園: '桃園區',
@@ -378,7 +492,6 @@ const MOE_PARAMETERS: Array<{
   { id: 'PM2.5', unit: 'μg/m³', value: station => station.pm25 },
   { id: 'PM10', unit: 'μg/m³', value: station => station.pm10 },
   { id: 'O3', unit: 'ppb', value: station => station.o3 },
-  { id: 'NOx', unit: 'ppb', value: station => station.nox },
   { id: 'NO2', unit: 'ppb', value: station => station.no2 },
   { id: 'SO2', unit: 'ppb', value: station => station.so2 },
   { id: 'CO', unit: 'ppm', value: station => station.co },
@@ -391,7 +504,6 @@ const CWA_PARAMETERS: Array<{
   passed: (value: number) => boolean;
 }> = [
   { id: '氣溫', unit: '°C', value: weather => Number(weather.current.temperature), passed: value => value <= 38 },
-  { id: '相對濕度', unit: '%', value: weather => Number(weather.current.humidity), passed: value => value <= 90 },
   { id: '風速', unit: 'm/s', value: weather => Number(weather.current.windSpeed), passed: value => value <= 15 },
   { id: '1小時雨量', unit: 'mm', value: weather => Number(weather.past1hrRain), passed: value => value <= 40 },
 ];
@@ -465,7 +577,6 @@ function getParameterDisplay(parameter: string): React.ReactNode {
   switch (parameter) {
     case 'PM2.5': return <>PM<sub className="text-xs">2.5</sub></>;
     case 'O3': return <>O<sub className="text-xs">3</sub></>;
-    case 'NOx': return <>NO<sub className="text-xs">x</sub></>;
     case 'NO2': return <>NO<sub className="text-xs">2</sub></>;
     case 'SO2': return <>SO<sub className="text-xs">2</sub></>;
     default: return parameter;
@@ -493,6 +604,7 @@ function StationCard({ station }: { station: StationData }) {
   const pColor  = parameterColor(station.parameter, station.value);
   const status = parameterStatus(station.parameter, station.value);
   const detailItems = detailRangeItems(station.parameter, station.unit);
+  const compactDetails = detailItems.length > 6;
   const isWeather = station.source === '氣象署';
   const sColor  = status.color;
   const sAlpha  = status.alpha;
@@ -505,53 +617,84 @@ function StationCard({ station }: { station: StationData }) {
 
   return (
     <div style={{
+      position: 'relative',
       backgroundColor: 'rgba(255,255,255,0.94)',
       border: '1px solid rgba(0,0,0,0.06)',
       borderRadius: 20,
       boxShadow: '0 4px 16px rgba(180,140,160,0.10)',
-      overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      // 詳細說明改用浮層覆蓋卡片，不參與 grid 高度計算，
+      // 所以點開單張卡片時不會把同一列其他卡片一起撐高。
+      overflow: showDetails ? 'visible' : 'hidden',
+      minWidth: 0,
+      display: 'flex',
+      flexDirection: 'column',
     }}>
-      {showDetails ? (
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
+      {showDetails && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          padding: '22px 16px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255,239,247,0.66)',
+          backdropFilter: 'blur(2px)',
+        }}>
+          <div style={{
+            width: 'min(420px, calc(100vw - 32px))',
+            margin: '0 auto',
+            padding: compactDetails ? '22px 22px 20px' : '28px 24px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 30,
+            backgroundColor: 'rgba(255,255,255,0.98)',
+            border: '1px solid rgba(255,255,255,0.80)',
+            boxShadow: '0 18px 46px rgba(180,140,160,0.22)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start', marginBottom: compactDetails ? 14 : 22 }}>
             <div>
-              <p style={{ fontSize: 17, fontWeight: 800, color: C.text, lineHeight: 1.25 }}>
+              <p style={{ fontSize: compactDetails ? 21 : 24, fontWeight: 900, color: C.text, lineHeight: 1.15, letterSpacing: 0 }}>
                 {station.parameter}｜分級說明
               </p>
-              <p style={{ fontSize: 12, color: C.muted, fontWeight: 600, marginTop: 4 }}>
+              <p style={{ fontSize: compactDetails ? 12 : 14, color: C.muted, fontWeight: 800, marginTop: compactDetails ? 7 : 10 }}>
                 {station.station}
               </p>
             </div>
             <span style={{
               flexShrink: 0,
-              padding: '5px 10px',
+              padding: compactDetails ? '6px 12px' : '8px 15px',
               borderRadius: 99,
               backgroundColor: status.alpha,
               border: `1px solid ${status.border}`,
               color: status.color,
-              fontSize: 12,
-              fontWeight: 800,
+              fontSize: compactDetails ? 13 : 16,
+              fontWeight: 900,
             }}>
               {status.label}
             </span>
           </div>
 
           <div style={{
-            padding: 14,
+            padding: compactDetails ? '14px 16px' : '20px 18px',
             borderRadius: 16,
-            backgroundColor: `${pColor}10`,
-            border: `1px solid ${pColor}28`,
-            marginBottom: 14,
+            backgroundColor: status.alpha,
+            border: `1px solid ${status.border}`,
+            marginBottom: compactDetails ? 12 : 18,
           }}>
-            <p style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 4 }}>目前值</p>
-            <p style={{ fontSize: 28, lineHeight: 1, color: pColor, fontWeight: 850 }}>
+            <p style={{ fontSize: compactDetails ? 13 : 15, color: C.muted, fontWeight: 850, marginBottom: compactDetails ? 5 : 8 }}>目前值</p>
+            <p style={{ fontSize: compactDetails ? 32 : 40, lineHeight: 1, color: pColor, fontWeight: 950 }}>
               {station.value}
-              <span style={{ fontSize: 13, color: C.muted, marginLeft: 6 }}>{station.unit}</span>
+              <span style={{ fontSize: compactDetails ? 14 : 18, color: C.muted, marginLeft: 8 }}>{station.unit}</span>
             </p>
           </div>
 
           {detailItems.length > 0 && (
-            <div style={{ display: 'grid', gap: 7, marginBottom: 14 }}>
+            <div style={{
+              display: 'grid',
+              gap: compactDetails ? 5 : 10,
+              marginBottom: compactDetails ? 12 : 20,
+            }}>
               {detailItems.map(item => {
                 const isActive = item.label === status.label;
                 return (
@@ -562,24 +705,25 @@ function StationCard({ station }: { station: StationData }) {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       gap: 10,
-                      padding: '8px 10px',
+                      minHeight: compactDetails ? 28 : 44,
+                      padding: compactDetails ? '5px 10px' : '9px 14px',
                       borderRadius: 12,
                       backgroundColor: isActive ? item.alpha : 'rgba(255,255,255,0.55)',
                       border: `1px solid ${isActive ? item.border : 'rgba(0,0,0,0.05)'}`,
-                      fontSize: 12,
-                      fontWeight: 750,
+                      fontSize: compactDetails ? 12 : 15,
+                      fontWeight: 850,
                     }}
                   >
                     <span style={{ color: item.color }}>{item.label}</span>
-                    <span style={{ color: C.muted, whiteSpace: 'nowrap' }}>{item.range}</span>
+                    <span style={{ color: C.muted, textAlign: 'right', minWidth: 0 }}>{item.range}</span>
                   </div>
                 );
               })}
             </div>
           )}
 
-          <div style={{ marginTop: 'auto', display: 'grid', gap: 8 }}>
-            <p style={{ fontSize: 11, color: C.hint, fontWeight: 600, lineHeight: 1.55 }}>
+          <div style={{ display: 'grid', gap: compactDetails ? 8 : 18 }}>
+            <p style={{ fontSize: compactDetails ? 11 : 13, color: C.hint, fontWeight: 800, lineHeight: 1.55 }}>
               資料來源：{station.source}・{station.version}・{station.time}
               {isWeather && '。高溫紅燈、低溫紅燈與豪雨以上分級需要連續時段資料，此頁僅以目前可取得的即時值作參考。'}
             </p>
@@ -587,19 +731,26 @@ function StationCard({ station }: { station: StationData }) {
               type="button"
               onClick={() => setShowDetails(false)}
               style={{
-                width: '100%', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
-                backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`,
-                fontSize: 13, fontWeight: 800, color: C.primary,
+                width: '100%',
+                padding: compactDetails ? '4px 0' : '8px 0',
+                borderRadius: 12,
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: compactDetails ? 15 : 17,
+                fontWeight: 900,
+                color: C.primary,
               }}
             >
               返回卡片
             </button>
           </div>
+          </div>
         </div>
-      ) : (
-        <>
+      )}
+      <>
       {/* Header */}
-      <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+      <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 17, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>{station.district}</p>
@@ -629,7 +780,7 @@ function StationCard({ station }: { station: StationData }) {
       </div>
 
       {/* Gauge section */}
-      <div style={{ padding: '16px 20px 12px', textAlign: 'center' }}>
+      <div style={{ padding: '16px 20px 12px', textAlign: 'center', flex: 1, minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{
             fontSize: 13, fontWeight: 800, color: pColor,
@@ -650,7 +801,7 @@ function StationCard({ station }: { station: StationData }) {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+      <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -687,11 +838,10 @@ function StationCard({ station }: { station: StationData }) {
           }}
         >
           <MapPin size={14} strokeWidth={2} />
-          查看詳細資料
+          查看詳細說明
         </button>
       </div>
-        </>
-      )}
+      </>
     </div>
   );
 }
@@ -701,7 +851,7 @@ export default function ExplorerPage() {
   const [searchText, setSearchText]           = useState('');
   const [activeTime, setActiveTime]           = useState<typeof TIME_TABS[number]>('近24小時');
   const [selectedParameter, setSelectedParameter] = useState(PARAMETER_OPTIONS[0]);
-  const [selectedRegion, setSelectedRegion]   = useState(REGIONS[0]);
+  const [selectedRegion, setSelectedRegion]   = useState(DEFAULT_REGION);
   const [selectedSource, setSelectedSource]   = useState(SOURCES[0]);
   const [openId, setOpenId]                   = useState<string | null>(null);
   const [isMobile, setIsMobile]               = useState(false);
@@ -715,6 +865,9 @@ export default function ExplorerPage() {
   const [moeError, setMoeError]               = useState('');
   const [cwaError, setCwaError]               = useState('');
   const [historyError, setHistoryError]       = useState('');
+
+  const parameterOptions = SOURCE_PARAMETER_OPTIONS[selectedSource] ?? PARAMETER_OPTIONS;
+  const regionOptions = SOURCE_REGION_OPTIONS[selectedSource] ?? REGIONS;
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -754,7 +907,7 @@ export default function ExplorerPage() {
     const loadCwaCards = async () => {
       // The CWA API route accepts one district at a time, so "all regions"
       // fan out to the visible Taoyuan districts instead of defaulting to Zhongli.
-      const districts = selectedRegion === REGIONS[0] ? REGIONS.slice(1) : [selectedRegion];
+      const districts = selectedRegion === DEFAULT_REGION ? regionOptions.slice(1) : [selectedRegion];
 
       setCwaLoading(true);
       try {
@@ -795,7 +948,7 @@ export default function ExplorerPage() {
     void loadCwaCards();
 
     return () => controller.abort();
-  }, [selectedRegion]);
+  }, [selectedRegion, regionOptions]);
 
   useEffect(() => {
     if (activeTime === '近24小時') {
@@ -831,15 +984,17 @@ export default function ExplorerPage() {
 
   const closeDropdown = useCallback(() => setOpenId(null), []);
 
-  const parameterOptions = SOURCE_PARAMETER_OPTIONS[selectedSource] ?? PARAMETER_OPTIONS;
-
   const handleSourceSelect = useCallback((source: string) => {
     const nextOptions = SOURCE_PARAMETER_OPTIONS[source] ?? PARAMETER_OPTIONS;
+    const nextRegionOptions = SOURCE_REGION_OPTIONS[source] ?? REGIONS;
 
-    // Reset parameter only when the current one is not valid for the new source.
+    // 切換來源時，同步校正參數與區域；例如環境部只保留六個官方測站所在區。
     setSelectedSource(source);
     setSelectedParameter(current =>
       nextOptions.includes(current) ? current : nextOptions[0]
+    );
+    setSelectedRegion(current =>
+      nextRegionOptions.includes(current) ? current : nextRegionOptions[0]
     );
   }, []);
 
@@ -863,7 +1018,7 @@ export default function ExplorerPage() {
       if (!item.district.toLowerCase().includes(q) && !item.station.toLowerCase().includes(q)) return false;
     }
     if (selectedParameter !== parameterOptions[0] && item.parameter !== selectedParameter) return false;
-    if (selectedRegion    !== REGIONS[0]    && item.region    !== selectedRegion)    return false;
+    if (selectedRegion    !== DEFAULT_REGION && item.region    !== selectedRegion)    return false;
     if (selectedSource    !== SOURCES[0]    && item.source    !== selectedSource)    return false;
     return true;
   }), [allMonitoringData, searchText, selectedParameter, selectedRegion, selectedSource, parameterOptions]);
@@ -914,10 +1069,21 @@ export default function ExplorerPage() {
 
   return (
     <div
-      style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 60 }}
+      style={{
+        minHeight: '100vh',
+        background: 'var(--app-bg-gradient)',
+        paddingBottom: 60,
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+      }}
       onClick={closeDropdown}
     >
-      <div style={{ padding: isMobile ? '16px 16px 0' : '28px 40px 0' }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        padding: isMobile ? '16px 16px 0' : '28px 40px 0',
+      }}>
 
         {/* ── Search bar + stat chips ──────────────────────────── */}
         <div style={{
@@ -954,7 +1120,7 @@ export default function ExplorerPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
             <StatChip icon={Database} value={stationSummary.length} label="站"  color={C.primary} />
             <span style={{ color: C.hint, fontSize: 15 }}>·</span>
             <StatChip icon={Shield}   value={passedCount}     label="正常" color={C.green}   />
@@ -966,7 +1132,7 @@ export default function ExplorerPage() {
         </div>
 
         {/* ── Controls bar ─────────────────────────────────────── */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap', alignItems: 'center', minWidth: 0 }}>
           {TIME_TABS.map(tab => {
             const active = activeTime === tab;
             return (
@@ -992,13 +1158,13 @@ export default function ExplorerPage() {
 
           {!isMobile && <div style={{ width: 1, height: 24, backgroundColor: 'rgba(180,140,160,0.20)', margin: '0 2px' }} />}
 
-          <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
             <Dropdown id="parameter" value={selectedParameter} options={parameterOptions} onSelect={setSelectedParameter} openId={openId} setOpenId={setOpenId} renderOption={getParameterDisplay} />
-            <Dropdown id="region"    value={selectedRegion}    options={REGIONS}    onSelect={setSelectedRegion}    openId={openId} setOpenId={setOpenId} />
+            <Dropdown id="region"    value={selectedRegion}    options={regionOptions}    onSelect={setSelectedRegion}    openId={openId} setOpenId={setOpenId} />
             <Dropdown id="source"    value={selectedSource}    options={SOURCES}    onSelect={handleSourceSelect}    openId={openId} setOpenId={setOpenId} />
           </div>
 
-          <span style={{ marginLeft: 'auto', fontSize: 13, color: C.muted, fontWeight: 600 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 13, color: C.muted, fontWeight: 600, minWidth: 0 }}>
             共 {filtered.length} 筆資料
           </span>
         </div>
@@ -1060,8 +1226,12 @@ export default function ExplorerPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+            gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
             gap: 20,
+            // 防止某張卡片內容變長時，CSS grid 把同一列其他卡片一起拉高。
+            alignItems: 'start',
+            width: '100%',
+            maxWidth: '100%',
             paddingBottom: 60,
           }}>
             {filtered.map(station => <StationCard key={station.id} station={station} />)}

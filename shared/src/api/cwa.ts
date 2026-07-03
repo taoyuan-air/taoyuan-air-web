@@ -7,14 +7,19 @@ export type WeatherIconKey = 'sun' | 'cloud' | 'cloud-rain' | 'cloud-drizzle' | 
 
 const CWA_DISTRICT_STATION_MAP: Record<string, string> = {
   // CWA current-weather data is station-based, so each district points to one representative station.
-  // 桃園區目前沒有直接對應站，未列入 map；查詢時會改用 TownName fallback。
-  龜山區: 'C0C680',
-  中壢區: 'C0C700',
-  平鎮區: 'C0C650',
-  龍潭區: 'C0C670',
-  大園區: 'C0C720',
+  // 對應依 cwa_stations_schema.sql 內各測站 address 所在行政區挑一個代表測站。
+  新屋區: '467050',
+  楊梅區: 'C0C660',
+  復興區: 'C0C460',
   觀音區: 'C0C740',
+  大園區: 'C0C720',
+  大溪區: 'C0C630',
+  中壢區: 'C0C700',
+  龜山區: 'C0C680',
+  龍潭區: 'C0C670',
+  平鎮區: 'C0C650',
   蘆竹區: 'C0C620',
+  八德區: 'C0C490',
 };
 
 const CWA_STATION_META: Record<string, { name: string; type: string }> = {
