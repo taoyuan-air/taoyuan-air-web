@@ -663,7 +663,6 @@ function StationCard({ station }: { station: StationData }) {
   const status = parameterStatus(station.parameter, station.value);
   const detailItems = detailRangeItems(station.parameter, station.unit);
   const isWindDetail = station.parameter === '風速';
-  const isDenseDetails = detailItems.length > 6;
   const isWeather = station.source === '氣象署';
   const sColor  = status.color;
   const sAlpha  = status.alpha;

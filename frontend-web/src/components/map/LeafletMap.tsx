@@ -79,7 +79,7 @@ type WindyInit = (options: Record<string, unknown>, callback: (api: WindyApi) =>
 // Module-level shim: Turbopack wraps inline async callbacks into annotated objects,
 // which breaks Windy's minified code when it tries to call the second arg as a function.
 // A module-level function reference is not wrapped.
-let _windyReadyCallback: ((api: WindyApi) => void) | null = null;
+const _windyReadyCallback: ((api: WindyApi) => void) | null = null;
 const WINDY_CALLBACK_NAME = '__taoyuanAirWindyReady';
 const scriptLoaders = new Map<string, Promise<boolean>>();
 const WINDY_DETAIL_ZOOM = 11;
