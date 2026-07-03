@@ -485,7 +485,7 @@ export default function MapPage() {
   const gridCells: GridCell[] = store.gridCells;
   // 保留原 mapMode 狀態設計（目前固定僅使用 2D 地圖）
   // const [mapMode, setMapMode] = useState<'2D' | 'Satellite'>('2D');
-  const mapMode: '2D' = '2D';
+  const mapMode = '2D' as const;
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [search, setSearch] = useState('');
