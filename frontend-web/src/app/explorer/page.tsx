@@ -306,28 +306,27 @@ function svgNumber(value: number): string {
 function GaugeArc({ value, parameter, unit }: { value: number; parameter: string; unit: string }) {
   const gaugeConfig = GAUGE_PARAMS[parameter] ?? { max: 200, marker: 100 };
   const color = parameterColor(parameter, value);
+  const ranges = detailRangeItems(parameter, unit);
   
-  // 風速特殊處理：顯示下一級的門檻值（即目前所在級別的 upper）
-  let marker = gaugeConfig.marker;
-  if (parameter === '風速') {
-    const ranges = detailRangeItems(parameter, unit);
-    const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
-    if (currentLevelIndex >= 0 && currentLevelIndex < ranges.length - 1) {
-      // 目前所在級別的 upper 就是進入下一級的門檻
-      marker = ranges[currentLevelIndex].upper;
-    } else {
-      // 已是最高級，顯示最後一個有限 upper
-      const last = [...ranges].reverse().find(item => Number.isFinite(item.upper));
-      if (last) marker = last.upper;
+  // 動態計算 markers：目前級別+往後2個門檻（共3條線）
+  const markers: number[] = [];
+  const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
+  
+  if (currentLevelIndex >= 0) {
+    // 從目前級別開始，取最多 4 個有限的 upper
+    for (let i = currentLevelIndex; i < ranges.length && markers.length < 3; i++) {
+      if (Number.isFinite(ranges[i].upper)) {
+        markers.push(ranges[i].upper);
+      }
     }
+  }
+  
+  // 如果找不到或不足 4 個，補上預設值
+  if (markers.length === 0) {
+    markers.push(gaugeConfig.marker);
   }
 
   const dashOffset = ARC_LEN * (1 - Math.min(value / gaugeConfig.max, 1));
-  const markerAngle = Math.min(marker / gaugeConfig.max, 1) * 180;
-  const mp = polarToXY(markerAngle);
-  const rad = (Math.PI * (180 - markerAngle)) / 180;
-  const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
-  const ly = ARC_CY - (ARC_R + 14) * Math.sin(rad);
 
   return (
     <svg
@@ -340,8 +339,32 @@ function GaugeArc({ value, parameter, unit }: { value: number; parameter: string
         fill="none" stroke={color} strokeWidth={7} strokeLinecap="round"
         strokeDasharray={svgNumber(ARC_LEN)} strokeDashoffset={svgNumber(dashOffset)}
       />
-      <line x1={svgNumber(mp.x)} y1={svgNumber(mp.y)} x2={svgNumber(lx)} y2={svgNumber(ly)} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" />
-      <text x={svgNumber(lx)} y={svgNumber(ly - 3)} fontSize={9} fill="#bbb" textAnchor="middle">{marker}</text>
+      
+      {/* 繪製多條 marker 線 */}
+      {markers.map((m, idx) => {
+        const markerAngle = Math.min(m / gaugeConfig.max, 1) * 180;
+        const mp = polarToXY(markerAngle);
+        const rad = (Math.PI * (180 - markerAngle)) / 180;
+        const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
+        const ly = ARC_CY - (ARC_R + 14) * Math.sin(rad);
+        
+        return (
+          <g key={`marker-${idx}`}>
+            <line 
+              x1={svgNumber(mp.x)} y1={svgNumber(mp.y)} 
+              x2={svgNumber(lx)} y2={svgNumber(ly)} 
+              stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" 
+            />
+            <text 
+              x={svgNumber(lx)} y={svgNumber(ly - 3)} 
+              fontSize={9} fill="#bbb" textAnchor="middle"
+            >
+              {m}
+            </text>
+          </g>
+        );
+      })}
+      
       <text x={ARC_CX} y={50} fontSize={22} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
       <text x={ARC_CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">{unit}</text>
     </svg>
