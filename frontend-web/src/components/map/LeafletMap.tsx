@@ -1,15 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { GridCell, TEDSPoint } from '@shared/types';
+import { ExamPoint, GridCell, TEDSPoint } from '@shared/types';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
-  tedsPoints?: TEDSPoint[];
+  tedsPoints?: Array<TEDSPoint | ExamPoint>;
   mapMode: '2D' | 'Satellite';
   onGridPress?: (grid: GridCell) => void;
   focusGrid?: GridCell | null;
 }
+
+type EmissionPoint = TEDSPoint | ExamPoint;
 
 type LatLngTuple = [number, number];
 type RuntimeWindow = Window & Record<string, unknown>;
@@ -21,8 +23,9 @@ interface LeafletClickEvent {
 }
 
 interface LeafletMapInstance {
-  options: { maxZoom?: number };
+  options: { maxZoom?: number; minZoom?: number };
   setMaxZoom?: (zoom: number) => void;
+  setMinZoom?: (zoom: number) => void;
   getCenter: () => unknown;
   getZoom: () => number;
   invalidateSize: () => void;
@@ -83,6 +86,7 @@ const WINDY_DETAIL_ZOOM = 11;
 const TEDS_ICON_ZOOM = 13;
 const TEDS_NANO_ZOOM = 10;
 const DETAIL_MAX_ZOOM = 19;
+const DETAIL_MIN_ZOOM = 8;
 const MAP_FADE_MS = 220;
 const TEDS_MARKER_STYLE_ID = 'teds-marker-style';
 
@@ -98,16 +102,41 @@ const ensureTEDSMarkerStyles = () => {
       align-items: center;
       justify-content: center;
     }
-    .teds-emoji-pin {
-      font-size: 18px;
-      line-height: 1;
-      user-select: none;
+    .teds-pin {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+      transform: translateY(-2px);
+    }
+    .teds-pin::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      width: 7px;
+      height: 7px;
+      transform: translateX(-50%) rotate(45deg);
+      background: inherit;
+      border-right: 2px solid #ffffff;
+      border-bottom: 2px solid #ffffff;
+      box-sizing: border-box;
+    }
+    .teds-pin.pin-chimney {
+      color: #d4567a;
+      background: #d4567a;
+    }
+    .teds-pin.pin-mercury {
+      color: #4f79d8;
+      background: #4f79d8;
     }
   `;
   document.head.appendChild(style);
 };
 
-const samplePointsByZoom = (points: TEDSPoint[], zoom: number) => {
+const samplePointsByZoom = (points: EmissionPoint[], zoom: number) => {
   const maxMarkers = zoom <= TEDS_NANO_ZOOM ? 1000 : zoom < 13 ? 1200 : 4000;
   if (points.length <= maxMarkers) return points;
   const step = Math.ceil(points.length / maxMarkers);
@@ -117,7 +146,10 @@ const samplePointsByZoom = (points: TEDSPoint[], zoom: number) => {
 const getWindowValue = <T,>(key: string) => (window as unknown as RuntimeWindow)[key] as T | undefined;
 
 const getRuntimeWindyCallback = () => {
-  (window as unknown as RuntimeWindow)[WINDY_CALLBACK_NAME] = (api: WindyApi) => _windyReadyCallback?.(api);
+  (window as unknown as RuntimeWindow)[WINDY_CALLBACK_NAME] = (api: WindyApi) => {
+    // Windy 暫停使用時不觸發 callback；保留 bridge 供後續恢復。
+    void api;
+  };
   return new Function(`return window["${WINDY_CALLBACK_NAME}"]`)() as (api: WindyApi) => void;
 };
 
@@ -145,7 +177,8 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
   const windyLeafletRef = useRef<LeafletApi | null>(null);
   const polygonLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
   const detailMapRef = useRef<LeafletMapInstance | null>(null);
-  const detailLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
+  const detailPolygonLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
+  const detailPointLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
   const satMapRef = useRef<LeafletMapInstance | null>(null);
   const satLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
   const initStartedRef = useRef(false);
@@ -154,14 +187,15 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
   const mapModeRef = useRef(mapMode);
   const gridCellsRef = useRef<GridCell[]>(gridCells);
   const onGridPressRef = useRef(onGridPress);
-  const tedsPointsRef = useRef<TEDSPoint[]>(tedsPoints || []);
+  const tedsPointsRef = useRef<EmissionPoint[]>(tedsPoints || []);
+  const [zoomLevel, setZoomLevel] = useState(WINDY_DETAIL_ZOOM);
 
   const updateDetailMode = useCallback((next: boolean) => {
     isDetailModeRef.current = next;
     setIsDetailMode(next);
   }, []);
 
-  const renderTEDSPoints = useCallback((points: TEDSPoint[], L: LeafletApi, layerGroup: LeafletLayerGroup, mapInstance?: LeafletMapInstance) => {
+  const renderTEDSPoints = useCallback((points: EmissionPoint[], L: LeafletApi, layerGroup: LeafletLayerGroup, mapInstance?: LeafletMapInstance) => {
     if (!L || !layerGroup || !mapInstance) return;
     layerGroup.clearLayers();
     console.log(" TEDS 從後端撈到的點位總數：", points.length);
@@ -171,28 +205,34 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
     pointsToRender.forEach((point) => {
       const pos: LatLngTuple = [point.latLng.latitude, point.latLng.longitude];
       try {
-        const isNano = zoom < 12; 
-        
-        if (isNano) {
-          const targetL = L.circleMarker ? L : (window as any).L;
-          if (targetL && typeof targetL.circleMarker === 'function') {
-            const marker = targetL.circleMarker(pos, {
-              radius: zoom <= 10 ? 2.5 : 3.5,
-              stroke: false,
-              fillColor: "#d4567a", 
-              fillOpacity: 0.85,   
-              interactive: false,
-            });
-            marker.addTo(layerGroup);
-            return;
-          }
-        }
+        // 保留舊邏輯：大視角使用 nano 圓點。
+        // const isNano = zoom < 12;
+        // if (isNano) {
+        //   const targetL = L.circleMarker ? L : (window as any).L;
+        //   if (targetL && typeof targetL.circleMarker === 'function') {
+        //     const marker = targetL.circleMarker(pos, {
+        //       radius: zoom <= 10 ? 2.5 : 3.5,
+        //       stroke: false,
+        //       fillColor: "#d4567a",
+        //       fillOpacity: 0.85,
+        //       interactive: false,
+        //     });
+        //     marker.addTo(layerGroup);
+        //     return;
+        //   }
+        // }
 
         if (!L.marker) return;
+        const pointSource = String(point.source || '工業');
+        const isMercuryPoint = pointSource.includes('汞');
+        const pinClass = isMercuryPoint ? 'pin-mercury' : 'pin-chimney';
+        const popupDetails = isMercuryPoint
+          ? `來源：${pointSource}${'note' in point && point.note ? `<br/>${point.note}` : ''}`
+          : `Height: ${'heightM' in point ? point.heightM || 'N/A' : 'N/A'}m`;
         
         const icon = L.divIcon?.({
           className: 'teds-marker-shell',
-          html: `<div class="teds-emoji-pin">📍</div>`, 
+          html: `<div class="teds-pin ${pinClass}"></div>`,
           iconSize: [16, 36],
           iconAnchor: [8, 36],    
           popupAnchor: [0, -34],
@@ -205,7 +245,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
         if (marker) {
           marker.addTo(layerGroup);
           if (typeof marker.bindPopup === 'function') {
-            marker.bindPopup(`<strong>${point.name || point.id}</strong><br/>Height: ${point.heightM || 'N/A'}m`);
+            marker.bindPopup(`<strong>${point.name || point.id}</strong><br/>${popupDetails}`);
           }
         }
       } catch (e) {
@@ -323,7 +363,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
 
     const init = async () => {
       if (initStartedRef.current) return;
-      if (mapRef.current && satMapRef.current) return;
+      if (detailMapRef.current) return;
       initStartedRef.current = true;
 
       try {
@@ -333,165 +373,186 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
         const L = getWindowValue<LeafletApi>('L');
         if (!L) return;
 
-        const satContainer = document.getElementById('satellite-map');
-        if (satContainer && !satMapRef.current) {
-          const satMap = L.map('satellite-map', { center: [25.0, 121.25], zoom: WINDY_DETAIL_ZOOM, maxZoom: DETAIL_MAX_ZOOM, zoomControl: false });
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', maxZoom: DETAIL_MAX_ZOOM }).addTo(satMap);
-          satMapRef.current = satMap;
-          satLayerGroupRef.current = L.layerGroup().addTo(satMap);
-          if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, satLayerGroupRef.current);
-          const satLayerGroup = satLayerGroupRef.current;
-          if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
-          satMap.on('zoomend', () => {
-            if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
-          });
-        }
+        // 保留衛星圖程式碼
+        // const satContainer = document.getElementById('satellite-map');
+        // if (satContainer && !satMapRef.current) {
+        //   const satMap = L.map('satellite-map', { center: [25.0, 121.25], zoom: WINDY_DETAIL_ZOOM, maxZoom: DETAIL_MAX_ZOOM, zoomControl: false });
+        //   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', maxZoom: DETAIL_MAX_ZOOM }).addTo(satMap);
+        //   satMapRef.current = satMap;
+        //   satLayerGroupRef.current = L.layerGroup().addTo(satMap);
+        //   if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, satLayerGroupRef.current);
+        //   const satLayerGroup = satLayerGroupRef.current;
+        //   if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
+        //   satMap.on('zoomend', () => {
+        //     if (satLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroup, satMap);
+        //   });
+        // }
 
         const detailContainer = document.getElementById('detail-map');
         if (detailContainer && !detailMapRef.current) {
-          const detailMap = L.map('detail-map', { center: [25.0, 121.25], zoom: WINDY_DETAIL_ZOOM, maxZoom: DETAIL_MAX_ZOOM, zoomControl: false });
+          const detailMap = L.map('detail-map', {
+            center: [25.0, 121.25],
+            zoom: WINDY_DETAIL_ZOOM,
+            minZoom: DETAIL_MIN_ZOOM,
+            maxZoom: DETAIL_MAX_ZOOM,
+            zoomControl: false,
+          });
           L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri',
             maxZoom: DETAIL_MAX_ZOOM,
           }).addTo(detailMap);
           detailMapRef.current = detailMap;
-          detailLayerGroupRef.current = L.layerGroup().addTo(detailMap);
-          if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, L, detailLayerGroupRef.current);
-          const detailLayerGroup = detailLayerGroupRef.current;
-          if (detailLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
+          setZoomLevel(detailMap.getZoom());
+
+          detailPolygonLayerGroupRef.current = L.layerGroup().addTo(detailMap);
+          detailPointLayerGroupRef.current = L.layerGroup().addTo(detailMap);
+
+          if (gridCellsRef.current.length > 0 && detailPolygonLayerGroupRef.current) {
+            renderPolygons(gridCellsRef.current, L, detailPolygonLayerGroupRef.current);
+          }
+          const detailPointLayerGroup = detailPointLayerGroupRef.current;
+          if (detailPointLayerGroup && tedsPointsRef.current.length > 0) {
+            renderTEDSPoints(tedsPointsRef.current, L, detailPointLayerGroup, detailMap);
+          }
           detailMap.on('zoomend', () => {
-            if (isSyncingRef.current || mapModeRef.current !== '2D') return;
-            if (detailMap.getZoom() <= WINDY_DETAIL_ZOOM && isDetailModeRef.current) {
-              syncWindyFromDetail();
-            } else if (detailLayerGroup && tedsPointsRef.current.length > 0) {
-              renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroup, detailMap);
+            setZoomLevel(detailMap.getZoom());
+            if (detailPointLayerGroup && tedsPointsRef.current.length > 0) {
+              renderTEDSPoints(tedsPointsRef.current, L, detailPointLayerGroup, detailMap);
             }
           });
         }
 
-        await loadScript('https://api.windy.com/assets/map-forecast/libBoot.js', 'windy-sdk');
-        const apikey = process.env.NEXT_PUBLIC_WINDY_API_KEY;
-        if (!apikey) return;
-        _windyReadyCallback = (windyAPI: WindyApi) => {
-          if (!windyAPI) return;
-          const { map, store } = windyAPI;
-          const WL = windyAPI.L || getWindowValue<LeafletApi>('L');
-          if (!WL || !map) return;
-          store.set('overlay', 'wind');
-          const targetLayer = windyAPI.colors?.wind;
-          if (targetLayer && typeof targetLayer.changeColor === 'function') {
-            targetLayer.changeColor([
-              [0,   [128, 128, 128, 255]],
-              [1,   [128, 128, 128, 255]],
-              [3,   [128, 128, 128, 255]],
-              [5,   [128, 128, 128, 255]],
-              [7,   [128, 128, 128, 255]],
-              [9,   [128, 128, 128, 255]],
-              [11,  [128, 128, 128, 255]],
-              [13,  [128, 128, 128, 255]],
-              [15,  [128, 128, 128, 255]],
-              [17,  [128, 128, 128, 255]],
-              [19,  [128, 128, 128, 255]],
-              [21,  [128, 128, 128, 255]],
-              [24,  [128, 128, 128, 255]],
-              [27,  [128, 128, 128, 255]],
-              [29,  [128, 128, 128, 255]],
-              [36,  [128, 128, 128, 255]],
-              [46,  [128, 128, 128, 255]],
-              [51,  [128, 128, 128, 255]],
-              [77,  [128, 128, 128, 255]],
-              [104, [128, 128, 128, 255]],
-            ]);
-          }
-          mapRef.current = map;
-          windyLeafletRef.current = WL;
-          map.options.maxZoom = DETAIL_MAX_ZOOM;
-          map.setMaxZoom?.(DETAIL_MAX_ZOOM);
-          polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
-          const polygonLayerGroup = polygonLayerGroupRef.current;
-          if (polygonLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
-          map.on('zoomend', () => {
-            if (isSyncingRef.current || mapModeRef.current !== '2D') return;
-            if (map.getZoom() > WINDY_DETAIL_ZOOM) {
-              syncDetailFromWindy();
-            } else if (polygonLayerGroup && tedsPointsRef.current.length > 0) {
-              // Re-render TEDS points at appropriate zoom level
-              renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
-            }
-          });
-          if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, WL, polygonLayerGroupRef.current);
-        };
-        const windyInit = getRuntimeWindyInit();
-        if (typeof windyInit !== 'function') return;
-
-        windyInit({
-          key: apikey,
-          domElement: document.getElementById('windy'),
-          lat: 25.0,
-          lon: 121.25,
-          zoom: 11,
-        }, getRuntimeWindyCallback());
+        // 保留 Windy 程式碼
+        // await loadScript('https://api.windy.com/assets/map-forecast/libBoot.js', 'windy-sdk');
+        // const apikey = process.env.NEXT_PUBLIC_WINDY_API_KEY;
+        // if (!apikey) return;
+        // _windyReadyCallback = (windyAPI: WindyApi) => {
+        //   if (!windyAPI) return;
+        //   const { map, store } = windyAPI;
+        //   const WL = windyAPI.L || getWindowValue<LeafletApi>('L');
+        //   if (!WL || !map) return;
+        //   store.set('overlay', 'wind');
+        //   const targetLayer = windyAPI.colors?.wind;
+        //   if (targetLayer && typeof targetLayer.changeColor === 'function') {
+        //     targetLayer.changeColor([
+        //       [0,   [128, 128, 128, 255]],
+        //       [1,   [128, 128, 128, 255]],
+        //       [3,   [128, 128, 128, 255]],
+        //       [5,   [128, 128, 128, 255]],
+        //       [7,   [128, 128, 128, 255]],
+        //       [9,   [128, 128, 128, 255]],
+        //       [11,  [128, 128, 128, 255]],
+        //       [13,  [128, 128, 128, 255]],
+        //       [15,  [128, 128, 128, 255]],
+        //       [17,  [128, 128, 128, 255]],
+        //       [19,  [128, 128, 128, 255]],
+        //       [21,  [128, 128, 128, 255]],
+        //       [24,  [128, 128, 128, 255]],
+        //       [27,  [128, 128, 128, 255]],
+        //       [29,  [128, 128, 128, 255]],
+        //       [36,  [128, 128, 128, 255]],
+        //       [46,  [128, 128, 128, 255]],
+        //       [51,  [128, 128, 128, 255]],
+        //       [77,  [128, 128, 128, 255]],
+        //       [104, [128, 128, 128, 255]],
+        //     ]);
+        //   }
+        //   mapRef.current = map;
+        //   windyLeafletRef.current = WL;
+        //   map.options.maxZoom = DETAIL_MAX_ZOOM;
+        //   map.setMaxZoom?.(DETAIL_MAX_ZOOM);
+        //   polygonLayerGroupRef.current = WL.layerGroup().addTo(map);
+        //   const polygonLayerGroup = polygonLayerGroupRef.current;
+        //   if (polygonLayerGroup && tedsPointsRef.current.length > 0) renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
+        //   map.on('zoomend', () => {
+        //     if (isSyncingRef.current || mapModeRef.current !== '2D') return;
+        //     if (map.getZoom() > WINDY_DETAIL_ZOOM) {
+        //       syncDetailFromWindy();
+        //     } else if (polygonLayerGroup && tedsPointsRef.current.length > 0) {
+        //       renderTEDSPoints(tedsPointsRef.current, WL, polygonLayerGroup, map);
+        //     }
+        //   });
+        //   if (gridCellsRef.current.length > 0) renderPolygons(gridCellsRef.current, WL, polygonLayerGroupRef.current);
+        // };
+        // const windyInit = getRuntimeWindyInit();
+        // if (typeof windyInit !== 'function') return;
+        // windyInit({
+        //   key: apikey,
+        //   domElement: document.getElementById('windy'),
+        //   lat: 25.0,
+        //   lon: 121.25,
+        //   zoom: 11,
+        // }, getRuntimeWindyCallback());
       } catch (err) {
         initStartedRef.current = false;
         console.error('地圖初始化失敗:', err);
       }
     };
     init();
-  }, [renderPolygons, syncDetailFromWindy, syncWindyFromDetail]);
+  }, [renderPolygons]);
 
   useEffect(() => {
     const L = getWindowValue<LeafletApi>('L');
-    if (L || windyLeafletRef.current) {
-      if (mapRef.current && polygonLayerGroupRef.current) {
-        const windyLeaflet = windyLeafletRef.current || L;
-        if (windyLeaflet) renderPolygons(gridCells, windyLeaflet, polygonLayerGroupRef.current);
-      }
-      if (L && detailMapRef.current && detailLayerGroupRef.current) renderPolygons(gridCells, L, detailLayerGroupRef.current);
-      if (L && satMapRef.current && satLayerGroupRef.current) renderPolygons(gridCells, L, satLayerGroupRef.current);
+    if (L && detailMapRef.current && detailPolygonLayerGroupRef.current) {
+      renderPolygons(gridCells, L, detailPolygonLayerGroupRef.current);
     }
+
+    // 保留 Windy 與衛星同步重繪邏輯
+    // if (L || windyLeafletRef.current) {
+    //   if (mapRef.current && polygonLayerGroupRef.current) {
+    //     const windyLeaflet = windyLeafletRef.current || L;
+    //     if (windyLeaflet) renderPolygons(gridCells, windyLeaflet, polygonLayerGroupRef.current);
+    //   }
+    //   if (L && satMapRef.current && satLayerGroupRef.current) renderPolygons(gridCells, L, satLayerGroupRef.current);
+    // }
   }, [gridCells, renderPolygons]);
 
   useEffect(() => {
     const L = getWindowValue<LeafletApi>('L');
-    const windyLeaflet = windyLeafletRef.current || L;
-    if (!windyLeaflet) return;
-    if (polygonLayerGroupRef.current && mapRef.current) renderTEDSPoints(tedsPointsRef.current, windyLeaflet, polygonLayerGroupRef.current, mapRef.current);
-    if (L && detailLayerGroupRef.current && detailMapRef.current) renderTEDSPoints(tedsPointsRef.current, L, detailLayerGroupRef.current, detailMapRef.current);
-    if (L && satLayerGroupRef.current && satMapRef.current) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroupRef.current, satMapRef.current);
+    if (L && detailPointLayerGroupRef.current && detailMapRef.current) {
+      renderTEDSPoints(tedsPointsRef.current, L, detailPointLayerGroupRef.current, detailMapRef.current);
+    }
+
+    // 保留 Windy 與衛星點位重繪邏輯
+    // const windyLeaflet = windyLeafletRef.current || L;
+    // if (!windyLeaflet) return;
+    // if (polygonLayerGroupRef.current && mapRef.current) renderTEDSPoints(tedsPointsRef.current, windyLeaflet, polygonLayerGroupRef.current, mapRef.current);
+    // if (L && satLayerGroupRef.current && satMapRef.current) renderTEDSPoints(tedsPointsRef.current, L, satLayerGroupRef.current, satMapRef.current);
   }, [tedsPoints, renderTEDSPoints]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (mapMode === '2D' && !isDetailMode && mapRef.current) mapRef.current.invalidateSize();
-      if (mapMode === '2D' && detailMapRef.current) detailMapRef.current.invalidateSize();
-      if (mapMode === 'Satellite' && satMapRef.current) satMapRef.current.invalidateSize();
+      if (detailMapRef.current) detailMapRef.current.invalidateSize();
+
+      // 保留 Windy / 衛星 invalidate 邏輯
+      // if (mapMode === '2D' && !isDetailMode && mapRef.current) mapRef.current.invalidateSize();
+      // if (mapMode === 'Satellite' && satMapRef.current) satMapRef.current.invalidateSize();
     }, 100);
     return () => clearTimeout(timer);
-  }, [mapMode, isDetailMode]);
+  }, []);
 
   useEffect(() => {
     if (!focusGrid) return;
     const center = [focusGrid.centerLatLng.latitude, focusGrid.centerLatLng.longitude];
     const zoom = 13;
-    if (mapMode === 'Satellite' && satMapRef.current) {
-      satMapRef.current.setView(center, zoom, { animate: true });
-      return;
-    }
-    if (isDetailMode && detailMapRef.current) {
-      detailMapRef.current.setView(center, zoom, { animate: true });
-      return;
-    }
-    if (mapRef.current) {
-      mapRef.current.setView(center, Math.min(zoom, WINDY_DETAIL_ZOOM), { animate: true });
-    }
-  }, [focusGrid, isDetailMode, mapMode]);
 
-  const showSatelliteMap = mapMode === 'Satellite';
-  const showDetailMap = mapMode === '2D' && isDetailMode;
-  const showWindyMap = mapMode === '2D' && !isDetailMode;
+    if (detailMapRef.current) {
+      detailMapRef.current.setView(center, zoom, { animate: true });
+    }
+  }, [focusGrid]);
+
+  const showDetailMap = true;
+  const handleZoomRequest = useCallback((nextZoom: number) => {
+    if (!detailMapRef.current) return;
+    const clamped = Math.max(DETAIL_MIN_ZOOM, Math.min(DETAIL_MAX_ZOOM, Math.round(nextZoom)));
+    detailMapRef.current.setView(detailMapRef.current.getCenter(), clamped, { animate: true });
+    setZoomLevel(clamped);
+  }, []);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {/*
+        保留 Windy 容器
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -502,17 +563,20 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
       }}>
         <div id="windy" style={{ width: '100%', height: '100%' }} />
       </div>
+      */}
       <div style={{
         position: 'absolute',
         inset: 0,
         opacity: showDetailMap ? 1 : 0,
         pointerEvents: showDetailMap ? 'auto' : 'none',
         transition: `opacity ${MAP_FADE_MS}ms ease`,
-        zIndex: showDetailMap ? 3 : 1,
+        zIndex: 3,
         filter: 'saturate(0.88) brightness(0.98)',
       }}>
         <div id="detail-map" style={{ width: '100%', height: '100%' }} />
       </div>
+      {/*
+        保留衛星容器
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -523,25 +587,74 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
       }}>
         <div id="satellite-map" style={{ width: '100%', height: '100%' }} />
       </div>
-      {mapMode === '2D' && isDetailMode && (
-        <div style={{
+      */}
+
+      <div
+        style={{
           position: 'absolute',
-          right: 20,
-          top: 20,
-          zIndex: 450,
-          padding: '7px 12px',
-          borderRadius: 999,
-          background: 'rgba(255,255,255,0.9)',
-          border: '1px solid rgba(255,255,255,0.75)',
-          boxShadow: '0 4px 16px rgba(58,30,45,0.12)',
-          color: '#7b6271',
-          fontSize: 12,
-          fontWeight: 700,
-          pointerEvents: 'none',
-        }}>
-          高倍率地圖
+          right: 18,
+          bottom: 58,
+          zIndex: 520,
+          width: 214,
+          background: 'rgba(255,255,255,0.97)',
+          border: '1px solid rgba(212, 86, 122, 0.28)',
+          borderRadius: 14,
+          padding: '10px 12px',
+          boxShadow: '0 10px 24px rgba(58,30,45,0.2)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#6a5a66' }}>縮放尺</div>
+          <div style={{ fontSize: 11, color: '#8f7f8a', fontWeight: 700 }}>Zoom {zoomLevel}</div>
         </div>
-      )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => handleZoomRequest(zoomLevel - 1)}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              border: '1px solid rgba(106,141,115,0.38)',
+              background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
+              cursor: 'pointer',
+              color: '#566',
+              fontWeight: 900,
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+          >
+            -
+          </button>
+          <input
+            type="range"
+            min={DETAIL_MIN_ZOOM}
+            max={DETAIL_MAX_ZOOM}
+            step={1}
+            value={zoomLevel}
+            onChange={(e) => handleZoomRequest(Number(e.target.value))}
+            style={{ flex: 1, accentColor: '#d4567a', height: 24 }}
+          />
+          <button
+            onClick={() => handleZoomRequest(zoomLevel + 1)}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              border: '1px solid rgba(106,141,115,0.38)',
+              background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
+              cursor: 'pointer',
+              color: '#566',
+              fontWeight: 900,
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+          >
+            +
+          </button>
+        </div>
+        <div style={{ marginTop: 6, fontSize: 10, color: '#9a8b95' }}>拖曳中間滑桿或使用 +/- 調整比例</div>
+      </div>
     </div>
   );
 }
