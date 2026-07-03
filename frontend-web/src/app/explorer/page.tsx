@@ -306,23 +306,23 @@ function svgNumber(value: number): string {
 function GaugeArc({ value, parameter, unit }: { value: number; parameter: string; unit: string }) {
   const gaugeConfig = GAUGE_PARAMS[parameter] ?? { max: 200, marker: 100 };
   const color = parameterColor(parameter, value);
-  const ranges = detailRangeItems(parameter, unit);
-  
-  // 動態計算 markers：目前級別+往後2個門檻（共3條線）
+  const isAqi = parameter in AQI_RANGES;
+
+  // AQI 參數：動態顯示目前級別起往後 3 個門檻
+  // 其他參數：維持原本單一固定 marker
   const markers: number[] = [];
-  const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
-  
-  if (currentLevelIndex >= 0) {
-    // 從目前級別開始，取最多 4 個有限的 upper
-    for (let i = currentLevelIndex; i < ranges.length && markers.length < 3; i++) {
-      if (Number.isFinite(ranges[i].upper)) {
-        markers.push(ranges[i].upper);
+  if (isAqi) {
+    const ranges = detailRangeItems(parameter, unit);
+    const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
+    if (currentLevelIndex >= 0) {
+      for (let i = currentLevelIndex; i < ranges.length && markers.length < 3; i++) {
+        if (Number.isFinite(ranges[i].upper)) {
+          markers.push(ranges[i].upper);
+        }
       }
     }
-  }
-  
-  // 如果找不到或不足 4 個，補上預設值
-  if (markers.length === 0) {
+    if (markers.length === 0) markers.push(gaugeConfig.marker);
+  } else {
     markers.push(gaugeConfig.marker);
   }
 
@@ -339,32 +339,19 @@ function GaugeArc({ value, parameter, unit }: { value: number; parameter: string
         fill="none" stroke={color} strokeWidth={7} strokeLinecap="round"
         strokeDasharray={svgNumber(ARC_LEN)} strokeDashoffset={svgNumber(dashOffset)}
       />
-      
-      {/* 繪製多條 marker 線 */}
       {markers.map((m, idx) => {
         const markerAngle = Math.min(m / gaugeConfig.max, 1) * 180;
         const mp = polarToXY(markerAngle);
         const rad = (Math.PI * (180 - markerAngle)) / 180;
         const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
         const ly = ARC_CY - (ARC_R + 14) * Math.sin(rad);
-        
         return (
           <g key={`marker-${idx}`}>
-            <line 
-              x1={svgNumber(mp.x)} y1={svgNumber(mp.y)} 
-              x2={svgNumber(lx)} y2={svgNumber(ly)} 
-              stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" 
-            />
-            <text 
-              x={svgNumber(lx)} y={svgNumber(ly - 3)} 
-              fontSize={9} fill="#bbb" textAnchor="middle"
-            >
-              {m}
-            </text>
+            <line x1={svgNumber(mp.x)} y1={svgNumber(mp.y)} x2={svgNumber(lx)} y2={svgNumber(ly)} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} strokeLinecap="round" />
+            <text x={svgNumber(lx)} y={svgNumber(ly - 3)} fontSize={9} fill="#bbb" textAnchor="middle">{m}</text>
           </g>
         );
       })}
-      
       <text x={ARC_CX} y={50} fontSize={22} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
       <text x={ARC_CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">{unit}</text>
     </svg>
