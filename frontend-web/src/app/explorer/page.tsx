@@ -29,6 +29,9 @@ const C = {
   green:         '#059669',
   greenAlpha:    'rgba(5,150,105,0.12)',
   greenBorder:   'rgba(5,150,105,0.28)',
+  blue:          '#2563EB',
+  blueAlpha:     'rgba(37,99,235,0.12)',
+  blueBorder:    'rgba(37,99,235,0.30)',
   purple:        '#7C3AED',
   purpleAlpha:   'rgba(124,58,237,0.12)',
   purpleBorder:  'rgba(124,58,237,0.30)',
@@ -45,15 +48,15 @@ const C = {
 
 /* ─── Gauge helpers ──────────────────────────────────────────── */
 const GAUGE_PARAMS: Record<string, { max: number; marker: number }> = {
-  'PM2.5': { max: 150, marker: 15.4 },
-  'PM10':  { max: 250, marker: 50   },
+  'PM2.5': { max: 150, marker: 12.4 },
+  'PM10':  { max: 250, marker: 30   },
   'O3':    { max: 200, marker: 54   },
-  'NO2':   { max: 200, marker: 53   },
-  'SO2':   { max: 100, marker: 35   },
+  'NO2':   { max: 200, marker: 21   },
+  'SO2':   { max: 100, marker: 8    },
   'CO':    { max: 15,  marker: 4.4  },
-  '氣溫':  { max: 45,  marker: 35   },
-  '風速': { max: 20, marker: 10 },
-  '1小時雨量': { max: 80, marker: 15 },
+  '氣溫':  { max: 45,  marker: 36   },
+  '風速':  { max: 20,  marker: 7.9  },
+  '1小時雨量': { max: 80, marker: 10 },
 };
 
 function parameterColor(parameter: string, value: number): string {
@@ -235,40 +238,58 @@ function detailRangeItems(parameter: string, unit: string): DetailRangeItem[] {
   if (aqiItems.length > 0) return aqiItems;
 
   switch (parameter) {
-    case '氣溫':
-      return [
-        detailItem('非常寒冷', `6 ${unit} 以下`, C.orange, 6),
-        detailItem('寒冷', `6.1-10 ${unit}`, C.yellow, 10),
-        detailItem('一般', `10.1-35.9 ${unit}`, C.green, 35.9),
-        detailItem('高溫黃燈參考', `36-37.9 ${unit}`, C.yellow, 37.9),
-        detailItem('高溫橙燈參考', `38 ${unit} 以上`, C.orange),
-      ];
+   case '氣溫':
+    return [
+      detailItem('非常寒冷', `6 ${unit} 以下`, C.orange, 6),
+      detailItem('寒冷', `6–10 ${unit}`, C.yellow, 10),
+      detailItem('一般', `10–36 ${unit}`, C.green, 35.9),
+      detailItem('高溫黃燈', `36–38 ${unit}`, C.yellow, 37.9),
+      detailItem('高溫橙燈', `38 ${unit} 以上`, C.orange),
+    ];
     case '1小時雨量':
-      return [
-        detailItem('無雨', `0 ${unit}`, C.green, 0),
-        detailItem('有雨', `0.1-39.9 ${unit}`, C.amber, 39.9),
-        detailItem('大雨', `40 ${unit} 以上`, C.orange),
-      ];
+    return [
+      detailItem('無雨', `0 ${unit}`, C.green, 0),
+      detailItem('有雨', `0.1-9.9 ${unit}`, C.yellow, 9.9),
+      detailItem('大雨', `10-39.9 ${unit}`, C.orange, 39.9),
+      detailItem('豪雨', `40 ${unit} 以上`, C.maroon),
+    ];
     case '風速':
       return [
-        detailItem('無風', `0.0-0.2 ${unit}`, C.green, 0.2),
-        detailItem('軟風', `0.3-1.5 ${unit}`, C.green, 1.5),
-        detailItem('輕風', `1.6-3.3 ${unit}`, C.green, 3.3),
-        detailItem('微風', `3.4-5.4 ${unit}`, C.green, 5.4),
-        detailItem('和風', `5.5-7.9 ${unit}`, C.green, 7.9),
-        detailItem('清風', `8.0-10.7 ${unit}`, C.amber, 10.7),
-        detailItem('強風', `10.8-13.8 ${unit}`, C.amber, 13.8),
-        detailItem('疾風', `13.9-17.1 ${unit}`, C.red, 17.1),
-        detailItem('烈風', `17.2-20.7 ${unit}`, C.red, 20.7),
-        detailItem('狂風', `20.8-24.4 ${unit}`, C.red, 24.4),
-        detailItem('暴風', `24.5-28.4 ${unit}`, C.red, 28.4),
-        detailItem('強烈暴風', `28.5-32.6 ${unit}`, C.red, 32.6),
-        detailItem('颶風', `32.7 ${unit} 以上`, C.red),
+        detailItem('0級', `0.0-0.2 ${unit}`, C.green, 0.2),
+        detailItem('1級', `0.2-1.5 ${unit}`, C.green, 1.5),
+        detailItem('2級', `1.5-3.3 ${unit}`, C.green, 3.3),
+        detailItem('3級', `3.3-5.4 ${unit}`, C.green, 5.4),
+        detailItem('4級', `5.4-7.9 ${unit}`, C.green, 7.9),
+        detailItem('5級', `7.9-10.7 ${unit}`, C.green, 10.7),
+        detailItem('6級', `10.7-13.8 ${unit}`, C.yellow, 13.8),
+        detailItem('7級', `13.8-17.1 ${unit}`, C.yellow, 17.1),
+        detailItem('8級', `17.1-20.7 ${unit}`, C.yellow, 20.7),
+        detailItem('9級', `20.7-24.4 ${unit}`, C.yellow, 24.4),
+        detailItem('10級', `24.4-28.4 ${unit}`, C.red, 28.4),
+        detailItem('11級', `28.4-32.6 ${unit}`, C.red, 32.6),
+        detailItem('12級', `32.6 ${unit} 以上`, C.maroon),
       ];
     default:
       return [];
   }
 }
+
+// 風速背面補充說明：點選各級風時，在同一張卡片內顯示簡短描述。
+const WIND_LEVEL_INFO: Record<string, string> = {
+  '0級': '無風。',
+  '1級': '煙會動，人較無感。',
+  '2級': '感覺有微風，樹葉飄起，旗幟揚起。',
+  '3級': '感覺有微風，樹葉飄起，旗幟揚起。',
+  '4級': '明顯有風，枝葉擺動，水面有波紋。',
+  '5級': '明顯有風，枝葉擺動，水面有波紋。',
+  '6級': '感覺風大，戶外行動略不便，行人張傘困難。',
+  '7級': '感覺風大，戶外行動略不便，行人張傘困難。',
+  '8級': '風力強勁，物品易被吹倒，迎風前進困難。',
+  '9級': '風力強勁，物品易被吹倒，迎風前進困難。',
+  '10級': '盡量避免戶外活動，戶外大型物品易吹落傾倒、樹木枝幹斷裂。',
+  '11級': '盡量避免戶外活動，戶外大型物品易吹落傾倒、樹木枝幹斷裂。',
+  '12級': '極危險！易致災！勿出門！',
+};
 
 const ARC_R = 45, ARC_CX = 55, ARC_CY = 58, ARC_LEN = Math.PI * ARC_R;
 
@@ -283,10 +304,26 @@ function svgNumber(value: number): string {
 }
 
 function GaugeArc({ value, parameter, unit }: { value: number; parameter: string; unit: string }) {
-  const { max, marker } = GAUGE_PARAMS[parameter] ?? { max: 200, marker: 100 };
+  const gaugeConfig = GAUGE_PARAMS[parameter] ?? { max: 200, marker: 100 };
   const color = parameterColor(parameter, value);
-  const dashOffset = ARC_LEN * (1 - Math.min(value / max, 1));
-  const markerAngle = Math.min(marker / max, 1) * 180;
+  
+  // 風速特殊處理：顯示下一級的門檻值（即目前所在級別的 upper）
+  let marker = gaugeConfig.marker;
+  if (parameter === '風速') {
+    const ranges = detailRangeItems(parameter, unit);
+    const currentLevelIndex = ranges.findIndex(item => value <= item.upper);
+    if (currentLevelIndex >= 0 && currentLevelIndex < ranges.length - 1) {
+      // 目前所在級別的 upper 就是進入下一級的門檻
+      marker = ranges[currentLevelIndex].upper;
+    } else {
+      // 已是最高級，顯示最後一個有限 upper
+      const last = [...ranges].reverse().find(item => Number.isFinite(item.upper));
+      if (last) marker = last.upper;
+    }
+  }
+
+  const dashOffset = ARC_LEN * (1 - Math.min(value / gaugeConfig.max, 1));
+  const markerAngle = Math.min(marker / gaugeConfig.max, 1) * 180;
   const mp = polarToXY(markerAngle);
   const rad = (Math.PI * (180 - markerAngle)) / 180;
   const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
@@ -425,6 +462,9 @@ const NAQO_MOCK_DATA: StationData[] = [
   { id: 'naqo-1', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'PM2.5', value: 16, unit: 'μg/m³', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 58, temperature: 27, humidity: 70 },
   { id: 'naqo-2', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'O3', value: 42, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '下降中', aqi: 52, temperature: 27, humidity: 70 },
   { id: 'naqo-3', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'CO', value: 0.4, unit: 'ppm', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
+  { id: 'naqo-4', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'PM10', value: 6, unit: 'μg/m³', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
+  { id: 'naqo-5', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'NO2', value: 20, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
+  { id: 'naqo-6', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'SO2', value: 10, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
 ];
 
 const TIME_TABS = ['近24小時', '近3天', '近7天'] as const;
@@ -446,7 +486,7 @@ const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
   中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
 };
 
-const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區'];
+const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區', '新屋區', '楊梅區','復興區', '八德區',];
 const SOURCES    = [DEFAULT_SOURCE, '環境部', '桃園市環保局', '氣象署', '微感測器', '中大空品站'];
 const CWA_REGION_OPTIONS = [
   DEFAULT_REGION,
@@ -601,14 +641,21 @@ function StatChip({ icon: Icon, value, label, color }: {
 /* ─── Station card ───────────────────────────────────────────── */
 function StationCard({ station }: { station: StationData }) {
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedWindLabel, setSelectedWindLabel] = useState<string | null>(null);
   const pColor  = parameterColor(station.parameter, station.value);
   const status = parameterStatus(station.parameter, station.value);
   const detailItems = detailRangeItems(station.parameter, station.unit);
-  const compactDetails = detailItems.length > 6;
+  const isWindDetail = station.parameter === '風速';
+  const isDenseDetails = detailItems.length > 6;
   const isWeather = station.source === '氣象署';
   const sColor  = status.color;
   const sAlpha  = status.alpha;
   const sBorder = status.border;
+  const activeWindItem = isWindDetail
+    ? detailItems.find(item => item.label === selectedWindLabel)
+      ?? detailItems.find(item => item.label === status.label)
+      ?? detailItems[0]
+    : null;
 
   const TrendIcon  = station.trend === '上升中' ? TrendingUp : station.trend === '下降中' ? TrendingDown : Minus;
   const tColor  = station.trend === '上升中' ? C.red   : station.trend === '下降中' ? C.green : C.hint;
@@ -622,53 +669,38 @@ function StationCard({ station }: { station: StationData }) {
       border: '1px solid rgba(0,0,0,0.06)',
       borderRadius: 20,
       boxShadow: '0 4px 16px rgba(180,140,160,0.10)',
-      // 詳細說明改用浮層覆蓋卡片，不參與 grid 高度計算，
-      // 所以點開單張卡片時不會把同一列其他卡片一起撐高。
-      overflow: showDetails ? 'visible' : 'hidden',
+      height: 440,
+      overflow: 'hidden',
       minWidth: 0,
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {showDetails && (
+      {showDetails ? (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1000,
-          padding: '22px 16px',
+          padding: 14,
           display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255,239,247,0.66)',
-          backdropFilter: 'blur(2px)',
+          flexDirection: 'column',
+          backgroundColor: 'rgba(255,255,255,0.98)',
+          height: 440,
+          boxSizing: 'border-box',
         }}>
-          <div style={{
-            width: 'min(420px, calc(100vw - 32px))',
-            margin: '0 auto',
-            padding: compactDetails ? '22px 22px 20px' : '28px 24px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 30,
-            backgroundColor: 'rgba(255,255,255,0.98)',
-            border: '1px solid rgba(255,255,255,0.80)',
-            boxShadow: '0 18px 46px rgba(180,140,160,0.22)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start', marginBottom: compactDetails ? 14 : 22 }}>
-            <div>
-              <p style={{ fontSize: compactDetails ? 21 : 24, fontWeight: 900, color: C.text, lineHeight: 1.15, letterSpacing: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 18, fontWeight: 950, color: C.text, lineHeight: 1.1 }}>
                 {station.parameter}｜分級說明
               </p>
-              <p style={{ fontSize: compactDetails ? 12 : 14, color: C.muted, fontWeight: 800, marginTop: compactDetails ? 7 : 10 }}>
+              <p style={{ fontSize: 11, color: C.muted, fontWeight: 800, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {station.station}
               </p>
             </div>
             <span style={{
               flexShrink: 0,
-              padding: compactDetails ? '6px 12px' : '8px 15px',
+              padding: '5px 11px',
               borderRadius: 99,
               backgroundColor: status.alpha,
               border: `1px solid ${status.border}`,
               color: status.color,
-              fontSize: compactDetails ? 13 : 16,
+              fontSize: 12,
               fontWeight: 900,
             }}>
               {status.label}
@@ -676,25 +708,80 @@ function StationCard({ station }: { station: StationData }) {
           </div>
 
           <div style={{
-            padding: compactDetails ? '14px 16px' : '20px 18px',
-            borderRadius: 16,
+            padding: '8px 11px',
+            borderRadius: 15,
             backgroundColor: status.alpha,
             border: `1px solid ${status.border}`,
-            marginBottom: compactDetails ? 12 : 18,
+            marginBottom: 8,
           }}>
-            <p style={{ fontSize: compactDetails ? 13 : 15, color: C.muted, fontWeight: 850, marginBottom: compactDetails ? 5 : 8 }}>目前值</p>
-            <p style={{ fontSize: compactDetails ? 32 : 40, lineHeight: 1, color: pColor, fontWeight: 950 }}>
+            <p style={{ fontSize: 11, color: C.muted, fontWeight: 850, marginBottom: 2 }}>目前值</p>
+            <p style={{ fontSize: 26, lineHeight: 1, color: pColor, fontWeight: 950 }}>
               {station.value}
-              <span style={{ fontSize: compactDetails ? 14 : 18, color: C.muted, marginLeft: 8 }}>{station.unit}</span>
+              <span style={{ fontSize: 13, color: C.muted, marginLeft: 6 }}>{station.unit}</span>
             </p>
           </div>
 
-          {detailItems.length > 0 && (
-            <div style={{
-              display: 'grid',
-              gap: compactDetails ? 5 : 10,
-              marginBottom: compactDetails ? 12 : 20,
-            }}>
+          {isWindDetail ? (
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: 4,
+                marginBottom: 6,
+              }}>
+                {detailItems.map(item => {
+                  const isActive = item.label === (activeWindItem?.label ?? status.label);
+                  return (
+                    <button
+                      type="button"
+                      key={`${station.id}-${item.label}`}
+                      onClick={() => setSelectedWindLabel(item.label)}
+                      style={{
+                        minWidth: 0,
+                        minHeight: 26,
+                        padding: '4px 5px',
+                        borderRadius: 10,
+                        backgroundColor: isActive ? item.alpha : 'rgba(255,255,255,0.62)',
+                        border: `1px solid ${isActive ? item.border : 'rgba(0,0,0,0.06)'}`,
+                        color: isActive ? item.color : C.muted,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 900,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 2,
+                        lineHeight: 1.05,
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{item.range}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {activeWindItem && (
+                <div style={{
+                  padding: '7px 9px',
+                  borderRadius: 12,
+                  backgroundColor: activeWindItem.alpha,
+                  border: `1px solid ${activeWindItem.border}`,
+                  color: C.text,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.35,
+                  marginBottom: 5,
+                }}>
+                  <span style={{ color: activeWindItem.color, fontWeight: 950 }}>
+                    {activeWindItem.label}：
+                  </span>
+                  {WIND_LEVEL_INFO[activeWindItem.label] ?? '此風級說明待補。'}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ display: 'grid', gap: 5, marginBottom: 6 }}>
               {detailItems.map(item => {
                 const isActive = item.label === status.label;
                 return (
@@ -705,13 +792,14 @@ function StationCard({ station }: { station: StationData }) {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       gap: 10,
-                      minHeight: compactDetails ? 28 : 44,
-                      padding: compactDetails ? '5px 10px' : '9px 14px',
+                      minHeight: 28,
+                      padding: '5px 10px',
                       borderRadius: 12,
-                      backgroundColor: isActive ? item.alpha : 'rgba(255,255,255,0.55)',
+                      backgroundColor: isActive ? item.alpha : 'rgba(255,255,255,0.58)',
                       border: `1px solid ${isActive ? item.border : 'rgba(0,0,0,0.05)'}`,
-                      fontSize: compactDetails ? 12 : 15,
+                      fontSize: 12,
                       fontWeight: 850,
+                      lineHeight: 1.15,
                     }}
                   >
                     <span style={{ color: item.color }}>{item.label}</span>
@@ -722,22 +810,21 @@ function StationCard({ station }: { station: StationData }) {
             </div>
           )}
 
-          <div style={{ display: 'grid', gap: compactDetails ? 8 : 18 }}>
-            <p style={{ fontSize: compactDetails ? 11 : 13, color: C.hint, fontWeight: 800, lineHeight: 1.55 }}>
-              資料來源：{station.source}・{station.version}・{station.time}
-              {isWeather && '。高溫紅燈、低溫紅燈與豪雨以上分級需要連續時段資料，此頁僅以目前可取得的即時值作參考。'}
+          <div style={{ marginTop: 'auto', paddingTop: 8, display: 'grid', gap: 7 }}>
+            <p style={{ fontSize: 11, color: C.hint, fontWeight: 800, textAlign: 'center', lineHeight: 1.4 }}>
+              資料來源：{station.source}・{station.version}{!isWeather && `・${station.time}`}
             </p>
             <button
               type="button"
               onClick={() => setShowDetails(false)}
               style={{
                 width: '100%',
-                padding: compactDetails ? '4px 0' : '8px 0',
+                padding: '6px 0',
                 borderRadius: 12,
                 cursor: 'pointer',
                 backgroundColor: 'transparent',
                 border: 'none',
-                fontSize: compactDetails ? 15 : 17,
+                fontSize: 15,
                 fontWeight: 900,
                 color: C.primary,
               }}
@@ -745,9 +832,8 @@ function StationCard({ station }: { station: StationData }) {
               返回卡片
             </button>
           </div>
-          </div>
         </div>
-      )}
+      ) : (
       <>
       {/* Header */}
       <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', flexShrink: 0 }}>
@@ -780,7 +866,7 @@ function StationCard({ station }: { station: StationData }) {
       </div>
 
       {/* Gauge section */}
-      <div style={{ padding: '16px 20px 12px', textAlign: 'center', flex: 1, minHeight: 0 }}>
+      <div style={{ padding: '16px 20px 12px', textAlign: 'center', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{
             fontSize: 13, fontWeight: 800, color: pColor,
@@ -829,7 +915,10 @@ function StationCard({ station }: { station: StationData }) {
         </div>
         <button
           type="button"
-          onClick={() => setShowDetails(true)}
+          onClick={() => {
+            setSelectedWindLabel(null);
+            setShowDetails(true);
+          }}
           style={{
             width: '100%', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
             backgroundColor: C.primaryAlpha, border: `1px solid ${C.primaryBorder}`,
@@ -838,10 +927,11 @@ function StationCard({ station }: { station: StationData }) {
           }}
         >
           <MapPin size={14} strokeWidth={2} />
-          查看詳細說明
+          查看詳細資料
         </button>
       </div>
       </>
+      )}
     </div>
   );
 }

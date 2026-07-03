@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Explorer is intentionally public so teammates can review data access without login.
-const PUBLIC_PATHS = ['/dashboard', '/login', '/explorer', '/register', '/'];
+const PUBLIC_PATHS = ['/dashboard', '/explorer', '/login', '/register', '/'];
 const AUTH_PATHS = ['/login', '/register'];
 
 export function proxy(request: NextRequest) {
