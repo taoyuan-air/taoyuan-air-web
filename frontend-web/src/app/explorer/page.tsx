@@ -868,17 +868,21 @@ function StationCard({ station }: { station: StationData }) {
             {status.label}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Clock size={11} color={C.hint} strokeWidth={2} />
-          <span style={{ fontSize: 11, color: C.hint, fontWeight: 500 }}>{station.time}</span>
-          <span style={{ fontSize: 11, color: C.hint }}>·</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <Clock size={11} color={C.hint} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 11, color: C.hint, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>{station.time}</span>
+          <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>·</span>
           <span style={{
             fontSize: 11, color: C.primary, fontWeight: 700,
             padding: '2px 8px', borderRadius: 99, backgroundColor: C.primaryAlpha,
+            whiteSpace: 'nowrap', flexShrink: 0,
           }}>
             {station.source}
           </span>
-          <span style={{ fontSize: 11, color: C.hint, fontWeight: 500 }}>{station.version}</span>
+          <span style={{
+            fontSize: 11, color: C.hint, fontWeight: 500,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+          }}>{station.version}</span>
         </div>
       </div>
 
@@ -1333,7 +1337,7 @@ export default function ExplorerPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+            gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fit, minmax(min(360px, 100%), 1fr))',
             gap: 20,
             // 防止某張卡片內容變長時，CSS grid 把同一列其他卡片一起拉高。
             alignItems: 'start',
