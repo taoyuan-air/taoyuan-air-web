@@ -10,7 +10,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import psycopg2
 from psycopg2 import sql
@@ -83,7 +83,7 @@ log = logging.getLogger(__name__)
 # 3. 工具函式 (時間、清洗、編碼)
 # ===========================================================
 
-def parse_cwa_datetime(dt_str: str) -> datetime | None:
+def parse_cwa_datetime(dt_str: str) -> Optional[datetime]:
     """解析時間並修正 24:00 為隔日 00:00"""
     dt_str = str(dt_str).strip()
     try:
@@ -100,7 +100,7 @@ def parse_cwa_datetime(dt_str: str) -> datetime | None:
     except:
         return None
 
-def clean_value(raw: Any) -> tuple[str | None, float | None, str]:
+def clean_value(raw: Any) -> tuple[Optional[str], Optional[float], str]:
     """清洗觀測值並判斷資料品質"""
     if raw is None:
         return (None, None, "invalid")
@@ -283,7 +283,7 @@ def batch_insert(conn, rows: list[tuple], batch_size: int) -> int:
             total_inserted += cur.rowcount if cur.rowcount > 0 else 0
     return total_inserted
 
-def process_file(conn, filepath: Path, batch_size: int, json_dir: Path | None) -> dict:
+def process_file(conn, filepath: Path, batch_size: int, json_dir: Optional[Path]) -> dict:
     log.info(f"▶ 處理檔案: {filepath.name}")
     stats = {"raw": 0, "inserted": 0, "skipped": 0}
 
@@ -329,9 +329,10 @@ def process_file(conn, filepath: Path, batch_size: int, json_dir: Path | None) -
 
 def main():
     parser = argparse.ArgumentParser(description="CWA Data Importer")
-    group = parser.add_mutually_exclusive_group(required=True)
+    default_dir = Path(__file__).parent.parent / "data" / "raw" / "cwa-stations"
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--file", type=Path, help="單一檔案路徑")
-    group.add_argument("--dir",  type=Path, help="整個目錄進行批次匯入")
+    group.add_argument("--dir",  type=Path, default=default_dir, help="整個目錄進行批次匯入")
     parser.add_argument("--json-dir", type=Path, help="JSON 落地目錄")
     parser.add_argument("--batch-size", type=int, default=5000)
     args = parser.parse_args()

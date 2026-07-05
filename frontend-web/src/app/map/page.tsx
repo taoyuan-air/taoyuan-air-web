@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@shared/store';
-import { getGrid, setScenario } from '@shared/api/index';
+import { getExamPoints, getGrid, setScenario, getTEDSPoints } from '@shared/api/index';
 import { palette } from '@shared/constants/theme';
 import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
-import { GridCell, Pollutant } from '@shared/types';
+import { ExamPoint, GridCell, Pollutant, TEDSPoint } from '@shared/types';
 
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
 const TGOSMap = dynamic(() => import('@/components/map/TGOSMap'), { ssr: false });
@@ -383,6 +383,67 @@ const getNearestGridToPoint = (grids: GridCell[], latitude: number, longitude: n
   }, null)
 );
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const seededNoise = (seed: number) => {
+  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return raw - Math.floor(raw);
+};
+
+const TAOYUAN_DEMO_BOUNDS = {
+  south: 24.82,
+  north: 25.19,
+  west: 121.02,
+  east: 121.49,
+};
+
+const generateDemoTEDSPoints = (count = 420): TEDSPoint[] => {
+  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
+
+  const points: TEDSPoint[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
+    const angle = seededNoise(i + 7) * Math.PI * 2;
+    const distance = 0.0018 + seededNoise(i + 97) * 0.0105;
+    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
+    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
+    const heightM = 18 + Math.round(seededNoise(i + 163) * 178);
+
+    points.push({
+      id: `demo-stack-${String(i + 1).padStart(4, '0')}`,
+      name: `${center.district}${center.village}排放點`,
+      latLng: { latitude, longitude },
+      heightM,
+      source: 'demo-fallback',
+    });
+  }
+
+  return points;
+};
+
+const generateDemoExamPoints = (count = 19): ExamPoint[] => {
+  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
+
+  const points: ExamPoint[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
+    const angle = seededNoise(i + 401) * Math.PI * 2;
+    const distance = 0.0015 + seededNoise(i + 557) * 0.005;
+    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
+    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
+
+    points.push({
+      id: `demo-mercury-${String(i + 1).padStart(3, '0')}`,
+      name: `${center.district}${center.village}汞排放點`,
+      latLng: { latitude, longitude },
+      source: '汞',
+      note: 'demo-fallback',
+    });
+  }
+
+  return points;
+};
+
 const IconTemp = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -420,25 +481,85 @@ function SecLabel({ title, sub }: { title: string; sub?: string }) {
 // ── Map page ─────────────────────────────────────────────────────
 export default function MapPage() {
   const store = useStore();
-  const { selectedPollutant, setSelectedPollutant, mode, setMode, setGridCells, setSelectedGridId, selectedScenario, isLoading, setIsLoading } = store;
+  const { mode, setMode, setGridCells, setSelectedGridId, selectedScenario, isLoading, setIsLoading } = store;
   const gridCells: GridCell[] = store.gridCells;
-  const [mapMode, setMapMode] = useState<'2D' | 'Satellite'>('2D');
+  // 保留原 mapMode 狀態設計（目前固定僅使用 2D 地圖）
+  // const [mapMode, setMapMode] = useState<'2D' | 'Satellite'>('2D');
+  const mapMode = '2D' as const;
   const [selectedGrid, setSelectedGrid] = useState<GridCell | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
   const [focusedGrid, setFocusedGrid] = useState<GridCell | null>(null);
+  const [tedsPoints, setTedsPoints] = useState<TEDSPoint[]>([]);
+  const [examPoints, setExamPoints] = useState<ExamPoint[]>([]);
+  const [tedsPointsNotice, setTedsPointsNotice] = useState('');
+  const [examPointsNotice, setExamPointsNotice] = useState('');
+  const [showChimneyLayer, setShowChimneyLayer] = useState(true);
+  const [showMercuryLayer, setShowMercuryLayer] = useState(true);
+  const [showPm25GridLayer, setShowPm25GridLayer] = useState(false);
+  const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25'>('pm25');
   const Z = 1100;
+
+  const layerStates = {
+    chimney: showChimneyLayer,
+    mercury: showMercuryLayer,
+    pm25: showPm25GridLayer,
+  } as const;
+
+  const toggleLayer = (layer: 'chimney' | 'mercury' | 'pm25') => {
+    if (layer === 'chimney') setShowChimneyLayer((prev) => !prev);
+    if (layer === 'mercury') setShowMercuryLayer((prev) => !prev);
+    if (layer === 'pm25') setShowPm25GridLayer((prev) => !prev);
+  };
 
   useEffect(() => {
     setIsLoading(true);
     setScenario(selectedScenario);
-    getGrid({ pollutant: selectedPollutant })
+    getGrid({ pollutant: 'PM25' })
       .then(setGridCells)
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, [selectedPollutant, selectedScenario, setGridCells, setIsLoading]);
+
+    getTEDSPoints()
+      .then((points) => {
+        if (points.length > 0) {
+          setTedsPoints(points);
+          setTedsPointsNotice('');
+          return;
+        }
+
+        const demoPoints = generateDemoTEDSPoints();
+        setTedsPoints(demoPoints);
+        setTedsPointsNotice(`TEDS 後端目前沒有回傳點位，已自動切換展示資料。`);
+      })
+      .catch((error) => {
+        console.error(error);
+        const demoPoints = generateDemoTEDSPoints();
+        setTedsPoints(demoPoints);
+        setTedsPointsNotice(`TEDS 後端暫時離線，已切換展示資料。`);
+      });
+
+    getExamPoints()
+      .then((points) => {
+        if (points.length > 0) {
+          setExamPoints(points);
+          setExamPointsNotice('');
+          return;
+        }
+
+        const demoPoints = generateDemoExamPoints(19);
+        setExamPoints(demoPoints);
+        setExamPointsNotice('汞排放點後端目前沒有回傳點位，已自動切換展示資料（19 筆）。');
+      })
+      .catch((error) => {
+        console.error(error);
+        const demoPoints = generateDemoExamPoints(19);
+        setExamPoints(demoPoints);
+        setExamPointsNotice('汞排放點後端暫時離線，已切換展示資料。');
+      });
+  }, [selectedScenario, setGridCells, setIsLoading]);
 
   const handleGridPress = (grid: GridCell) => {
     setSelectedGrid(withDistrict(grid));
@@ -470,33 +591,34 @@ export default function MapPage() {
       });
     });
 
-    SEARCH_PLACE_ALIASES
-      .filter((place) => place.tokens.some((token) => normalizeSearchText(token).includes(query)))
-      .forEach((place) => {
-        const grid = getNearestGridToPoint(gridCells, place.latitude, place.longitude);
-        if (!grid || usedGridIds.has(grid.gridId)) return;
-        usedGridIds.add(grid.gridId);
-        results.push({
-          key: `place-${place.label}`,
-          label: place.label,
-        detail: `前往 ${getGridLocationName(grid)} 附近網格 ${grid.gridId}`,
-          grid: withDistrict(grid),
-        });
-      });
+    // 保留舊搜尋邏輯（地點 alias + 網格 ID），目前依需求先註解僅保留行政區搜尋。
+    // SEARCH_PLACE_ALIASES
+    //   .filter((place) => place.tokens.some((token) => normalizeSearchText(token).includes(query)))
+    //   .forEach((place) => {
+    //     const grid = getNearestGridToPoint(gridCells, place.latitude, place.longitude);
+    //     if (!grid || usedGridIds.has(grid.gridId)) return;
+    //     usedGridIds.add(grid.gridId);
+    //     results.push({
+    //       key: `place-${place.label}`,
+    //       label: place.label,
+    //       detail: `前往 ${getGridLocationName(grid)} 附近網格 ${grid.gridId}`,
+    //       grid: withDistrict(grid),
+    //     });
+    //   });
 
-    gridCells
-      .filter((grid) => normalizeSearchText(grid.gridId).includes(query) && !usedGridIds.has(grid.gridId))
-      .slice(0, 4)
-      .forEach((grid) => {
-        const location = getGridLocationName(grid);
-        usedGridIds.add(grid.gridId);
-        results.push({
-          key: `grid-${grid.gridId}`,
-          label: grid.gridId,
-          detail: `${location} ｜ ${Math.round(grid.values.value)} ${grid.values.unit}`,
-          grid: withDistrict(grid),
-        });
-      });
+    // gridCells
+    //   .filter((grid) => normalizeSearchText(grid.gridId).includes(query) && !usedGridIds.has(grid.gridId))
+    //   .slice(0, 4)
+    //   .forEach((grid) => {
+    //     const location = getGridLocationName(grid);
+    //     usedGridIds.add(grid.gridId);
+    //     results.push({
+    //       key: `grid-${grid.gridId}`,
+    //       label: grid.gridId,
+    //       detail: `${location} ｜ ${Math.round(grid.values.value)} ${grid.values.unit}`,
+    //       grid: withDistrict(grid),
+    //     });
+    //   });
 
     return results.slice(0, 6);
   }, [gridCells, search]);
@@ -514,13 +636,20 @@ export default function MapPage() {
       selectSearchResult(searchResults[0]);
       return;
     }
-    if (search.trim()) setSearchMessage('找不到符合的行政區或網格 ID');
+    if (search.trim()) setSearchMessage('找不到符合的行政區');
   };
 
-  const selectedMeta = pollutantMeta[selectedPollutant as Pollutant];
+  const selectedMeta = pollutantMeta.PM25;
   const gridValues   = useMemo(() => gridCells.map((g) => g.values.value), [gridCells]);
   const gridAverage  = gridValues.length ? Math.round(gridValues.reduce((s, v) => s + v, 0) / gridValues.length) : 0;
   const gridMaximum  = gridValues.length ? Math.round(Math.max(...gridValues)) : 0;
+  const visibleEmissionPoints = useMemo(
+    () => [
+      ...(showChimneyLayer ? tedsPoints : []),
+      ...(showMercuryLayer ? examPoints : []),
+    ],
+    [showChimneyLayer, showMercuryLayer, tedsPoints, examPoints],
+  );
 
   const aqi       = selectedGrid?.health.aqi ?? 0;
   const aqiBadge  = getAQIBadgeBg(aqi);
@@ -571,7 +700,7 @@ export default function MapPage() {
                 }
                 if (e.key === 'Escape') setSearchFocused(false);
               }}
-              placeholder="搜尋行政區或網格 ID…"
+              placeholder="搜尋行政區"
               style={{
                 flex: 1, minWidth: 0, border: 'none', background: 'transparent',
                 fontSize: 13, color: palette.textMain, outline: 'none',
@@ -613,7 +742,7 @@ export default function MapPage() {
                 </button>
               )) : (
                 <div style={{ padding: '12px 14px', fontSize: 12, color: palette.textSecondary }}>
-                  找不到符合的行政區或網格 ID
+                  找不到符合的行政區
                 </div>
               )}
             </div>
@@ -624,13 +753,26 @@ export default function MapPage() {
               {searchMessage}
             </div>
           )}
+
+          {(tedsPointsNotice || examPointsNotice) && (
+            <div style={{ marginTop: 8, marginLeft: 4, padding: '8px 12px', maxWidth: 340, borderRadius: 12, background: 'rgba(255,255,255,0.96)', border: '1px solid rgba(154,102,27,0.22)', boxShadow: '0 8px 24px rgba(58,30,45,0.12)', color: '#7C4A03', fontSize: 12, fontWeight: 700 }}>
+              {tedsPointsNotice && <div>{tedsPointsNotice}</div>}
+              {examPointsNotice && <div style={{ marginTop: tedsPointsNotice ? 4 : 0 }}>{examPointsNotice}</div>}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Map ──────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'none' : 'block' }}>
-          <LeafletMap gridCells={gridCells} mapMode={mapMode} onGridPress={handleGridPress} focusGrid={focusedGrid} />
+          <LeafletMap
+            gridCells={showPm25GridLayer ? gridCells : []}
+            tedsPoints={visibleEmissionPoints}
+            mapMode={mapMode}
+            onGridPress={handleGridPress}
+            focusGrid={focusedGrid}
+          />
         </div>
         <div style={{ position: 'absolute', inset: 0, display: mode === 'FORECAST' ? 'block' : 'none' }}>
           <TGOSMap gridCells={gridCells} onGridPress={handleGridPress} focusGrid={focusedGrid} />
@@ -645,50 +787,116 @@ export default function MapPage() {
           boxShadow: '0 8px 32px rgba(58,30,45,0.14)', backdropFilter: 'blur(18px)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <SecLabel title="污染物圖層" />
+            <SecLabel title="圖層控制" />
             <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(231,101,149,0.10)', color: palette.primaryDeep, fontSize: 11, fontWeight: 700 }}>
               {mode === 'NOW' ? '即時' : '預報'}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
-            {(['PM25', 'O3', 'NOX', 'VOCs'] as Pollutant[]).map((p) => {
-              const on = selectedPollutant === p;
-              const m  = pollutantMeta[p];
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+            {[
+              { key: 'chimney' as const, label: '點煙囪' },
+              { key: 'mercury' as const, label: '汞排放' },
+              { key: 'pm25' as const, label: 'PM2.5' },
+            ].map((tab) => {
+              const on = activeLayerInfo === tab.key;
+              const visible = layerStates[tab.key];
               return (
-                <button key={p} onClick={() => setSelectedPollutant(p)} className={`pollutant-btn${on ? ' selected' : ''}`}>
-                  <div className="pollutant-btn-name">{m.short}</div>
-                  <div className="pollutant-btn-label">{m.label}</div>
-                </button>
+                <div
+                  key={tab.key}
+                  role="button"
+                  onClick={() => setActiveLayerInfo(tab.key)}
+                  style={{
+                    border: `1px solid ${on ? palette.primaryDeep : palette.borderSoft}`,
+                    background: on ? 'rgba(231,101,149,0.12)' : 'rgba(248,249,250,0.78)',
+                    color: on ? palette.primaryDeep : palette.textSecondary,
+                    borderRadius: 9,
+                    cursor: 'pointer',
+                    padding: '6px 6px',
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 800, textAlign: 'center', marginBottom: 4 }}>{tab.label}</div>
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleLayer(tab.key);
+                    }}
+                    style={{
+                      width: '100%',
+                      border: `1px solid ${visible ? '#d4567a66' : palette.borderSoft}`,
+                      borderRadius: 7,
+                      background: visible ? 'rgba(212,86,122,0.12)' : '#fff',
+                      color: visible ? '#b2476b' : '#8e7f89',
+                      padding: '3px 0',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {visible ? '已開啟' : '已關閉'}
+                  </button>
+                </div>
               );
             })}
           </div>
 
-          <p style={{ margin: '0 0 12px', fontSize: 12, lineHeight: 1.65, color: palette.textSecondary }}>{selectedMeta.description}</p>
+          {activeLayerInfo === 'chimney' && (
+            <div style={{ borderRadius: 10, background: 'rgba(248,208,218,0.18)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: palette.textMain }}>點源煙囪說明</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.6, color: palette.textSecondary }}>
+                來源：2021年TEDS點源工廠排放資料。顯示工業排放點位置與煙囪資訊。
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#7c6070', fontWeight: 700 }}>目前顯示：{showChimneyLayer ? `${tedsPoints.length} 筆` : '已關閉'}</p>
+            </div>
+          )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-            {[{ label: '桃園平均', value: gridAverage }, { label: '最高網格', value: gridMaximum }].map(({ label, value }) => (
-              <div key={label} style={{ borderRadius: 10, background: 'rgba(248,208,218,0.26)', padding: '9px 12px' }}>
-                <p style={{ margin: 0, fontSize: 11, color: palette.textSecondary }}>{label}</p>
-                <p style={{ margin: '3px 0 0', fontSize: 20, fontWeight: 800, color: palette.textMain, lineHeight: 1 }}>
-                  {value}<span style={{ fontSize: 10, fontWeight: 500, color: palette.textSecondary, marginLeft: 3 }}>{selectedMeta.unit}</span>
-                </p>
+          {activeLayerInfo === 'mercury' && (
+            <div style={{ borderRadius: 10, background: 'rgba(210,224,255,0.24)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: palette.textMain }}>汞排放點說明</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.6, color: palette.textSecondary }}>
+                來源：環境部固定污染源排放檢測資料（HG 汞及其化合物）。顯示排放煙道位置與煙道資訊。
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#5f6f9c', fontWeight: 700 }}>目前顯示：{showMercuryLayer ? `${examPoints.length} 筆` : '已關閉'}</p>
+            </div>
+          )}
+
+          {activeLayerInfo === 'pm25' && (
+            <>
+              
+              <p style={{ margin: '0 0 12px', fontSize: 12, lineHeight: 1.65, color: palette.textSecondary }}>{selectedMeta.description}</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                {[{ label: '桃園平均', value: gridAverage }, { label: '最高網格', value: gridMaximum }].map(({ label, value }) => (
+                  <div key={label} style={{ borderRadius: 10, background: 'rgba(248,208,218,0.26)', padding: '9px 12px' }}>
+                    <p style={{ margin: 0, fontSize: 11, color: palette.textSecondary }}>{label}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: 20, fontWeight: 800, color: palette.textMain, lineHeight: 1 }}>
+                      {value}<span style={{ fontSize: 10, fontWeight: 500, color: palette.textSecondary, marginLeft: 3 }}>{selectedMeta.unit}</span>
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Color scale — matches getGridColor in LeafletMap */}
-          <div style={{ marginBottom: 5 }}><SecLabel title="濃度由低→高" /></div>
-          <div style={{ height: 7, borderRadius: 999, background: 'linear-gradient(to right, rgb(0,228,0), rgb(255,255,0), rgb(255,126,0), rgb(255,0,0), rgb(126,0,35))' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            {selectedMeta.range.map((r) => <span key={r} style={{ fontSize: 10, color: palette.textSecondary }}>{r}</span>)}
-          </div>
+              {/* Color scale — matches getGridColor in LeafletMap */}
+              <div style={{ marginBottom: 5 }}><SecLabel title="濃度由低→高" /></div>
+              <div style={{ height: 7, borderRadius: 999, background: 'linear-gradient(to right, rgb(0,228,0), rgb(255,255,0), rgb(255,126,0), rgb(255,0,0), rgb(126,0,35))' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                {selectedMeta.range.map((r) => <span key={r} style={{ fontSize: 10, color: palette.textSecondary }}>{r}</span>)}
+              </div>
+            </>
+          )}
+
+          {activeLayerInfo !== 'pm25' && (
+            <div style={{ marginTop: 2, fontSize: 10.5, color: '#9a8b95' }}>
+              提示：此分頁為資料說明。
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Layer switcher + attribution (bottom-right) ─────── */}
       <div style={{ position: 'absolute', right: 20, bottom: 20, zIndex: Z, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-        {/* Map layer toggle card */}
+        {/*
+          保留地圖/衛星切換 UI（目前依需求暫停，只保留一般地圖）
         <div style={{
           backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 12, padding: 5,
           boxShadow: '0 4px 16px rgba(58,30,45,0.13)', border: `1px solid ${palette.borderSoft}`,
@@ -717,12 +925,13 @@ export default function MapPage() {
             );
           })}
         </div>
+        */}
 
         {/* Attribution */}
         <div style={{ backgroundColor: 'rgba(255,255,255,0.80)', padding: '4px 10px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 10, color: palette.textSecondary }}>地圖來源：</span>
-          <a href={mode === 'FORECAST' ? 'https://www.tgos.tw' : 'https://www.windy.com'} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: palette.primaryDeep, textDecoration: 'none', fontWeight: 600 }}>
-            {mode === 'FORECAST' ? 'TGOS 國土測繪' : 'Windy.com'}
+          <a href={mode === 'FORECAST' ? 'https://www.tgos.tw' : 'https://www.esri.com'} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: palette.primaryDeep, textDecoration: 'none', fontWeight: 600 }}>
+            {mode === 'FORECAST' ? 'TGOS 國土測繪' : 'Esri'}
           </a>
         </div>
       </div>
@@ -772,7 +981,7 @@ export default function MapPage() {
                 </div>
                 <div>
                   <CardPollutantArc
-                    key={`arc-${pollValue}-${selectedPollutant}`}
+                    key={`arc-${pollValue}-PM25`}
                     value={pollValue}
                     max={selectedMeta.arcMax}
                     standard={selectedMeta.arcStandard}

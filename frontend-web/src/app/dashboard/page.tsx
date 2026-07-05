@@ -1,8 +1,19 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown } from 'lucide-react';
+import {
+  ChevronsRight, Frown, MapPin, Meh, Smile, TrendingDown,
+  Sun, Cloud, CloudRain, CloudDrizzle, CloudLightning, Droplet, Wind,
+} from 'lucide-react';
 import type { MoeStationData } from '@shared/api/moe';
+import {
+  getWeatherIconKey,
+  MOCK_CURRENT_WEATHER,
+  generateMockForecast,
+  type CurrentWeatherData,
+  type ForecastDay,
+  type WeatherIconKey,
+} from '@shared/api/cwa';
 import {
   DISTRICT_STATIC_AQ,
   EPA_STATION_TO_DISTRICT,
@@ -11,7 +22,9 @@ import {
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
 
 const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe').then(r => r.json());
+  fetch('/api/moe')
+    .then(r => r.json())
+    .then(response => response.data);
 
 const C = {
   rose: '#D4567A',
@@ -91,6 +104,14 @@ const getO3Color = (v: number) => {
   if (v <= 105) return COLORS.unhealthy;
   if (v <= 200) return COLORS.veryUnhealthy;
   return COLORS.hazardous;
+};
+
+const WEATHER_ICON_MAP: Record<WeatherIconKey, typeof Sun> = {
+  sun: Sun,
+  cloud: Cloud,
+  'cloud-rain': CloudRain,
+  'cloud-drizzle': CloudDrizzle,
+  'cloud-lightning': CloudLightning,
 };
 
 const getActivityInfo = (aqi: number) => {
@@ -267,7 +288,7 @@ function TrendBars() {
     const currentHour = now.getHours();
     const items: { hour: number; date: Date; isPrediction: boolean; isNow: boolean }[] = [];
 
-    for (let i = 5; i >= 1; i -= 1) {
+    for (let i = 12; i >= 1; i -= 1) {
       const d = new Date(now);
       d.setHours(currentHour - i, 0, 0, 0);
       items.push({ hour: d.getHours(), date: d, isPrediction: false, isNow: false });
@@ -275,7 +296,7 @@ function TrendBars() {
 
     items.push({ hour: currentHour, date: new Date(now), isPrediction: false, isNow: true });
 
-    for (let i = 1; i <= 32; i += 1) {
+    for (let i = 1; i <= 12; i += 1) {
       const d = new Date(now);
       d.setHours(currentHour + i, 0, 0, 0);
       items.push({ hour: d.getHours(), date: d, isPrediction: true, isNow: false });
@@ -284,9 +305,9 @@ function TrendBars() {
     return items;
   }, []);
 
-  const data = TREND_DATA.slice(0, 38);
+  const data = TREND_DATA.slice(0, 25);
   const totalWidth = data.length * (BAR_W + BAR_GAP) - BAR_GAP;
-  const pastWidth = 5 * (BAR_W + BAR_GAP);
+  const pastWidth = 12 * (BAR_W + BAR_GAP);
   const nowOffset = pastWidth + BAR_W / 2;
 
   const barColor = (value: number, isPrediction: boolean) => {
@@ -296,10 +317,10 @@ function TrendBars() {
       if (value <= 0.7) return '#999999';
       return '#7B7B7B';
     }
-    if (value <= 0.3) return `${COLORS.good}cc`;
-    if (value <= 0.5) return `${COLORS.moderate}cc`;
-    if (value <= 0.7) return `${COLORS.unhealthy}cc`;
-    return `${COLORS.veryUnhealthy}cc`;
+    if (value <= 0.3) return '#7ec480'; 
+    if (value <= 0.5) return '#f2d44a';  
+    if (value <= 0.7) return '#f87171';  
+    return '#c07bc0'; 
   };
 
   const dateLabel = (index: number) => {
@@ -363,10 +384,101 @@ function TrendBars() {
         </div>
 
         <div className="trend-footer">
-          <span>過去 5h</span>
+          <span>過去 12h</span>
           <strong style={{ left: nowOffset - 14 }}>NOW</strong>
-          <span>未來 32h</span>
+          <span>未來 12h</span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WeatherCard({
+  district,
+  current,
+  forecast,
+  past1hrRain,
+}: {
+  district: string;
+  current: CurrentWeatherData;
+  forecast: ForecastDay[];
+  past1hrRain: string;
+}) {
+  const CurrentIcon = WEATHER_ICON_MAP[getWeatherIconKey(current.weather)];
+
+  const stats = [
+    { Icon: Droplet, val: `${current.humidity}%`, label: '濕度' },
+    { Icon: Wind, val: `${current.windSpeed}m/s`, label: '風速' },
+    { Icon: CloudRain, val: `${past1hrRain}mm`, label: '近1時雨量' },
+  ];
+
+  return (
+    
+    <div className="weather-card">
+      <div className="weather-current-row">
+        <div>
+          <div className="weather-temp-row">
+            <strong className="weather-temp-big">{current.temperature}°</strong>
+            <span className="weather-district-badge">
+              <MapPin size={10} />
+              {district}
+            </span>
+          </div>
+          <p className="weather-desc">{current.weather}</p>
+          <div className="weather-hilo-row">
+            <span className="weather-hi">{current.dailyHigh}°</span>
+            <span className="weather-sep">/</span>
+            <span className="weather-lo">{current.dailyLow}°</span>
+          </div>
+        </div>
+        <span className="weather-icon-circle">
+          <CurrentIcon size={32} color="#D4567A" />
+        </span>
+      </div>
+
+      <div className="weather-stats-row">
+        {stats.map(({ Icon, val, label }, i) => (
+          <React.Fragment key={label}>
+            <div className="weather-stat-item">
+              <Icon size={13} color="#D4567A" />
+              <span className="weather-stat-val">{val}</span>
+              <span className="weather-stat-label">{label}</span>
+            </div>
+            {i < stats.length - 1 && <div className="weather-stat-sep" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="dash-divider" />
+
+      <p className="weather-forecast-title">未來 3 天預報</p>
+      <div className="weather-forecast-row">
+        {forecast.map((day, i) => {
+          const DayIcon = WEATHER_ICON_MAP[getWeatherIconKey(day.weather)];
+          return (
+            <div
+              key={day.label}
+              className={`weather-forecast-col${i < forecast.length - 1 ? ' weather-forecast-col-border' : ''}`}
+            >
+              <span className="weather-forecast-label">{day.label}</span>
+              <span className="weather-forecast-date">{day.dateLabel}</span>
+              <DayIcon size={20} color="#D4567A" style={{ margin: '8px 0' }} />
+              <div className="weather-forecast-temp-row">
+                <span className="weather-forecast-hi">{day.maxTemp}°</span>
+                <span className="weather-forecast-lo"> / {day.minTemp}°</span>
+              </div>
+              <div className="weather-forecast-pop-row">
+                <CloudRain size={10} color={Number(day.precipProb) >= 50 ? '#5b9bd5' : '#bbb'} />
+                <span
+                  className="weather-forecast-pop-text"
+                  style={Number(day.precipProb) >= 50 ? { color: '#5b9bd5' } : undefined}
+                >
+                  {day.precipProb}%
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -460,6 +572,123 @@ function DashboardStyles() {
         background: rgba(0, 0, 0, 0.06);
         margin: 14px 0 18px;
         flex: 0 0 auto;
+      }
+
+      .weather-section {
+        margin-top: 40px;
+      }
+      .weather-card {
+        background: rgba(255, 255, 255, 0.97);
+        padding: 18px 20px;
+        padding-top: 0;
+      }
+      .weather-temp-row {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-end; 
+      }
+      .weather-district-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: ${C.rose};
+        background: ${C.roseLt};
+        border: 1px solid ${C.roseBorder};
+        border-radius: 10px;
+        padding: 4px 10px;
+        align-self: flex-end;   
+        margin-top: 6px; 
+        margin-left: 12px;       
+      }
+      .weather-current-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .weather-temp-big {
+        font-size: 48px;
+        font-weight: 700;
+        color: ${C.text};
+        line-height: 1.1;
+      }
+      .weather-desc {
+        font-size: 14px;
+        color: ${C.muted};
+        margin: 2px 0 4px;
+      }
+      .weather-hilo-row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .weather-hi { color: #e05c2a; }
+      .weather-lo { color: #FBA7BC; }
+      .weather-sep { color: #bbb; font-size: 12px; }
+      .weather-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 32px;
+        background: ${C.roseLt};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .weather-stats-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0,0,0,0.025);
+        border-radius: 12px;
+        padding: 10px 8px;
+      }
+      .weather-stat-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+      }
+      .weather-stat-val { font-size: 12px; font-weight: 700; color: ${C.text}; }
+      .weather-stat-label { font-size: 10px; color: ${C.hint}; }
+      .weather-stat-sep { width: 1px; height: 28px; background: rgba(0,0,0,0.07); }
+      .weather-forecast-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: ${C.hint};
+        letter-spacing: 0.6px;
+        margin: 16px 0 12px;
+      }
+      .weather-forecast-row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .weather-forecast-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .weather-forecast-col-border {
+        border-right: 1px solid rgba(0,0,0,0.07);
+      }
+      .weather-forecast-label { font-size: 12px; font-weight: 700; color: ${C.text}; }
+      .weather-forecast-date { font-size: 10px; color: ${C.hint}; margin-top: 2px; }
+      .weather-forecast-temp-row { font-size: 13px; }
+      .weather-forecast-hi { font-weight: 700; color: #e05c2a; }
+      .weather-forecast-lo { font-weight: 600; color: #FBA7BC; }
+      .weather-forecast-pop-row {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #bbb;
       }
 
       .dashboard-first-row,
@@ -914,6 +1143,7 @@ function DashboardStyles() {
         height: 70px;
         transform: translateX(-50%);
         background: ${C.rose};
+        z-index: 0;
       }
 
       .trend-bar {
@@ -1242,19 +1472,22 @@ function DashboardStyles() {
 export default function DashboardPage() {
   const [district, setDistrict] = useState('中壢區');
   const [allStations, setAllStations] = useState<MoeStationData[]>([]);
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData>(MOCK_CURRENT_WEATHER);
+  const [forecast, setForecast] = useState<ForecastDay[]>(generateMockForecast());
+  const [past1hrRain, setPast1hrRain] = useState('0.0');
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) return; // 不支援定位，維持預設中壢區
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const nearest = findNearestDistrict(pos.coords.latitude, pos.coords.longitude);
         setDistrict(nearest);
       },
-      () => undefined,
+      () => undefined, // 定位失敗，維持預設中壢區
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
     );
-  }, []);
+  }, []); // 移除 user 依賴，不讀取用戶設定
 
   useEffect(() => {
     fetchMoeStations()
@@ -1264,6 +1497,17 @@ export default function DashboardPage() {
       })
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/cwa?district=${encodeURIComponent(district)}`)
+      .then(r => r.json())
+      .then(({ data: { current, forecast, past1hrRain } }) => {
+        setCurrentWeather(current);
+        setForecast(forecast);
+        setPast1hrRain(past1hrRain);
+      })
+      .catch(console.error);
+  }, [district]);
 
   const remoteMetrics = useMemo(() => {
     if (!allStations.length) return null;
@@ -1433,7 +1677,19 @@ export default function DashboardPage() {
               <TrendBars />
             </section>
           </div>
+
+          <section className="weather-section" aria-label={`${district} 天氣預報`}>
+            <SecLabel title="天氣"/>
+            <WeatherCard
+              district={district}
+              current={currentWeather}
+              forecast={forecast}
+              past1hrRain={past1hrRain}
+            />
+          </section>
         </section>
+
+        
       </main>
     </>
   );
