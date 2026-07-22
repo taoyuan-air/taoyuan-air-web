@@ -10,6 +10,7 @@ import {
   Eye, EyeOff, Heart, Key, LogOut, Settings, Shield,
   Star, UserCheck, Wind, Trash2
 } from 'lucide-react';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
@@ -375,6 +376,7 @@ export default function SettingsPage() {
   };
 
   return (
+    <AuthGuard>
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       <div style={{ padding: isMobile ? '20px 16px 80px' : '28px 40px 32px' }}>
 
@@ -1092,5 +1094,6 @@ export default function SettingsPage() {
       )}
 
   </div>
+  </AuthGuard>
   );
 }

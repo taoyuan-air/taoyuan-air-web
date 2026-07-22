@@ -5,6 +5,7 @@ import {
   Bell, CheckCheck, Grid3X3, Leaf,
   RefreshCw, ShieldAlert, Wind,
 } from 'lucide-react';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
@@ -154,6 +155,7 @@ export default function NotificationsPage() {
     cat === '全部' ? DATA.length : DATA.filter(n => n.category === cat).length;
 
   return (
+    <AuthGuard>
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       <div style={{ padding: isMobile ? '20px 16px 32px' : '28px 40px 32px' }}>
 
@@ -395,5 +397,6 @@ export default function NotificationsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

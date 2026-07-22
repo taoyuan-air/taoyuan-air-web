@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { MoeStationData } from '@shared/api/moe';
 import type { CwaWeatherBundle } from '@shared/api/cwa';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
@@ -1178,6 +1179,7 @@ export default function ExplorerPage() {
           : '';
 
   return (
+    <AuthGuard>
     <div
       style={{
         minHeight: '100vh',
@@ -1349,5 +1351,6 @@ export default function ExplorerPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }
