@@ -7,6 +7,7 @@ import { getExamPoints, getGrid, setScenario, getTEDSPoints } from '@shared/api/
 import { palette } from '@shared/constants/theme';
 import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
 import { ExamPoint, GridCell, Pollutant, TEDSPoint } from '@shared/types';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
 const TGOSMap = dynamic(() => import('@/components/map/TGOSMap'), { ssr: false });
@@ -657,6 +658,7 @@ export default function MapPage() {
   const pollColor = selectedGrid ? getPollutantColor(selectedGrid.values.value, selectedMeta.arcStandard) : '#76c476';
 
   return (
+    <AuthGuard>
     <div style={{ position: 'relative', height: 'calc(100vh - 80px)', background: 'var(--app-bg-gradient)', overflow: 'hidden' }}>
 
       {/* ── Top-left controls: mode toggle + search ─────── */}
@@ -1139,5 +1141,6 @@ export default function MapPage() {
         }
       `}</style>
     </div>
+    </AuthGuard>
   );
 }

@@ -7,6 +7,7 @@ import { UAVParameterSelector } from '@/components/UAV/UAVParameterSelector';
 import { fetchFlights, fetchProfile, type FlightSummary } from '@/lib/uavApi';
 import { ALL_PARAMETER_IDS, DEFAULT_PARAMETERS, type ParameterId } from '@/components/UAV/uavConfig';
 import WindLidarPage from '@/components/WindLidar/WindLidarPage';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ──────────────────────────────────────────────────────────── */
 /*  Design tokens                                               */
@@ -267,6 +268,7 @@ export default function EventsPage() {
     : <Wind  size={20} color={C.rose} strokeWidth={2} />;
 
   return (
+    <AuthGuard>
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}>
 
       {/* Tab switcher — 放在 header 最下方、控制列上方 */}
@@ -509,5 +511,6 @@ export default function EventsPage() {
         }
       `}</style>
     </div>
+    </AuthGuard>
   );
 }
