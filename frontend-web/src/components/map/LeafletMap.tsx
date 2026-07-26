@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExamPoint, GridCell, TEDSPoint } from '@shared/types';
+// 🌟 新增：引入 topojson 套件與你的邊界資料
+import * as topojson from 'topojson-client';
+import taiwanCountiesData from '@/data/map-assets/taiwan-counties.json';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
@@ -406,6 +409,32 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
 
           detailPolygonLayerGroupRef.current = L.layerGroup().addTo(detailMap);
           detailPointLayerGroupRef.current = L.layerGroup().addTo(detailMap);
+
+          // 🌟 修改：使用本地的高精度台灣縣市資料，過濾出桃園市
+          try {
+            if (taiwanCountiesData) {
+              // 從本地的全台資料中過濾出桃園
+              const taoyuanFeature = (taiwanCountiesData as any).features.find((f: any) => 
+                f.properties.COUNTYNAME === '桃園市' || f.properties.COUNTYNAME === '桃園縣'
+              );
+              
+              if (taoyuanFeature) {
+                const boundaryStyle = {
+                  color: '#d4567a', 
+                  weight: 3,        
+                  fillOpacity: 0.0, 
+                  interactive: false 
+                };
+                
+                (L as any).geoJSON(taoyuanFeature, {
+                  style: boundaryStyle
+                }).addTo(detailMap);
+              }
+            }
+          } catch (err) {
+            console.error('桃園市邊界繪製失敗:', err);
+          }
+          // 🌟 
 
           if (gridCellsRef.current.length > 0 && detailPolygonLayerGroupRef.current) {
             renderPolygons(gridCellsRef.current, L, detailPolygonLayerGroupRef.current);
