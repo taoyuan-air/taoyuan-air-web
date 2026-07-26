@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -16,7 +18,7 @@ class ExamPointResponse(BaseModel):
     name: str
     latLng: LatLng
     source: str
-    note: str | None = None
+    note: Optional[str] = None
 
 
 router = APIRouter(prefix="/exam-points", tags=["exam-points"])
