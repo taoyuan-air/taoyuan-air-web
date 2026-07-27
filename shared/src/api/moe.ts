@@ -23,7 +23,7 @@ export function parseMoeRecords(records: any[]): MoeStationData[] {
 export const fetchMoeStations = async (apiKey?: string): Promise<MoeStationData[]> => {
   // Use globalThis to avoid TypeScript errors in cross-platform (Expo/Node) shared package
   const env = (globalThis as any).process?.env ?? {};
-  const key = apiKey ?? env.EXPO_PUBLIC_MOE_API_KEY ?? env.NEXT_PUBLIC_MOE_API_KEY;
+  const key = apiKey ?? env.EXPO_PUBLIC_MOE_API_KEY;
 
   if (!key) {
     console.warn('[MOE] API key 未設定，跳過請求');

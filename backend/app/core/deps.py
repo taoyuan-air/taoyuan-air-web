@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import HTTPException, status, Depends, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -18,8 +20,13 @@ async def get_current_user(
     if not access_token:
         raise credentials_exc
 
-    user_id = decode_access_token(access_token)
-    if not user_id:
+    user_id_str = decode_access_token(access_token)
+    if not user_id_str:
+        raise credentials_exc
+
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except (ValueError, AttributeError):
         raise credentials_exc
 
     result = await db.execute(select(User).where(User.id == user_id))
