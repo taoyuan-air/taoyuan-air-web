@@ -1,7 +1,8 @@
 -- UAV 無人機大氣垂直剖面資料庫架構
 -- 分支: feat/database-UAV
 -- 建立日期: 2026-05-26
--- 儀器: Aeromount V2(A009) + POM(1781)
+-- 更新日期：2026-08-06
+-- 儀器: V6-850
 -- 資料範圍: 2026-03-30，共 6 次飛行任務
 -- 量測參數: 23 個主要欄位（高度 2 種、氣象 11 種、氣膠 3 種、氣體 7 種）；CO2 為預留欄位
 -- 資料流程: txt → 直接匯入 DB
@@ -22,7 +23,7 @@ CREATE TABLE IF NOT EXISTS uav_flights (
     data_release_date DATE,
     site_name         VARCHAR(100)  DEFAULT 'Guanyin',
     latitude          DECIMAL(10, 8) DEFAULT 25.0605,
-    longitude         DECIMAL(11, 8) DEFAULT 121.1287,
+    longitude         DECIMAL(11, 8) DEFAULT 121.1288,
     altitude_m DECIMAL(7, 1)  DEFAULT 17.0,    -- 測站海拔高度（公尺）
     created_at        TIMESTAMP     DEFAULT NOW(),
     updated_at        TIMESTAMP     DEFAULT NOW()
@@ -43,7 +44,7 @@ ALTER TABLE IF EXISTS uav_flights
     ALTER COLUMN data_level SET DEFAULT 'L3',
     ALTER COLUMN site_name SET DEFAULT 'Guanyin',
     ALTER COLUMN latitude SET DEFAULT 25.0605,
-    ALTER COLUMN longitude SET DEFAULT 121.1287,
+    ALTER COLUMN longitude SET DEFAULT 121.1288,
     ALTER COLUMN ground_altitude_m SET DEFAULT 17.0;
 
 -- 插入 6 次飛行任務
@@ -51,12 +52,12 @@ INSERT INTO uav_flights
     (flight_id, takeoff_time, flight_direction, data_level, data_release_date,
     site_name, latitude, longitude, altitude_m)
 VALUES
-    ('20260330_0025', '2026-03-30 00:25:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
-    ('20260330_0242', '2026-03-30 02:42:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
-    ('20260330_1433', '2026-03-30 14:33:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
-    ('20260330_1517', '2026-03-30 15:17:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
-    ('20260330_1601', '2026-03-30 16:01:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0),
-    ('20260330_1647', '2026-03-30 16:47:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1287, 17.0)
+    ('20260330_0025', '2026-03-30 00:25:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0),
+    ('20260330_0242', '2026-03-30 02:42:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0),
+    ('20260330_1433', '2026-03-30 14:33:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0),
+    ('20260330_1517', '2026-03-30 15:17:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0),
+    ('20260330_1601', '2026-03-30 16:01:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0),
+    ('20260330_1647', '2026-03-30 16:47:00', 'ascending', 'L3', '2026-04-17', 'Guanyin', 25.0605, 121.1288, 17.0)
 ON CONFLICT (flight_id) DO UPDATE SET
     takeoff_time              = EXCLUDED.takeoff_time,
     data_release_date         = EXCLUDED.data_release_date,
