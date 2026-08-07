@@ -1,7 +1,8 @@
 -- WindLidar 風光達資料庫架構
 -- 分支: feat/database-WindLidar
 -- 建立日期: 2026-05-25
--- 儀器: TMA_328（可擴充）
+-- 更新日期: 2026-08-07
+-- 儀器: L02240328_Guanyin（可擴充）
 -- 資料範圍: 2026-03-27 至 2026-04-15，共 20 天
 -- 量測間隔: 每 10 分鐘，760 高度層（9.1m～984.6m）
 -- 時間欄位: 原始 Date/time 以 UTC TIMESTAMP 儲存；View 另提供 UTC+8 台灣時間欄位
@@ -32,11 +33,11 @@ ALTER TABLE IF EXISTS wind_lidar_stations
     ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
     DROP COLUMN IF EXISTS address;
 
--- 插入 TMA_328 儀器資料
+-- 插入 L02240328 儀器資料
 INSERT INTO wind_lidar_stations
     (station_id, county, latitude, longitude, altitude_m)
 VALUES
-    ('TMA_328', '桃園市', 25.05283056, 121.11794722, 36.0)
+    ('L02240328_Guanyin', '桃園市', 25.05283056, 121.11794722, 36.0)
 ON CONFLICT (station_id) DO UPDATE SET
     latitude   = EXCLUDED.latitude,
     longitude  = EXCLUDED.longitude,

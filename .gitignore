@@ -45,23 +45,28 @@ data/exports/**/*
 !data/exports/.gitkeep
 !data/README.md
 
-# WindLidar - tracked in git
+# WindLidar - keep folder structure, ignore data files
+data/raw/WindLidar/*
 !data/raw/WindLidar/
-!data/raw/WindLidar/*
+!data/raw/WindLidar/.gitkeep
 
-# CWA stations - Taoyuan filtered (2025+), tracked in git
+# CWA stations - keep folder structure, ignore data files
+data/raw/cwa-stations/*
 !data/raw/cwa-stations/
 !data/raw/cwa-stations/*/
-!data/raw/cwa-stations/**/*
+!data/raw/cwa-stations/**/.gitkeep
 
-# MOE stations - Taoyuan filtered (2025+), tracked in git
+# MOE stations - keep folder structure, ignore data files
+data/raw/moe-stations/*
 !data/raw/moe-stations/
 !data/raw/moe-stations/*/
-!data/raw/moe-stations/**/*
+!data/raw/moe-stations/**/.gitkeep
 
-# TYDEP stations - tracked in git (single 25MB Excel, Taoyuan-only)
+# TYDEP stations - keep folder structure, ignore data files
+data/raw/tydep-stations/*
 !data/raw/tydep-stations/
-!data/raw/tydep-stations/**/*
+!data/raw/tydep-stations/*/
+!data/raw/tydep-stations/**/.gitkeep
 
 # TEDS point - keep folder structure, ignore files inside
 data/raw/teds-point/*
