@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_CWA_API_KEY;
+  const apiKey = process.env.CWA_API_KEY;
   const data = await fetchCwaWeather(district, apiKey);
   const response: CwaApiResponse = {
     data,

@@ -1,6 +1,6 @@
 # Database 目錄說明
 
-此目錄保留資料庫 schema 與 SQL 查詢範例。正式建表請使用各資料源獨立 schema，不再使用舊版通用 `init.sql`。
+此目錄保留資料庫 schema 與 SQL 查詢範例。正式建表請使用各資料源獨立 schema。
 
 ## 正式 Schema
 
@@ -12,18 +12,18 @@
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
-| `auth_schema.sql` | 登入系統使用者資料表 |
+| `auth_schema.sql` | 登入系統 | 使用者資料表 |
+
+## 資料源檔名格式（2026-08 更新）
+
+| 資料源 | 檔名範例 | 說明 |
+| --- | --- | --- |
+| WindLidar | `DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_版本_等級_參數_日期_序號_站點 |
+| UAV | `UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_版本_等級_參數_日期_時間_儀器版本_站點 |
 
 ## 查詢範例
 
 查詢範例放在 `database/examples/`，不屬於建表流程。
-
-```text
-database/examples/
-├── cwa_queries.sql
-├── moe_queries.sql
-└── teds_point_queries.sql
-```
 
 ## 分區與更新流程
 
@@ -31,16 +31,9 @@ database/examples/
 | --- | --- | --- | --- |
 | MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | `scripts/update_moe_monthly.py` 以 history 覆蓋 realtime |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
-| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 目前以歷史資料批次匯入為主 |
+| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
-
-## 已移除舊檔
-
-| 舊檔 | 移除原因 |
-| --- | --- |
-| `init.sql` | 舊版通用 schema，已被各資料源獨立 schema 取代 |
-| `test_data.sql` | 舊版 `init.sql` 的測試資料，與目前資料表不一致 |
 
 ## 建議建置順序
 
@@ -55,3 +48,50 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
+
+## 匯入資料
+
+原始資料不納入 Git 版控。請自行將資料放入 `data/raw/<資料源>/` 後執行匯入腳本。
+
+```bash
+# WindLidar
+python scripts/import_wind_lidar.py
+
+# UAV
+python scripts/import_uav.py
+
+# CWA
+python scripts/import_cwa_stations.py
+
+# MOE
+python scripts/import_moe_stations.py
+
+# TYDEP（需先轉檔）
+python scripts/convert_tydep_xlsx.py
+python scripts/import_tydep_stations.py
+```
+
+## 重新匯入（清空重來）
+
+如果 schema 有變更（如欄位重新命名），需先 DROP 舊表再重建：
+
+```sql
+-- 範例：重建 WindLidar
+DROP TABLE IF EXISTS wind_lidar_data CASCADE;
+DROP TABLE IF EXISTS wind_lidar_stations CASCADE;
+DROP TABLE IF EXISTS wind_lidar_parameters CASCADE;
+
+-- 範例：重建 UAV
+DROP TABLE IF EXISTS uav_data CASCADE;
+DROP TABLE IF EXISTS uav_flights CASCADE;
+DROP TABLE IF EXISTS uav_parameters CASCADE;
+```
+
+然後重新執行 schema SQL + import 腳本。
+
+## 已移除舊檔
+
+| 舊檔 | 移除原因 |
+| --- | --- |
+| `init.sql` | 舊版通用 schema，已被各資料源獨立 schema 取代 |
+| `test_data.sql` | 舊版 `init.sql` 的測試資料，與目前資料表不一致 |

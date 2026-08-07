@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 """
 UAV 資料匯入腳本
-直接讀取 data/raw/UAV/<YYYYMMDD_TTTT>_L3_ascending(_sitename).txt
-並批次匯入 PostgreSQL 的 uav_data 分區表
+直接讀取 data/raw/UAV/UAV_V1_L3_gas_*.txt 並批次匯入 PostgreSQL 的 uav_data 分區表
 
-檔名格式：YYYYMMDD_TTTT_L3_ascending(_sitename).txt
-flight_id：YYYYMMDD_TTTT（取前兩段）
-takeoff_time：YYYYMMDD_TTTT（當地時間）
+檔名格式： UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
+           (儀器_反演版本_資料級別_量測主要參數_觀測起始年月日_小時分鐘_儀器版本_測站)
 
 txt 格式：
-  第 1 行：單位（如 (m), (hPa), ...）
-  第 2 行：欄位名稱（agl, asl, P, T, ...）
-  第 3 行起：資料（NaN 存為 NULL）
+  metadata header（key: value 行，到 '==' 分隔線結束）
+  分隔線之後：
+    第 1 行：單位（如 (m), (hPa), ...）
+    第 2 行：欄位名稱（agl, asl, P, T, ...）
+    第 3 行起：資料（NaN 存為 NULL），逗號分隔
+  若觀測高度低於 3 km 則補缺值 NaN 於 L3 檔案中
 
 注意：agl 欄位作為層鍵（agl_m），不另外插入 uav_data 作為參數
 """
 
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -53,19 +55,65 @@ if not DB_CONFIG['password']:
 ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
 
-DEFAULT_METADATA = {
-    'data_release_date': '2026-04-17',
-    'project_name': '桃園環保局',
-    'instrument': 'Aeromount V2(A009)+POM(1781)',
-    'latitude': 25.0605,
-    'longitude': 121.1287,
-    'ground_altitude_m': 17.0,
-    'highest_flight_altitude_m': 301.0,
-    'average_ascent_rate_ms': 2.8,
-}
+# 新檔名格式：UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
+# 群組：(instrument)_(version)_(level)_(measType)_(date)_(time)_(instrumentVer)_(site).txt
+FILENAME_PATTERN = re.compile(
+    r'^UAV_V(\d+)_L(\d+)_([a-zA-Z]+)_(\d{8})_(\d{4})_(.+)_([A-Za-z]+)\.txt$'
+)
+
+
+def parse_filename(filename: str) -> Optional[dict]:
+    """
+    解析 UAV 檔名，回傳 metadata dict 或 None。
+
+    範例：UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
+    → {
+        'version': '1',
+        'level': 'L3',
+        'meas_type': 'gas',
+        'date': '20260330',
+        'time': '0025',
+        'instrument': 'Aeromount(V4)',
+        'site': 'Guanyin',
+        'flight_id': '20260330_0025',
+      }
+    """
+    m = FILENAME_PATTERN.match(filename)
+    if not m:
+        return None
+    return {
+        'version':    m.group(1),
+        'level':      f'L{m.group(2)}',
+        'meas_type':  m.group(3),
+        'date':       m.group(4),
+        'time':       m.group(5),
+        'instrument': m.group(6),
+        'site':       m.group(7),
+        'flight_id':  f"{m.group(4)}_{m.group(5)}",
+    }
+
+
+def parse_file_metadata(lines: list[str]) -> tuple[dict, int]:
+    """
+    解析檔案開頭的 metadata header（key: value 格式），
+    回傳 (metadata_dict, data_start_index)。
+    data_start_index 指向分隔線 '==' 之後的下一行（即單位行）。
+    """
+    metadata = {}
+    data_start = 0
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith('=='):
+            data_start = i + 1
+            break
+        if ':' in stripped:
+            key, _, val = stripped.partition(':')
+            metadata[key.strip()] = val.strip()
+
+    return metadata, data_start
 
 # ── 量測參數欄位（不含 agl，agl 單獨作為層鍵 agl_m）────────────────────────
-# CO2 為預留欄位；原始檔若有 CO2 就匯入，若沒有則不阻擋匯入。
 PARAM_COLS = [
     'asl', 'P', 'T', 'RH', 'PM1', 'PM2.5', 'PM10',
     'ws', 'wd', 'theta', 'Td', 'q', 'mixR', 'Tv', 'thetav',
@@ -105,53 +153,52 @@ def ensure_uav_flight_and_partition(
     data_level: str,
     flight_direction: str,
     site_name: str,
+    file_meta: dict,
 ) -> None:
     """自動補齊飛行任務基本資料與 flight_id LIST 分區。"""
     partition_name = f"uav_data_{flight_id}"
+
+    latitude  = float(file_meta.get('latitude', 25.0605))
+    longitude = float(file_meta.get('longitude', 121.1288))
+    altitude_m = float(file_meta.get('altitude_m', 17.0))
+    max_agl_m  = float(file_meta.get('max_agl_m', 0))
+    instrument = file_meta.get('instrument_version', 'unknown')
+    data_release_date = file_meta.get('data_release_date', '').replace('/', '-') or None
+
     cursor = None
     try:
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO uav_flights
-                (flight_id, takeoff_time, flight_direction, data_level, data_release_date,
-                 project_name, instrument, site_name, location, latitude, longitude,
-                 ground_altitude_m, highest_flight_altitude_m, average_ascent_rate_ms)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                    ST_SetSRID(ST_MakePoint(%s, %s), 4326),
-                    %s, %s, %s, %s, %s)
+                (flight_id, flight_direction, takeoff_time, data_release_date, data_level,
+                 site_name, latitude, longitude, altitude_m, instrument, max_agl_m)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (flight_id) DO UPDATE SET
-                takeoff_time              = EXCLUDED.takeoff_time,
-                flight_direction          = EXCLUDED.flight_direction,
-                data_level                = EXCLUDED.data_level,
-                data_release_date         = EXCLUDED.data_release_date,
-                project_name              = EXCLUDED.project_name,
-                instrument                = EXCLUDED.instrument,
-                site_name                 = EXCLUDED.site_name,
-                location                  = EXCLUDED.location,
-                latitude                  = EXCLUDED.latitude,
-                longitude                 = EXCLUDED.longitude,
-                ground_altitude_m         = EXCLUDED.ground_altitude_m,
-                highest_flight_altitude_m = EXCLUDED.highest_flight_altitude_m,
-                average_ascent_rate_ms    = EXCLUDED.average_ascent_rate_ms,
-                updated_at                = NOW()
+                takeoff_time      = EXCLUDED.takeoff_time,
+                flight_direction  = EXCLUDED.flight_direction,
+                data_level        = EXCLUDED.data_level,
+                data_release_date = EXCLUDED.data_release_date,
+                instrument        = EXCLUDED.instrument,
+                site_name         = EXCLUDED.site_name,
+                latitude          = EXCLUDED.latitude,
+                longitude         = EXCLUDED.longitude,
+                altitude_m        = EXCLUDED.altitude_m,
+                max_agl_m         = EXCLUDED.max_agl_m,
+                updated_at        = NOW()
             """,
             (
                 flight_id,
-                takeoff_time,
                 flight_direction,
+                takeoff_time,
+                data_release_date,
                 data_level,
-                DEFAULT_METADATA['data_release_date'],
-                DEFAULT_METADATA['project_name'],
-                DEFAULT_METADATA['instrument'],
                 site_name,
-                DEFAULT_METADATA['longitude'],
-                DEFAULT_METADATA['latitude'],
-                DEFAULT_METADATA['latitude'],
-                DEFAULT_METADATA['longitude'],
-                DEFAULT_METADATA['ground_altitude_m'],
-                DEFAULT_METADATA['highest_flight_altitude_m'],
-                DEFAULT_METADATA['average_ascent_rate_ms'],
+                latitude,
+                longitude,
+                altitude_m,
+                instrument,
+                max_agl_m,
             ),
         )
         cursor.execute(
@@ -203,11 +250,14 @@ def row_has_any_valid_measurement(row: dict) -> bool:
 def parse_txt_file(filepath: Path, flight_id: str):
     """
     解析單一 txt 檔，yield INSERT tuple。
-    - lines[0]：單位行（跳過）
-    - lines[1]：欄位名稱行
-    - lines[2:]：資料行
 
-    分隔符優先嘗試逗號，若欄位數不符則改用空白分隔。
+    新格式：
+    - metadata header（key: value，到 '==' 分隔線結束）
+    - 分隔線之後：
+      - lines[0]：單位行（跳過）
+      - lines[1]：欄位名稱行
+      - lines[2:]：資料行（逗號分隔）
+
     L3 檔案為 3 km 以下資料；若高度超過 3 km 則跳過。
     agl 只作為 agl_m 層鍵，不插入 uav_data。
     """
@@ -217,19 +267,25 @@ def parse_txt_file(filepath: Path, flight_id: str):
     if len(lines) < 3:
         return
 
-    # 自動偵測分隔符
-    header_line = lines[1].strip()
-    if ',' in header_line:
-        sep = ','
-    else:
-        sep = None  # str.split() 預設以空白分隔
+    # 解析 metadata header，取得 data 開始位置
+    _, data_start = parse_file_metadata(lines)
+
+    data_lines = lines[data_start:]
+    if len(data_lines) < 3:
+        return
+
+    # data_lines[0] = 單位行（跳過）
+    # data_lines[1] = 欄位名稱行
+    # data_lines[2:] = 資料行
+    header_line = data_lines[1].strip()
+    sep = ','
 
     col_names = [
         HEADER_ALIASES.get(column.strip(), column.strip())
         for column in header_line.split(sep)
     ]
 
-    for line in lines[2:]:
+    for line in data_lines[2:]:
         line = line.strip()
         if not line:
             continue
@@ -274,18 +330,28 @@ def parse_txt_file(filepath: Path, flight_id: str):
 
 def import_txt_file(conn, filepath: Path) -> tuple:
     """匯入單一 txt 檔，回傳 (total, valid, invalid)。"""
-    # 從檔名解析：YYYYMMDD_TTTT_L3_ascending(_sitename).txt
-    parts     = filepath.stem.split('_')
-    if len(parts) < 4:
-        print(f'    [ERROR] 檔名格式不符：{filepath.name}')
+    # 從檔名解析 metadata
+    fname_meta = parse_filename(filepath.name)
+    if not fname_meta:
+        print(f'\n    [WARN] 檔名格式不符，跳過: {filepath.name}')
         return 0, 0, 0
 
-    flight_id = f'{parts[0]}_{parts[1]}'
-    data_level = parts[2]
-    flight_direction = parts[3]
-    site_name = parts[4] if len(parts) > 4 else 'Guanyin'
+    flight_id = fname_meta['flight_id']
+    data_level = fname_meta['level']
+    site_name = fname_meta['site']
+
+    # 從檔案 header 解析 metadata
+    with open(filepath, 'r', encoding='utf-8') as f:
+        all_lines = f.readlines()
+
+    file_meta, _ = parse_file_metadata(all_lines)
+
+    # 優先使用檔案內的 metadata，檔名資訊作為 fallback
+    flight_direction = file_meta.get('flight_direction', 'ascending')
+    file_meta['instrument_version'] = fname_meta['instrument']
 
     try:
+        # 以檔名日期 + 時間作為 takeoff_time
         takeoff_time = datetime.strptime(flight_id, '%Y%m%d_%H%M')
     except ValueError:
         print(f'    [ERROR] 檔名時間格式不符：{filepath.name}')
@@ -307,6 +373,7 @@ def import_txt_file(conn, filepath: Path) -> tuple:
             data_level,
             flight_direction,
             site_name,
+            file_meta,
         )
         cursor = conn.cursor()
         execute_batch(cursor, INSERT_SQL, rows, page_size=2000)
@@ -327,7 +394,7 @@ def main():
     print('UAV 資料匯入工具')
     print('=' * 60)
 
-    txt_files = sorted(RAW_DIR.glob('*_L3_ascending*.txt'))
+    txt_files = sorted(RAW_DIR.glob('UAV_V*_L*_*.txt'))
     if not txt_files:
         print(f'[ERROR] 找不到 txt 檔案：{RAW_DIR}')
         sys.exit(1)
@@ -342,8 +409,8 @@ def main():
     grand_total = grand_valid = grand_invalid = 0
 
     for idx, txt_path in enumerate(txt_files, 1):
-        parts     = txt_path.stem.split('_')
-        flight_id = f'{parts[0]}_{parts[1]}'
+        fname_meta = parse_filename(txt_path.name)
+        flight_id = fname_meta['flight_id'] if fname_meta else txt_path.stem
         print(f'  [{idx}/{len(txt_files)}] {flight_id} ...', end=' ', flush=True)
 
         total, valid, invalid = import_txt_file(conn, txt_path)
