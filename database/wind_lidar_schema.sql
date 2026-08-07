@@ -44,15 +44,6 @@ ON CONFLICT (station_id) DO UPDATE SET
     altitude_m = EXCLUDED.altitude_m,
     updated_at = NOW();
 
--- 空間索引
-CREATE INDEX IF NOT EXISTS idx_wl_stations_location
-    ON wind_lidar_stations USING GIST(location);
-
--- 更新 PostGIS location 欄位
-UPDATE wind_lidar_stations
-SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. 量測參數種類表
 -- ─────────────────────────────────────────────────────────────────────────────
