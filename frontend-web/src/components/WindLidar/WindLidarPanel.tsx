@@ -228,6 +228,11 @@ export default function WindLidarPanel({
       yaxis: {
         title: { text: '高度 (km)', font: { size: 11 } },
         tickfont: { size: 10 },
+        dtick: 0.1,                // 每 100 公尺一條刻度線
+        tick0: 0,
+        showgrid: true,
+        gridcolor: 'rgba(0, 0, 0, 0.1)',
+        gridwidth: 1,
       },
       modebar: {
         orientation: 'h',
