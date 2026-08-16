@@ -18,7 +18,7 @@ export async function GET() {
     });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_MOE_API_KEY;
+  const apiKey = process.env.MOE_API_KEY;
   const data = await fetchMoeStations(apiKey);
   const response: MoeApiResponse = {
     data,

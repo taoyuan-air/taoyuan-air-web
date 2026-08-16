@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-WindLidar TMA_328 資料匯入腳本
-直接讀取 data/raw/WindLidar/TMA_328_*.txt 並批次匯入 PostgreSQL
+WindLidar 資料匯入腳本
+直接讀取 data/raw/WindLidar/DWL_V1_L1_UVW_*.txt 並批次匯入 PostgreSQL
+
+檔名格式： DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+           (都卜勒風光達英文簡寫_版本1_等級1資料_水平垂直風_年月日_儀器序號_站點)
 
 資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
 資料品質：各參數逐欄解析，無法轉為數值時標記為 'invalid'，value=NULL
@@ -11,6 +14,7 @@ WindLidar TMA_328 資料匯入腳本
 
 import csv
 import os
+import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -47,7 +51,40 @@ if not DB_CONFIG['password']:
 ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'WindLidar'
 
-STATION_ID = 'TMA_328'
+# 新檔名格式：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+# 群組：(product)_(version)_(level)_(params)_(date)_(serial)_(site).txt
+FILENAME_PATTERN = re.compile(
+    r'^DWL_V(\d+)_L(\d+)_([A-Za-z]+)_(\d{8})_([A-Za-z0-9]+)_([A-Za-z]+)\.txt$'
+)
+
+
+def parse_filename(filename: str) -> Optional[dict]:
+    """
+    解析風光達檔名，回傳 metadata dict 或 None。
+
+    範例：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+    → {
+        'version': '1',
+        'level': '1',
+        'params': 'UVW',
+        'date': '20260330',
+        'serial': 'L02240328',
+        'site': 'Guanyin',
+        'station_id': 'L02240328_Guanyin'
+      }
+    """
+    m = FILENAME_PATTERN.match(filename)
+    if not m:
+        return None
+    return {
+        'version': m.group(1),
+        'level':   m.group(2),
+        'params':  m.group(3),
+        'date':    m.group(4),
+        'serial':  m.group(5),
+        'site':    m.group(6),
+        'station_id': f"{m.group(5)}_{m.group(6)}",
+    }
 
 # ── 參數對照（txt 欄位名 → parameter_id）────────────────────────────────────
 PARAM_MAP = {
@@ -136,7 +173,7 @@ def ensure_wind_lidar_partitions(conn, measure_times: list[datetime]) -> None:
             cursor.close()
 
 
-def parse_txt_file(filepath: Path):
+def parse_txt_file(filepath: Path, station_id: str):
     with open(filepath, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
@@ -166,7 +203,7 @@ def parse_txt_file(filepath: Path):
                 value   = parse_value(raw_val, param_id)
                 quality = 'good' if value is not None else 'invalid'
                 yield (
-                    STATION_ID, measure_time, height_m, param_id,
+                    station_id, measure_time, height_m, param_id,
                     value, raw_val, quality,
                     period_start, period_end, 'history',
                 )
@@ -174,11 +211,18 @@ def parse_txt_file(filepath: Path):
 
 def import_txt_file(conn, filepath: Path) -> tuple:
     """匯入單一 txt 檔，回傳 (total, valid, invalid)。"""
+    meta = parse_filename(filepath.name)
+    if not meta:
+        print(f'\n    [WARN] 檔名格式不符，跳過: {filepath.name}')
+        return 0, 0, 0
+
+    station_id = meta['station_id']
+
     rows    = []
     valid   = 0
     invalid = 0
 
-    for row in parse_txt_file(filepath):
+    for row in parse_txt_file(filepath, station_id):
         rows.append(row)
         if row[6] == 'good':
             valid += 1
@@ -217,7 +261,7 @@ def main():
             print(f'[ERROR] 找不到指定檔案：{", ".join(missing_files)}')
             sys.exit(1)
     else:
-        txt_files = sorted(RAW_DIR.glob('TMA_328_*.txt'))
+        txt_files = sorted(RAW_DIR.glob('DWL_V*_L*_*_*.txt'))
 
     if not txt_files:
         print(f'[ERROR] 找不到 txt 檔案：{RAW_DIR}')
