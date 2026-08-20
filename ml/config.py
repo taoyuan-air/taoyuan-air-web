@@ -97,6 +97,17 @@ XGB_PARAMS = {
     'n_jobs':           -1,
 }
 
+# Random Forest hyperparameters (tunable)
+RF_PARAMS = {
+    'n_estimators':      300,
+    'max_depth':         None,
+    'min_samples_split': 2,
+    'min_samples_leaf':  1,
+    'max_features':      1.0,
+    'random_state':      42,
+    'n_jobs':            -1,
+}
+
 # Train / validation split cutoff. Rows before this timestamp are used for
 # training; rows at or after this timestamp are used for validation.
 TRAIN_CUTOFF_DATE = '2025-07-01'
