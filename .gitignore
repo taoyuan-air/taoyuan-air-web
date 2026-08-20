@@ -69,6 +69,8 @@ data/raw/teds-point/*
 *.dump
 
 # Python
+.venv/
+backend/.venv/
 __pycache__/
 *.pyc
 *.pyo
