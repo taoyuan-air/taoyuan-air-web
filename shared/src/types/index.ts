@@ -116,3 +116,41 @@ export interface Meta {
   lastUpdate: string;
   role: Role;
 }
+
+export interface CurrentWeatherData {
+  stationId?: string;
+  stationName?: string;
+  stationType?: string;
+  district?: string;
+  temperature: string;
+  weather: string;
+  humidity: string;
+  windSpeed: string;
+  dailyHigh: string;
+  dailyLow: string;
+}
+
+export interface ForecastDay {
+  label: string;      // e.g. 4/7
+  dateLabel: string;  // e.g. 週一
+  maxTemp: string;
+  minTemp: string;
+  weather: string;
+  precipProb: string;
+}
+
+export interface TEDSPoint {
+  id: string;
+  name?: string;
+  latLng: LatLng;
+  heightM?: number;
+  source?: string;
+}
+
+export interface ExamPoint {
+  id: string;
+  name: string;
+  latLng: LatLng;
+  source: '汞';
+  note?: string;
+}

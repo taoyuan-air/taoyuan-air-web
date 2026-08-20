@@ -47,12 +47,24 @@ data/models/**/*
 !data/models/.gitkeep
 !data/README.md
 
-# CWA stations - keep folder structure, ignore files inside
+# WindLidar - keep folder structure, ignore data files
+data/raw/WindLidar/*
+!data/raw/WindLidar/
+!data/raw/WindLidar/.gitkeep
+
+# CWA stations - keep folder structure, ignore data files
 data/raw/cwa-stations/*
 !data/raw/cwa-stations/
 !data/raw/cwa-stations/*/
+!data/raw/cwa-stations/**/.gitkeep
 
-# TYDEP stations - keep folder structure, ignore files inside
+# MOE stations - keep folder structure, ignore data files
+data/raw/moe-stations/*
+!data/raw/moe-stations/
+!data/raw/moe-stations/*/
+!data/raw/moe-stations/**/.gitkeep
+
+# TYDEP stations - keep folder structure, ignore data files
 data/raw/tydep-stations/*
 !data/raw/tydep-stations/
 !data/raw/tydep-stations/*/
@@ -63,6 +75,12 @@ data/raw/teds-point/*
 !data/raw/teds-point/
 !data/raw/teds-point/*/
 !data/raw/teds-point/.gitkeep
+
+# UAV - keep folder structure, ignore files inside
+data/raw/UAV/*
+!data/raw/UAV/
+!data/raw/UAV/*/
+!data/raw/UAV/.gitkeep
 
 # Database
 *.sql.backup
@@ -82,7 +100,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -91,6 +108,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+venv/
+.venv/
 
 # Private documentation
 docs/

@@ -5,6 +5,7 @@ import {
   Bell, CheckCheck, Grid3X3, Leaf,
   RefreshCw, ShieldAlert, Wind,
 } from 'lucide-react';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
@@ -154,6 +155,7 @@ export default function NotificationsPage() {
     cat === '全部' ? DATA.length : DATA.filter(n => n.category === cat).length;
 
   return (
+    <AuthGuard>
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 100 }}>
       <div style={{ padding: isMobile ? '20px 16px 32px' : '28px 40px 32px' }}>
 
@@ -247,8 +249,8 @@ export default function NotificationsPage() {
           {/* ── Desktop: left sidebar ────────────────────────── */}
           {!isMobile && (
             <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <SectionLabel title="篩選類別" />
-              <div style={{ ...card, padding: 8 }}>
+              <div style={{ ...card, padding: 18, marginTop: 8 }}>
+                <SectionLabel title="篩選類別" />
                 {CATEGORIES.map((cat) => {
                   const active = activeCategory === cat;
                   const meta = CATEGORY_META[cat];
@@ -290,7 +292,7 @@ export default function NotificationsPage() {
               {/* Stats summary */}
               <div style={{ ...card, padding: 18, marginTop: 8 }}>
                 <SectionLabel title="今日摘要" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {[
                     { label: '未讀通知', value: unreadCount, color: C.primary },
                     { label: '警報數量', value: DATA.filter(n => n.category === '警報').length, color: C.coral },
@@ -395,5 +397,6 @@ export default function NotificationsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
