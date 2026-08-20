@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
 """
-convert_MPL_nc.py — Parse MiniLidar L1 NetCDF files and output JSON to stdout.
+convert_MPL_nc.py — Parse MiniLidar L1 NetCDF files and output JSON.
 
-Usage:
+Modes:
+  stdout (default): pipe JSON result to stdout for API use.
+  file mode (--out_dir): write one .json per .nc file into the given directory.
+
+Usage – stdout:
     python convert_MPL_nc.py \
-        --nc_dir   /path/to/sftp/mini_lidar \
+        --nc_dir   data/raw/MPL/L1 \
         --station  Guanyin \
-        --start    2026-04-11T16:00:00Z \
-        --end      2026-04-12T15:59:59Z \
-        --height_max 1.0 \
-        --panels   nrb,depol,temperature,backgroundEnergy
+        --start    2026-08-10T00:00:00Z \
+        --end      2026-08-10T23:59:59Z \
+        --height_max 3.0
+
+Usage – save to file:
+    python convert_MPL_nc.py \
+        --nc_dir   data/raw/MPL/L1 \
+        --out_dir  data/raw/MPL/json \
+        --station  Guanyin \
+        --start    2026-08-10T00:00:00Z \
+        --end      2026-08-10T23:59:59Z \
+        --height_max 3.0
 """
 
 import argparse
@@ -26,6 +38,9 @@ import tempfile
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--nc_dir",     required=True)
+    p.add_argument("--out_dir",    default=None,
+                   help="If set, write one JSON file per .nc into this directory "
+                        "instead of printing to stdout.")
     p.add_argument("--station",    required=True)
     p.add_argument("--start",      required=True, help="UTC ISO-8601")
     p.add_argument("--end",        required=True, help="UTC ISO-8601")
@@ -277,10 +292,89 @@ def build_output(merged: dict, panels: list, station: str, source_files: list,
     return out
 
 
+def convert_to_file(nc_path: str, out_dir: str, panels: list,
+                    height_max: float) -> str:
+    """Convert a single .nc file to .json and write it to out_dir.
+
+    The output filename mirrors the source filename with .json extension,
+    e.g. MMPL_L1_NRB_20260810_mmpl5009_Guanyin_V1.json.
+    The time window covers the full day contained in the filename (UTC).
+
+    Returns the path of the written file.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    year = infer_year_from_filename(nc_path)
+    # Cover the full UTC day so no data is clipped
+    m = re.search(r"(\d{8})", os.path.basename(nc_path))
+    if m:
+        date_str = m.group(1)
+        day = dt.datetime.strptime(date_str, "%Y%m%d")
+    else:
+        day = dt.datetime(year, 1, 1)
+
+    start_utc = day.replace(hour=0, minute=0, second=0)
+    end_utc   = day.replace(hour=23, minute=59, second=59)
+
+    chunk = read_nc(nc_path, height_max, start_utc, end_utc)
+    merged = merge_chunks([chunk])
+
+    basename = os.path.splitext(os.path.basename(nc_path))[0] + ".json"
+    out_path = os.path.join(out_dir, basename)
+
+    # Infer station name from filename (segment after last underscore-separated
+    # position that looks like a place name, i.e. not all-lowercase serial like mmpl5009)
+    station = "unknown"
+    parts = os.path.splitext(os.path.basename(nc_path))[0].split("_")
+    for part in reversed(parts):
+        if re.match(r"^V\d+$", part, re.IGNORECASE):
+            continue  # skip version tag
+        if re.match(r"^[A-Za-z][A-Za-z]+$", part):  # word-only, no digits
+            station = part
+            break
+
+    warnings: list = []
+    if not merged.get("times"):
+        warnings.append("指定時間區間內無資料點")
+
+    result = build_output(merged, panels, station,
+                          [os.path.basename(nc_path)], warnings)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False)
+
+    return out_path
+
+
 def main():
     args   = parse_args()
     panels = [p.strip() for p in args.panels.split(",") if p.strip()]
 
+    # ── File mode: convert each .nc to a .json in out_dir ──────────────────
+    if args.out_dir:
+        start_utc = iso_to_utc(args.start)
+        end_utc   = iso_to_utc(args.end)
+
+        utc_dates = set()
+        d = start_utc.date()
+        while d <= end_utc.date():
+            utc_dates.add(d)
+            d += dt.timedelta(days=1)
+
+        nc_paths = find_nc_files(args.nc_dir, args.station, sorted(utc_dates))
+        if not nc_paths:
+            print(f"[警告] 查無 {args.station} 在指定日期的 .nc 檔案", file=sys.stderr)
+            return
+
+        for path in nc_paths:
+            try:
+                out_path = convert_to_file(path, args.out_dir, panels, args.height_max)
+                print(f"[OK] {os.path.basename(path)} → {out_path}")
+            except Exception as e:
+                print(f"[錯誤] {os.path.basename(path)} 轉換失敗：{e}", file=sys.stderr)
+        return
+
+    # ── Stdout mode: merge all matching files and print JSON ────────────────
     start_utc = iso_to_utc(args.start)
     end_utc   = iso_to_utc(args.end)
 
