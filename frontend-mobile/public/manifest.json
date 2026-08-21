@@ -4,7 +4,7 @@
   "description": "桃園市空氣品質即時監測系統",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#FFF6F9",
-  "background_color": "#FFF6F9",
+  "theme_color": "#EAF1F8",
+  "background_color": "#EAF1F8",
   "icons": []
 }

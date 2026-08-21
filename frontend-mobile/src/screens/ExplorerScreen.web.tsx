@@ -50,7 +50,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "MOE",
       version: "v2.1",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近24小時",
       region: "中壢區"
     },
@@ -65,7 +65,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "微感測",
       version: "v2.0",
-      color: "#FFA868",
+      color: "#7FA7C9",
       timeCategory: "近24小時",
       region: "桃園區"
     },
@@ -80,7 +80,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "光達",
       version: "v2.1",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近24小時",
       region: "觀音區"
     },
@@ -95,7 +95,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "MOE",
       version: "v2.1",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近24小時",
       region: "大園區"
     },
@@ -110,7 +110,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "微感測",
       version: "v1.8",
-      color: "#FF6B6B",
+      color: "#4A86A8",
       timeCategory: "近24小時",
       region: "桃園區"
     },
@@ -125,7 +125,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "LUV",
       version: "v3.0",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近24小時",
       region: "中壢區"
     },
@@ -140,7 +140,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "微感測",
       version: "v2.0",
-      color: "#FFA868",
+      color: "#7FA7C9",
       timeCategory: "近3天",
       region: "觀音區"
     },
@@ -155,7 +155,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "MOE",
       version: "v2.1",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近3天",
       region: "大園區"
     },
@@ -170,7 +170,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "光達",
       version: "v2.3",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近3天",
       region: "大園區"
     },
@@ -185,7 +185,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "微感測",
       version: "v1.9",
-      color: "#FF6B6B",
+      color: "#4A86A8",
       timeCategory: "近3天",
       region: "中壢區"
     },
@@ -200,7 +200,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近7天",
       region: "桃園區"
     },
@@ -215,7 +215,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "MOE",
       version: "v2.1",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近7天",
       region: "觀音區"
     },
@@ -230,7 +230,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "光達",
       version: "v2.3",
-      color: "#FF6B6B",
+      color: "#4A86A8",
       timeCategory: "近7天",
       region: "大園區"
     },
@@ -245,7 +245,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "ppb",
       source: "微感測",
       version: "v2.0",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近7天",
       region: "中壢區"
     },
@@ -260,7 +260,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
       unit: "μg/m³",
       source: "LUV",
       version: "v3.0",
-      color: "#E76595",
+      color: "#315E8F",
       timeCategory: "近7天",
       region: "桃園區"
     }
@@ -301,7 +301,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
   const monitoringData = getFilteredData();
 
   return (
-    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
+    <LinearGradient colors={["#EAF1F8", "#DCE8F3"]} style={styles.container}>
       {/* ── TOP BAR: Title + Search + Filters ── */}
       <View style={styles.topBar}>
         {/* Search Bar */}
@@ -328,7 +328,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <Text style={[styles.filterText, showTimeFilter && styles.activeFilterText]}>
                 {selectedTimeFilter}
               </Text>
-              <Ionicons name="chevron-down" size={14} color={showTimeFilter ? "white" : "#E76595"} />
+              <Ionicons name="chevron-down" size={14} color={showTimeFilter ? "white" : "#315E8F"} />
             </TouchableOpacity>
             {showTimeFilter && (
               <View style={styles.topDropdown}>
@@ -354,7 +354,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <Text style={[styles.filterText, showPollutantFilter && styles.activeFilterText]}>
                 {selectedPollutantFilter}
               </Text>
-              <Ionicons name="chevron-down" size={14} color={showPollutantFilter ? "white" : "#E76595"} />
+              <Ionicons name="chevron-down" size={14} color={showPollutantFilter ? "white" : "#315E8F"} />
             </TouchableOpacity>
             {showPollutantFilter && (
               <View style={styles.topDropdown}>
@@ -380,7 +380,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <Text style={[styles.filterText, showRegionFilter && styles.activeFilterText]}>
                 {selectedRegionFilter}
               </Text>
-              <Ionicons name="chevron-down" size={14} color={showRegionFilter ? "white" : "#E76595"} />
+              <Ionicons name="chevron-down" size={14} color={showRegionFilter ? "white" : "#315E8F"} />
             </TouchableOpacity>
             {showRegionFilter && (
               <View style={styles.topDropdown}>
@@ -406,7 +406,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
               <Text style={[styles.filterText, showDataSourceFilter && styles.activeFilterText]}>
                 資料來源
               </Text>
-              <Ionicons name="chevron-down" size={14} color={showDataSourceFilter ? "white" : "#E76595"} />
+              <Ionicons name="chevron-down" size={14} color={showDataSourceFilter ? "white" : "#315E8F"} />
             </TouchableOpacity>
             {showDataSourceFilter && (
               <View style={styles.topDropdown}>
@@ -418,7 +418,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
                   >
                     <Text style={styles.dropdownText}>{option}</Text>
                     {selectedDataSources.includes(option) && (
-                      <Ionicons name="checkmark" size={14} color="#E76595" />
+                      <Ionicons name="checkmark" size={14} color="#315E8F" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -458,8 +458,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ scrollRef }) => 
                     <Text style={styles.cardTitle}>{item.district}</Text>
                     <Text style={styles.cardSubtitle}>{item.station} • {item.time}</Text>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#F8D0DA' : '#FFD4B3' }]}>
-                    <Text style={[styles.statusBadgeText, { color: item.passed ? '#E76595' : '#D2691E' }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: item.passed ? '#C8D8E8' : '#FFD4B3' }]}>
+                    <Text style={[styles.statusBadgeText, { color: item.passed ? '#315E8F' : '#D2691E' }]}>
                       {item.passed ? '通過' : '異常'}
                     </Text>
                   </View>
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: 'rgba(231, 101, 149, 0.07)',
+    backgroundColor: 'rgba(49, 94, 143, 0.07)',
     borderRadius: 20,
     gap: 6,
   },
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.97)',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(231, 101, 149, 0.15)',
+    borderColor: 'rgba(49, 94, 143, 0.15)',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   advisoryChip: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FBA7BC',
+    backgroundColor: '#6F91B2',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   titleSub: {
     fontSize: 11,
-    color: '#E76595',
+    color: '#315E8F',
     letterSpacing: 3,
     marginTop: 2,
   },
@@ -591,12 +591,12 @@ const styles = StyleSheet.create({
 
   // ── Shared filter/dropdown ──
   activeFilter: {
-    backgroundColor: '#E76595',
+    backgroundColor: '#315E8F',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#E76595',
+    color: '#315E8F',
   },
   activeFilterText: {
     color: 'white',
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   feedTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E76595',
+    color: '#315E8F',
     letterSpacing: 2,
   },
   feedCount: {

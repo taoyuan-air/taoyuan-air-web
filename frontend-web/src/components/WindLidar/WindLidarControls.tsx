@@ -6,14 +6,14 @@ import type { PanelKey, StationInfo } from '@/lib/windLidarApi';
 
 // ── Design tokens（與 events/page.tsx 一致） ──────────────────────────────────
 const C = {
-  rose:       '#D4567A',
-  roseAlpha:  'rgba(212,86,122,0.10)',
-  roseBorder: 'rgba(212,86,122,0.28)',
+  blue:       '#315E8F',
+  blueAlpha:  'rgba(49,94,143,0.10)',
+  blueBorder: 'rgba(49,94,143,0.28)',
   glass:      'rgba(255,255,255,0.90)',
-  glassShadow:'0 4px 20px rgba(180,140,160,0.12)',
-  text:       '#1a1220',
-  muted:      '#7a6880',
-  hint:       '#b0a0b8',
+  glassShadow:'0 4px 20px rgba(23,58,94,0.12)',
+  text:       '#172A40',
+  muted:      '#506780',
+  hint:       '#6F91B2',
 };
 
 // ── 面板中文標籤 ──────────────────────────────────────────────────────────────
@@ -66,9 +66,9 @@ function StationDropdown({
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 16px', borderRadius: 999, cursor: disabled ? 'not-allowed' : 'pointer',
           background: C.glass,
-          border: `1px solid ${C.roseBorder}`,
+          border: `1px solid ${C.blueBorder}`,
           boxShadow: C.glassShadow,
-          fontSize: 13, fontWeight: 700, color: C.rose,
+          fontSize: 13, fontWeight: 700, color: C.blue,
           opacity: disabled ? 0.6 : 1,
           transition: 'all 0.15s',
         }}
@@ -87,8 +87,8 @@ function StationDropdown({
           style={{
             position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 400,
             background: '#fff',
-            border: `1px solid ${C.roseBorder}`,
-            borderRadius: 12, boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            border: `1px solid ${C.blueBorder}`,
+            borderRadius: 12, boxShadow: '0 8px 32px rgba(23,58,94,0.18)',
             minWidth: 180, overflow: 'hidden',
           }}
         >
@@ -101,9 +101,9 @@ function StationDropdown({
                 padding: '10px 16px',
                 border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: selected === s.station ? 700 : 500,
-                color: selected === s.station ? C.rose : C.text,
-                background: selected === s.station ? C.roseAlpha : 'transparent',
-                borderBottom: i < stations.length - 1 ? '1px solid rgba(180,140,160,0.08)' : 'none',
+                color: selected === s.station ? C.blue : C.text,
+                background: selected === s.station ? C.blueAlpha : 'transparent',
+                borderBottom: i < stations.length - 1 ? '1px solid rgba(23,58,94,0.08)' : 'none',
               }}
             >
               {s.station}
@@ -138,9 +138,9 @@ function DateDropdown({
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 16px', borderRadius: 999, cursor: disabled ? 'not-allowed' : 'pointer',
           background: C.glass,
-          border: `1px solid ${C.roseBorder}`,
+          border: `1px solid ${C.blueBorder}`,
           boxShadow: C.glassShadow,
-          fontSize: 13, fontWeight: 700, color: C.rose,
+          fontSize: 13, fontWeight: 700, color: C.blue,
           opacity: disabled ? 0.6 : 1,
           transition: 'all 0.15s',
           minWidth: 130,
@@ -160,8 +160,8 @@ function DateDropdown({
           style={{
             position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 400,
             background: '#fff',
-            border: `1px solid ${C.roseBorder}`,
-            borderRadius: 12, boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            border: `1px solid ${C.blueBorder}`,
+            borderRadius: 12, boxShadow: '0 8px 32px rgba(23,58,94,0.18)',
             minWidth: 160, maxHeight: 260, overflowY: 'auto',
           }}
         >
@@ -174,9 +174,9 @@ function DateDropdown({
                 padding: '9px 16px',
                 border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: selected === d ? 700 : 500,
-                color: selected === d ? C.rose : C.text,
-                background: selected === d ? C.roseAlpha : 'transparent',
-                borderBottom: i < dates.length - 1 ? '1px solid rgba(180,140,160,0.06)' : 'none',
+                color: selected === d ? C.blue : C.text,
+                background: selected === d ? C.blueAlpha : 'transparent',
+                borderBottom: i < dates.length - 1 ? '1px solid rgba(23,58,94,0.06)' : 'none',
               }}
             >
               {d}
@@ -209,7 +209,7 @@ export default function WindLidarControls({
       style={{
         margin: '0 0 0',
         background: C.glass,
-        border: '1px solid rgba(212,86,122,0.08)',
+        border: '1px solid rgba(49,94,143,0.08)',
         borderRadius: 16,
         boxShadow: C.glassShadow,
         padding: '16px 24px',
@@ -238,7 +238,7 @@ export default function WindLidarControls({
       </div>
 
       {/* 分隔線 */}
-      <div style={{ height: 1, background: 'rgba(180,140,160,0.10)' }} />
+      <div style={{ height: 1, background: 'rgba(23,58,94,0.10)' }} />
 
       {/* 第二列：高度上限 + 面板顯示 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -256,9 +256,9 @@ export default function WindLidarControls({
                 style={{
                   padding: '5px 12px',
                   borderRadius: 999,
-                  border: `1.5px solid ${active ? C.rose : C.roseBorder}`,
-                  background: active ? C.rose : 'transparent',
-                  color: active ? '#fff' : C.rose,
+                  border: `1.5px solid ${active ? C.blue : C.blueBorder}`,
+                  background: active ? C.blue : 'transparent',
+                  color: active ? '#fff' : C.blue,
                   fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -270,7 +270,7 @@ export default function WindLidarControls({
         </div>
 
         {/* 小分隔 */}
-        <div style={{ width: 1, height: 24, background: 'rgba(180,140,160,0.20)', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 24, background: 'rgba(23,58,94,0.20)', margin: '0 4px' }} />
 
         {/* 面板顯示勾選 */}
         <span style={{ fontSize: 12, fontWeight: 800, color: C.muted, whiteSpace: 'nowrap' }}>
@@ -287,9 +287,9 @@ export default function WindLidarControls({
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '5px 12px',
                   borderRadius: 999,
-                  border: `1.5px solid ${active ? C.rose : C.roseBorder}`,
-                  background: active ? C.roseAlpha : 'transparent',
-                  color: active ? C.rose : C.muted,
+                  border: `1.5px solid ${active ? C.blue : C.blueBorder}`,
+                  background: active ? C.blueAlpha : 'transparent',
+                  color: active ? C.blue : C.muted,
                   fontSize: 12, fontWeight: active ? 700 : 500,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
@@ -299,7 +299,7 @@ export default function WindLidarControls({
                 {/* 小圓點指示 */}
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: active ? C.rose : 'rgba(180,140,160,0.4)',
+                  background: active ? C.blue : 'rgba(23,58,94,0.4)',
                 }} />
                 {PANEL_LABELS[key]}
               </button>

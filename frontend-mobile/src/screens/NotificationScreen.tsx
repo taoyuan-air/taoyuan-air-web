@@ -24,7 +24,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       id: 1,
       type: "alert",
       icon: "warning",
-      iconColor: "#E76595",
+      iconColor: "#315E8F",
       iconBg: "rgba(143, 169, 111, 0.1)",
       title: "空氣品質警報",
       subtitle: "中壢區",
@@ -35,7 +35,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       id: 2,
       type: "health",
       icon: "fitness",
-      iconColor: "#E76595",
+      iconColor: "#315E8F",
       iconBg: "rgba(143, 169, 111, 0.1)",
       title: "健康建議",
       subtitle: "戶外活動指引",
@@ -46,7 +46,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       id: 3,
       type: "system",
       icon: "refresh",
-      iconColor: "#7F5A6A",
+      iconColor: "#506780",
       iconBg: "rgba(85, 90, 79, 0.1)",
       title: "系統更新",
       subtitle: "版本 2.4.0 上線",
@@ -57,7 +57,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       id: 4,
       type: "grid",
       icon: "grid",
-      iconColor: "#E76595",
+      iconColor: "#315E8F",
       iconBg: "rgba(143, 169, 111, 0.1)",
       title: "新網格啟用",
       subtitle: "龍潭監測站",
@@ -73,7 +73,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
+      <LinearGradient colors={["#EAF1F8", "#DCE8F3"]} style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
@@ -190,20 +190,20 @@ const styles = StyleSheet.create({
   },
   notificationSubtitle: {
     fontSize: 14,
-    color: "#7F5A6A",
+    color: "#506780",
   },
   notificationTime: {
     fontSize: 12,
-    color: "#E76595",
+    color: "#315E8F",
     fontWeight: "500",
   },
   notificationContent: {
     fontSize: 14,
-    color: "#7F5A6A",
+    color: "#506780",
     lineHeight: 20,
   },
   aiInsight: {
-    color: "#E76595",
+    color: "#315E8F",
     fontWeight: "bold",
   },
   bottomSpacing: {

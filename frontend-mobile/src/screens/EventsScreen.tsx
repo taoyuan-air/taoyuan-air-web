@@ -60,7 +60,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "2小時15分鐘 活躍",
       location: "蘆竹區",
       confidence: "98.4%",
-      severityColor: "#E57373",
+      severityColor: "#527FA4",
       statusColor: "#FFFFFF",
       icon: "warning",
       isActive: true,
@@ -114,7 +114,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
       duration: "3小時 持續",
       location: "桃園區",
       healthIndex: "不健康",
-      severityColor: "#EF5350",
+      severityColor: "#3E6F9B",
       statusColor: "#FFFFFF",
       icon: "alert-circle",
       isActive: true,
@@ -195,7 +195,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const eventData = getFilteredEvents();
 
   return (
-    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
+    <LinearGradient colors={["#EAF1F8", "#DCE8F3"]} style={styles.container}>
       <MobileTopAppbar
         title="事件庫"
         subtitle="INCIDENT TRACKING"
@@ -220,7 +220,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             <Text style={[styles.filterText, showFilterDropdown === 'events' && styles.activeFilterText]}>
               {selectedFilter}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#E76595"} />
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'events' ? "white" : "#315E8F"} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -228,7 +228,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             onPress={() => setShowFilterDropdown(showFilterDropdown === 'districts' ? null : 'districts')}
           >
             <Text style={[styles.filterText, showFilterDropdown === 'districts' && styles.activeFilterText]}>{selectedDistrict}</Text>
-            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#E76595"} />
+            <Ionicons name="chevron-down" size={16} color={showFilterDropdown === 'districts' ? "white" : "#315E8F"} />
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -236,7 +236,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
             onPress={() => setShowFilterDropdown(showFilterDropdown === 'severity' ? null : 'severity')}
           >
             <Text style={[styles.filterText, showFilterDropdown === 'severity' && styles.activeFilterText]}>{selectedSeverity}</Text>
-            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#E76595"} />
+            <Ionicons name="filter" size={16} color={showFilterDropdown === 'severity' ? "white" : "#315E8F"} />
           </TouchableOpacity>
         </ScrollView>
 
@@ -369,7 +369,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Ionicons
                       name={event.icon as any}
                       size={28}
-                      color="#E76595"
+                      color="#315E8F"
                     />
                   </View>
                 </View>
@@ -430,7 +430,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
                     <Text
                       style={[
                         styles.confidenceValue,
-                        { color: event.confidence ? "#E76595" : "#F59E0B" },
+                        { color: event.confidence ? "#315E8F" : "#5D98B9" },
                       ]}
                     >
                       {event.confidence || event.healthIndex}
@@ -500,8 +500,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeFilter: {
-    backgroundColor: "#E76595",
-    shadowColor: "#E76595",
+    backgroundColor: "#315E8F",
+    shadowColor: "#315E8F",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#E76595",
+    color: "#315E8F",
   },
   activeFilterText: {
     color: "white",
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryActionButton: {
-    backgroundColor: "#E76595",
+    backgroundColor: "#315E8F",
   },
   secondaryActionButton: {
     backgroundColor: "rgba(0, 0, 0, 0.05)",

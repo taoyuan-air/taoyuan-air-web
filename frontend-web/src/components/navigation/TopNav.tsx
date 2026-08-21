@@ -53,7 +53,7 @@ export function TopNav() {
           <Link href="/dashboard" className="top-nav-logo">
             <span className="top-nav-logo-img">
               <Image
-                src="https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp"
+                src="https://res.cloudinary.com/da3bvump4/image/upload/v1787303369/5f7a91ad-47c8-40e5-9981-cd41395dcb99_vrclgp.png"
                 alt="Taoyuan Air Logo"
                 width={34}
                 height={34}
@@ -103,9 +103,9 @@ export function TopNav() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 99,
-                  border: '1px solid rgba(231,101,149,0.4)',
-                  background: 'rgba(231,101,149,0.08)',
-                  color: '#E76595', fontSize: 13, fontWeight: 700,
+                  border: '1px solid rgba(49,94,143,0.4)',
+                  background: 'rgba(49,94,143,0.08)',
+                  color: '#315E8F', fontSize: 13, fontWeight: 700,
                   textDecoration: 'none', transition: 'all 0.18s',
                 }}
               >

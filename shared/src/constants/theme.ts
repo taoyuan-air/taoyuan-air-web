@@ -1,24 +1,24 @@
 export const palette = {
-  primary: "#E76595",
-  primarySoft: "#F8D0DA",
-  primaryMid: "#FBA7BC",
-  primaryDeep: "#E76595",
-  accentRed: "#E94C78",
-  accentYellow: "#d7ae29",
-  accentBlue: "#8AB3FF",
-  accentGreen: "#79b360",
-  bgBase: "#FFF6F9",
+  primary: "#315E8F",
+  primarySoft: "#C8D8E8",
+  primaryMid: "#6F91B2",
+  primaryDeep: "#315E8F",
+  accentRed: "#173A5E",
+  accentYellow: "#B88A2E",
+  accentBlue: "#3E8FB8",
+  accentGreen: "#4F8D7A",
+  bgBase: "#EAF1F8",
   bgCard: "#FFFFFF",
   surface: "#FFFFFF",
-  background: "#FFF6F9",
+  background: "#EAF1F8",
   backgroundSecondary: "#F8F9FA",
-  text: "#3A1E2D",
-  textMain: "#3A1E2D",
-  textSecondary: "#7F5A6A",
+  text: "#172A40",
+  textMain: "#172A40",
+  textSecondary: "#506780",
   textMuted: "#9CA3AF",
-  borderSoft: "#F6C8D6",
+  borderSoft: "#AFC3D8",
   borderLight: "#E5E7EB",
-  shadow: "#5E2A42",
+  shadow: "#173A5E",
 } as const;
 
 export const semantic = {
@@ -31,6 +31,6 @@ export const semantic = {
 export const Colors = palette;
 
 export const gradients = {
-  page: [palette.bgBase, "#FFEAF0"] as [string, string],
-  highlight: [palette.primarySoft, "#FFE1EA"] as [string, string],
+  page: [palette.bgBase, "#DCE8F3"] as [string, string],
+  highlight: [palette.primarySoft, "#C8D8E8"] as [string, string],
 } as const;

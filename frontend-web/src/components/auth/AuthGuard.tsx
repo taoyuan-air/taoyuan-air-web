@@ -23,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         justifyContent: 'center',
         background: 'var(--app-bg-gradient)',
       }}>
-        <span style={{ fontSize: 14, color: '#b0a0b8', fontWeight: 600 }}>載入中…</span>
+        <span style={{ fontSize: 14, color: '#6F91B2', fontWeight: 600 }}>載入中…</span>
       </div>
     );
   }
@@ -74,12 +74,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <div
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.94)',
-            border: '1px solid rgba(212, 86, 122, 0.22)',
+            border: '1px solid rgba(49, 94, 143, 0.22)',
             borderRadius: 24,
             padding: '44px 48px',
             textAlign: 'center',
             boxShadow:
-              '0 12px 48px rgba(180, 140, 160, 0.20), 0 4px 16px rgba(212, 86, 122, 0.08)',
+              '0 12px 48px rgba(23, 58, 94, 0.20), 0 4px 16px rgba(49, 94, 143, 0.08)',
             maxWidth: 400,
             width: '85%',
             display: 'flex',
@@ -94,14 +94,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               width: 52,
               height: 52,
               borderRadius: 16,
-              backgroundColor: 'rgba(212, 86, 122, 0.10)',
-              border: '1px solid rgba(212, 86, 122, 0.22)',
+              backgroundColor: 'rgba(49, 94, 143, 0.10)',
+              border: '1px solid rgba(49, 94, 143, 0.22)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Lock size={22} color="#D4567A" strokeWidth={2} />
+            <Lock size={22} color="#315E8F" strokeWidth={2} />
           </div>
 
           {/* Title */}
@@ -109,7 +109,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             style={{
               fontSize: 17,
               fontWeight: 800,
-              color: '#1a1220',
+              color: '#172A40',
               lineHeight: 1.6,
               margin: 0,
             }}
@@ -122,7 +122,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: '#7a6880',
+              color: '#506780',
               lineHeight: 1.6,
               margin: 0,
             }}

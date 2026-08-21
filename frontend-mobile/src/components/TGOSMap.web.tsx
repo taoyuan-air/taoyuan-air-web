@@ -68,7 +68,7 @@ export const TGOSMap: React.FC<TGOSMapProps> = ({ gridCells, onGridPress }) => {
       const fill = new TGOS.Fill(map, polygon, {
         fillColor: getGridColor(grid.values.value),
         fillopacity: 0.5,
-        strokeColor: "#E76595",
+        strokeColor: "#315E8F",
         strokeWeight: 1,
         strokeOpacity: 0.4,
       });

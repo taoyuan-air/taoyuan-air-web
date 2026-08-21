@@ -14,18 +14,18 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
-  primary:       '#D4567A',
-  primaryAlpha:  'rgba(212,86,122,0.12)',
-  primaryBorder: 'rgba(212,86,122,0.30)',
+  primary:       '#315E8F',
+  primaryAlpha:  'rgba(49,94,143,0.12)',
+  primaryBorder: 'rgba(49,94,143,0.30)',
   coral:         '#C4614A',
   coralAlpha:    'rgba(196,97,74,0.10)',
   coralBorder:   'rgba(196,97,74,0.25)',
   glass:         'rgba(255,255,255,0.52)',
   glassBorder:   'rgba(255,255,255,0.72)',
-  glassShadow:   '0 4px 16px rgba(180,140,160,0.10)',
-  text:          '#1a1220',
-  muted:         '#7a6880', 
-  hint:          '#b0a0b8',
+  glassShadow:   '0 4px 16px rgba(23,58,94,0.10)',
+  text:          '#172A40',
+  muted:         '#506780', 
+  hint:          '#6F91B2',
 };
 
 const card: React.CSSProperties = {
@@ -57,7 +57,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       style={{
         width: 44, height: 26, borderRadius: 13, cursor: 'pointer',
         position: 'relative', flexShrink: 0, outline: 'none',
-        backgroundColor: value ? C.primary : 'rgba(180,140,160,0.25)',
+        backgroundColor: value ? C.primary : 'rgba(23,58,94,0.25)',
         transition: 'background-color 0.2s',
         boxShadow: value ? `0 0 0 3px ${C.primaryAlpha}` : 'none',
       }}
@@ -401,8 +401,8 @@ export default function SettingsPage() {
               <span 
                 style={{ 
                   padding: isMobile ? '5px 10px' : '9px 20px', marginBottom: isMobile ? 5 : 0, borderRadius: 99, fontSize: 12, color: C.primary, fontWeight: 600,
-                  backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
-                  border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,  
+                  backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(23,58,94,0.08)',
+                  border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(23,58,94,0.18)'}`,  
                 }}
               >
                 有尚未儲存的變更
@@ -414,8 +414,8 @@ export default function SettingsPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 7,
                 padding: '9px 20px', borderRadius: 99, cursor: isDirty ? 'pointer' : 'default', marginLeft: isMobile ? 0 : 8,
-                backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
-                border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
+                backgroundColor: saved ? 'rgba(92,138,118,0.12)' : isDirty ? C.primaryAlpha : 'rgba(23,58,94,0.08)',
+                border: `1px solid ${saved ? 'rgba(92,138,118,0.30)' : isDirty ? C.primaryBorder : 'rgba(23,58,94,0.18)'}`,
                 fontSize: 13, fontWeight: 700,
                 color: saved ? '#5C8A76' : isDirty ? C.primary : C.hint,
                 transition: 'all 0.18s',
@@ -432,7 +432,7 @@ export default function SettingsPage() {
           <div style={{
             padding: '10px 14px', borderRadius: 10, marginBottom: 16,
             backgroundColor: 'rgba(233,76,120,0.10)', border: '1px solid rgba(233,76,120,0.30)',
-            fontSize: 13, color: '#E94C78',
+            fontSize: 13, color: '#173A5E',
           }}>{saveError}</div>
         )}
 
@@ -501,7 +501,7 @@ export default function SettingsPage() {
                     >
                       <div style={{
                         width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-                        backgroundColor: active ? C.primaryBorder : 'rgba(180,140,160,0.10)',
+                        backgroundColor: active ? C.primaryBorder : 'rgba(23,58,94,0.10)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'background-color 0.15s',
                       }}>
@@ -652,7 +652,7 @@ export default function SettingsPage() {
                             onClick={handleEditCancel}
                             style={{
                               flex: 1, padding: '11px 0', borderRadius: 12, cursor: 'pointer',
-                              backgroundColor: 'rgba(180,140,160,0.08)', border: `1.5px solid rgba(180,140,160,0.20)`,
+                              backgroundColor: 'rgba(23,58,94,0.08)', border: `1.5px solid rgba(23,58,94,0.20)`,
                               fontSize: 13, fontWeight: 700, color: C.muted,
                             }}
                           >
@@ -739,7 +739,7 @@ export default function SettingsPage() {
                       title="雙因素驗證" desc="使用驗證器 App 進行第二步驟確認"
                       value={twoFactor} onChange={setTwoFactor}
                     />
-                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -871,8 +871,8 @@ export default function SettingsPage() {
                     <div key={label} style={{
                       display: 'flex', alignItems: 'center', gap: 14,
                       padding: '16px 18px', borderRadius: 14,
-                      backgroundColor: done ? C.primaryAlpha : 'rgba(180,140,160,0.07)',
-                      border: `1px solid ${done ? C.primaryBorder : 'rgba(180,140,160,0.15)'}`,
+                      backgroundColor: done ? C.primaryAlpha : 'rgba(23,58,94,0.07)',
+                      border: `1px solid ${done ? C.primaryBorder : 'rgba(23,58,94,0.15)'}`,
                     }}>
                       <CheckCircle2
                         size={22} strokeWidth={2}
@@ -943,13 +943,13 @@ export default function SettingsPage() {
                       title="氣喘 / 呼吸道疾病" desc={<>調低 PM<sub style={{ fontSize: '0.75em' }}>2.5</sub> 警報門檻至 15 µg/m³</>}
                       value={conditions.asthma} onChange={(v) => setConditions(p => ({ ...p, asthma: v }))}
                     />
-                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
                     <ToggleRow
                       Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
                       title="年長者 (65 歲以上)" desc="啟用額外健康警示與建議"
                       value={conditions.elderly} onChange={(v) => setConditions(p => ({ ...p, elderly: v }))}
                     />
-                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
                     <ToggleRow
                       Icon={Star} iconColor={C.primary} iconBg={C.primaryAlpha}
                       title="兒童 (12 歲以下)" desc="針對兒童調整戶外活動建議"
@@ -973,7 +973,7 @@ export default function SettingsPage() {
                       title={<>PM<sub style={{ fontSize: '0.75em' }}>2.5</sub> 超標警報</>} desc="濃度超過設定門檻時即時通知"
                       value={notifs.pm25} onChange={(v) => setNotifs(p => ({ ...p, pm25: v }))}
                     />
-                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
                     <ToggleRow
                       Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
                       title="AQI 每日摘要" desc="每天早上 7:00 發送空氣品質報告"
@@ -990,7 +990,7 @@ export default function SettingsPage() {
                       title="健康建議推播" desc="AI 根據空氣狀況提供活動建議"
                       value={notifs.health} onChange={(v) => setNotifs(p => ({ ...p, health: v }))}
                     />
-                    <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+                    <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
                     <ToggleRow
                       Icon={Bell} iconColor={C.primary} iconBg={C.primaryAlpha}
                       title="系統更新通知" desc="版本更新與新功能上線通報"
@@ -1081,7 +1081,7 @@ export default function SettingsPage() {
                 disabled={deleteLoading}
                 style={{
                   width: '100%', padding: '13px 0', borderRadius: 12, cursor: 'pointer',
-                  backgroundColor: 'rgba(180,140,160,0.08)', border: `1.5px solid rgba(180,140,160,0.20)`,
+                  backgroundColor: 'rgba(23,58,94,0.08)', border: `1.5px solid rgba(23,58,94,0.20)`,
                   fontSize: 14, fontWeight: 700, color: C.muted,
                   transition: 'all 0.15s',
                 }}

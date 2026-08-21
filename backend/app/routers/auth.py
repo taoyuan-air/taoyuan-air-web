@@ -68,6 +68,43 @@ async def login(body: UserLogin, response: Response, db: AsyncSession = Depends(
     return {"access_token": access_token}
 
 
+@router.post("/dev-login", response_model=TokenResponse)
+async def dev_login(response: Response, db: AsyncSession = Depends(get_db)):
+    demo_email = "demo@taoyuan-air.local"
+    result = await db.execute(select(User).where(User.email == demo_email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        user = User(
+            username="Demo User",
+            email=demo_email,
+            hashed_password=hash_password("demo-login-placeholder"),
+            default_district="中壢區",
+            sensitivity="normal",
+            has_respiratory=False,
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Demo user is inactive")
+
+    access_token = create_access_token(str(user.id))
+    raw_refresh, refresh_hash, expires = create_refresh_token()
+
+    db.add(RefreshToken(
+        user_id=user.id,
+        token_hash=refresh_hash,
+        expires_at=expires,
+    ))
+
+    response.set_cookie("access_token", access_token, max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60, **COOKIE_OPTS)
+    response.set_cookie("refresh_token", raw_refresh, max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400, **COOKIE_OPTS)
+
+    return {"access_token": access_token}
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(response: Response, refresh_token: str = Cookie(default=None), db: AsyncSession = Depends(get_db)):
     if not refresh_token:

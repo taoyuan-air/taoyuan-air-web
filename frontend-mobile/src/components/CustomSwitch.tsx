@@ -14,7 +14,7 @@ interface CustomSwitchProps {
 export const CustomSwitch: React.FC<CustomSwitchProps> = ({
   value,
   onValueChange,
-  trackColor = { false: '#E0E0E0', true: '#E76595' },
+  trackColor = { false: '#E0E0E0', true: '#315E8F' },
   thumbColor = '#FFFFFF'
 }) => {
   const animatedValue = React.useRef(new Animated.Value(value ? 1 : 0)).current;

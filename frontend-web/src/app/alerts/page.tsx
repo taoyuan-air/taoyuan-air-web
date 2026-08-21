@@ -12,21 +12,21 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
-  primary:      '#D4567A',
-  primaryAlpha: 'rgba(212,86,122,0.12)',
-  primaryBorder:'rgba(212,86,122,0.30)',
+  primary:      '#315E8F',
+  primaryAlpha: 'rgba(49,94,143,0.12)',
+  primaryBorder:'rgba(49,94,143,0.30)',
   blue:         '#3B82F6',
   blueAlpha:    'rgba(59,130,246,0.12)',
   blueBorder:   'rgba(59,130,246,0.35)',
-  orange:       '#F97316',
-  orangeAlpha:  'rgba(249,115,22,0.12)',
-  orangeBorder: 'rgba(249,115,22,0.25)',
+  accent:       '#3F8EAD',
+  accentAlpha:  'rgba(63,142,173,0.13)',
+  accentBorder: 'rgba(63,142,173,0.28)',
   glass:        'rgba(255,255,255,0.52)',
   glassBorder:  'rgba(255,255,255,0.72)',
-  glassShadow:  '0 4px 16px rgba(180,140,160,0.10)',
-  text:         '#1a1220',
-  muted:        '#7a6880',
-  hint:         '#b0a0b8',
+  glassShadow:  '0 4px 16px rgba(23,58,94,0.10)',
+  text:         '#172A40',
+  muted:        '#506780',
+  hint:         '#6F91B2',
 };
 
 const card: React.CSSProperties = {
@@ -46,7 +46,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       style={{
         width: 44, height: 26, borderRadius: 13, cursor: 'pointer',
         position: 'relative', flexShrink: 0, outline: 'none',
-        backgroundColor: value ? C.primary : 'rgba(180,140,160,0.25)',
+        backgroundColor: value ? C.primary : 'rgba(23,58,94,0.25)',
         transition: 'background-color 0.2s',
         boxShadow: value ? `0 0 0 3px ${C.primaryAlpha}` : 'none',
       }}
@@ -74,7 +74,7 @@ function Slider({ min, max, value, onChange, color = C.primary }: SliderProps) {
       {/* track bg */}
       <div style={{
         position: 'absolute', width: '100%', height: 5, borderRadius: 3,
-        backgroundColor: 'rgba(180,140,160,0.15)',
+        backgroundColor: 'rgba(23,58,94,0.15)',
       }} />
       {/* filled track */}
       <div style={{
@@ -86,7 +86,7 @@ function Slider({ min, max, value, onChange, color = C.primary }: SliderProps) {
       <div style={{
         position: 'absolute', width: 17, height: 17, borderRadius: '50%',
         backgroundColor: '#fff', border: `2.5px solid ${color}`,
-        boxShadow: `0 2px 8px rgba(180,140,160,0.25)`,
+        boxShadow: `0 2px 8px rgba(23,58,94,0.25)`,
         left: `calc(${pct}% - 8.5px)`, pointerEvents: 'none', zIndex: 1,
         transition: 'left 0.05s',
       }} />
@@ -122,13 +122,13 @@ function DonutChart() {
   return (
     <div style={{
       width: 88, height: 88, borderRadius: '50%',
-      background: `conic-gradient(${C.primary} 0% 70%, rgba(127,90,106,0.5) 70% 100%)`,
+      background: `conic-gradient(${C.primary} 0% 70%, rgba(80,103,128,0.42) 70% 100%)`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: `0 4px 16px rgba(212,86,122,0.15)`,
+      boxShadow: `0 4px 16px rgba(49,94,143,0.15)`,
     }}>
       <div style={{
         width: 60, height: 60, borderRadius: '50%',
-        backgroundColor: 'rgba(255,248,250,0.92)',
+        backgroundColor: 'rgba(248,251,255,0.92)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>70%</span>
@@ -188,8 +188,8 @@ export default function AlertsPage() {
       desc: '優化中壢區晚間號誌時序，預防晚間尖峰時段 NO₂ 累積。',
     },
     {
-      Icon: Megaphone, bg: C.orangeAlpha, color: C.orange,
-      title: '公眾健康通知', badge: '建議', badgeBg: C.orangeAlpha, badgeColor: C.orange,
+      Icon: Megaphone, bg: C.accentAlpha, color: C.accent,
+      title: '公眾健康通知', badge: '建議', badgeBg: C.accentAlpha, badgeColor: C.accent,
       desc: `門檻 AQI > ${govThresholds.alert} 時，針對中壢區發布「低暴露」窗口警示給年長居民。`,
     },
   ];
@@ -219,7 +219,7 @@ export default function AlertsPage() {
               }}>
                 <div style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: active ? C.primary : 'rgba(180,140,160,0.35)',
+                  backgroundColor: active ? C.primary : 'rgba(23,58,94,0.35)',
                   transition: 'background-color 0.18s',
                 }} />
                 {tab === 'HEALTH' ? '個人健康' : '治理支援'}
@@ -303,7 +303,7 @@ export default function AlertsPage() {
                     <DonutChart />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
-                    {[{ color: C.primary, label: '工廠' }, { color: '#7F5A6A', label: '交通' }].map(({ color, label }) => (
+                    {[{ color: C.primary, label: '工廠' }, { color: '#506780', label: '交通' }].map(({ color, label }) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: color }} />
                         <span style={{ fontSize: 11, fontWeight: 600, color: C.muted }}>{label}</span>
@@ -319,17 +319,17 @@ export default function AlertsPage() {
                 <div style={{ ...card, padding: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{
                     width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-                    backgroundColor: C.orangeAlpha, border: `1px solid ${C.orangeBorder}`,
+                    backgroundColor: C.accentAlpha, border: `1px solid ${C.accentBorder}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <ShieldAlert size={18} color={C.orange} strokeWidth={2} />
+                    <ShieldAlert size={18} color={C.accent} strokeWidth={2} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>PM<sub className="text-xs">2.5</sub> 注意</span>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, color: C.orange, letterSpacing: 0.5,
-                        backgroundColor: C.orangeAlpha, padding: '3px 10px', borderRadius: 99,
+                        fontSize: 10, fontWeight: 700, color: C.accent, letterSpacing: 0.5,
+                        backgroundColor: C.accentAlpha, padding: '3px 10px', borderRadius: 99,
                       }}>啟用</span>
                     </div>
                     <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>中壢區濃度超過 35 µg/m³ 時通知</p>
@@ -433,15 +433,15 @@ export default function AlertsPage() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        <Megaphone size={16} color={C.orange} strokeWidth={2} />
+                        <Megaphone size={16} color={C.accent} strokeWidth={2} />
                         <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>公眾警報門檻</span>
                       </div>
                       <span style={{
-                        fontSize: 12, fontWeight: 700, color: C.orange,
-                        backgroundColor: C.orangeAlpha, padding: '3px 10px', borderRadius: 99,
+                        fontSize: 12, fontWeight: 700, color: C.accent,
+                        backgroundColor: C.accentAlpha, padding: '3px 10px', borderRadius: 99,
                       }}>AQI &gt; {govThresholds.alert}</span>
                     </div>
-                    <Slider min={0} max={200} value={govThresholds.alert} color={C.orange}
+                    <Slider min={0} max={200} value={govThresholds.alert} color={C.accent}
                       onChange={(v) => setGovThresholds(p => ({ ...p, alert: v }))} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
                       <span style={{ fontSize: 10, fontWeight: 600, color: C.hint }}>AQI 0</span>
@@ -476,7 +476,7 @@ export default function AlertsPage() {
                     <DonutChart />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
-                    {[{ color: C.primary, label: '工業' }, { color: '#7F5A6A', label: '交通' }].map(({ color, label }) => (
+                    {[{ color: C.primary, label: '工業' }, { color: '#506780', label: '交通' }].map(({ color, label }) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: color }} />
                         <span style={{ fontSize: 11, fontWeight: 600, color: C.muted }}>{label}</span>

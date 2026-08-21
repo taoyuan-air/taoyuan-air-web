@@ -9,9 +9,9 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
-  primary:        '#D4567A',
-  primaryAlpha:   'rgba(212,86,122,0.12)',
-  primaryBorder:  'rgba(212,86,122,0.30)',
+  primary:        '#315E8F',
+  primaryAlpha:   'rgba(49,94,143,0.12)',
+  primaryBorder:  'rgba(49,94,143,0.30)',
   coral:          '#C4614A',
   coralAlpha:     'rgba(196,97,74,0.12)',
   coralBorder:    'rgba(196,97,74,0.28)',
@@ -23,10 +23,10 @@ const C = {
   lavenderBorder: 'rgba(120,120,168,0.28)',
   glass:          'rgba(255,255,255,0.52)',
   glassBorder:    'rgba(255,255,255,0.72)',
-  glassShadow:    '0 4px 16px rgba(180,140,160,0.10)',
-  text:           '#1a1220',
-  muted:          '#7a6880',
-  hint:           '#b0a0b8',
+  glassShadow:    '0 4px 16px rgba(23,58,94,0.10)',
+  text:           '#172A40',
+  muted:          '#506780',
+  hint:           '#6F91B2',
 };
 
 const card: React.CSSProperties = {
@@ -189,8 +189,8 @@ export default function NotificationsPage() {
               display: 'flex', alignItems: 'center', gap: isMobile ? 0 : 7,
               padding: isMobile ? '9px 12px' : '9px 18px',
               borderRadius: 99, cursor: unreadCount > 0 ? 'pointer' : 'default',
-              backgroundColor: unreadCount > 0 ? C.primaryAlpha : 'rgba(180,140,160,0.08)',
-              border: `1px solid ${unreadCount > 0 ? C.primaryBorder : 'rgba(180,140,160,0.18)'}`,
+              backgroundColor: unreadCount > 0 ? C.primaryAlpha : 'rgba(23,58,94,0.08)',
+              border: `1px solid ${unreadCount > 0 ? C.primaryBorder : 'rgba(23,58,94,0.18)'}`,
               fontSize: 13, fontWeight: 700,
               color: unreadCount > 0 ? C.primary : C.hint,
               transition: 'all 0.18s',
@@ -234,7 +234,7 @@ export default function NotificationsPage() {
                   <span style={{
                     fontSize: 11, fontWeight: 600,
                     color: active ? meta.color : C.hint,
-                    backgroundColor: active ? `${meta.color}22` : 'rgba(180,140,160,0.10)',
+                    backgroundColor: active ? `${meta.color}22` : 'rgba(23,58,94,0.10)',
                     padding: '1px 6px', borderRadius: 99,
                   }}>{countBy(cat)}</span>
                 </button>
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                         <span style={{
                           fontSize: 11, fontWeight: 600,
                           color: active ? meta.color : C.hint,
-                          backgroundColor: active ? `${meta.color}22` : 'rgba(180,140,160,0.10)',
+                          backgroundColor: active ? `${meta.color}22` : 'rgba(23,58,94,0.10)',
                           padding: '2px 8px', borderRadius: 99,
                         }}>{count}</span>
                       </div>

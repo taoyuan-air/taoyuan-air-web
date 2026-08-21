@@ -107,7 +107,7 @@ export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChart
       className="uav-param-card"
       style={{
         // Subtle coloured glow shadow matching the parameter's colour
-        boxShadow: `0 2px 12px ${cfg.color}22, 0 4px 20px rgba(180,140,160,0.10)`,
+        boxShadow: `0 2px 12px ${cfg.color}22, 0 4px 20px rgba(34,60,91,0.10)`,
         borderColor: `${cfg.color}18`,
       }}
     >
@@ -131,7 +131,7 @@ export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChart
             layout="vertical"
             margin={{ top: 8, right: 16, left: 0, bottom: 24 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,140,160,0.15)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(34,60,91,0.15)" />
 
             {/* Y axis = altitude, reversed so ground is at bottom */}
             <YAxis
@@ -140,7 +140,7 @@ export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChart
               domain={yDomain}
               reversed={true}
               tickFormatter={(v: number) => `${v}m`}
-              tick={{ fontSize: 10, fill: '#7a6880' }}
+              tick={{ fontSize: 10, fill: '#506780' }}
               width={52}
             />
 
@@ -156,7 +156,7 @@ export function UAVParamChart({ paramId, rows, yDomain, xDomain }: UAVParamChart
                 }
                 return v.toFixed(1);
               }}
-              tick={{ fontSize: 10, fill: '#7a6880' }}
+              tick={{ fontSize: 10, fill: '#506780' }}
             />
 
             <Tooltip

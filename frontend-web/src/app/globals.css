@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --app-bg-gradient: linear-gradient(180deg, #fff1f6 0%, #fce3ee 38%, #f4dff1 68%, #eee4fb 100%);
+  --app-bg-gradient: linear-gradient(180deg, #EEF5FB 0%, #E2ECF6 38%, #D5E2EF 68%, #C8D8E8 100%);
 }
 
 *, *::before, *::after {
@@ -13,7 +13,7 @@ html, body {
   font-family: 'Noto Sans TC', 'Noto Sans', system-ui, sans-serif;
   background: var(--app-bg-gradient);
   background-attachment: fixed;
-  color: #3A1E2D;
+  color: #172A40;
   overscroll-behavior-x: none;
 }
 
@@ -36,34 +36,34 @@ a {
   text-align: center;
   cursor: pointer;
   border: 1.5px solid transparent;
-  background-color: rgba(248, 208, 218, 0.22);
+  background-color: rgba(200, 216, 232, 0.22);
   transition: background-color 0.25s ease, border-color 0.25s ease,
               transform 0.22s ease, box-shadow 0.25s ease;
 }
 
 .pollutant-btn:hover:not(.selected) {
-  background-color: rgba(231, 101, 149, 0.12);
-  border-color: rgba(231, 101, 149, 0.38);
+  background-color: rgba(49, 94, 143, 0.12);
+  border-color: rgba(49, 94, 143, 0.38);
   transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgba(231, 101, 149, 0.18);
+  box-shadow: 0 5px 14px rgba(49, 94, 143, 0.18);
 }
 
 .pollutant-btn.selected {
-  background-color: rgba(231, 101, 149, 0.09);
-  border-color: #E76595;
+  background-color: rgba(49, 94, 143, 0.09);
+  border-color: #315E8F;
 }
 
 .pollutant-btn-name {
   font-size: 12px;
   font-weight: 800;
-  color: #3A1E2D;
+  color: #172A40;
   line-height: 1.2;
   transition: color 0.25s ease;
 }
 
 .pollutant-btn-label {
   font-size: 9px;
-  color: #7F5A6A;
+  color: #506780;
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -73,7 +73,7 @@ a {
 
 .pollutant-btn.selected .pollutant-btn-name,
 .pollutant-btn.selected .pollutant-btn-label {
-  color: #E76595;
+  color: #315E8F;
 }
 
 /* ── TopNav ── */
@@ -82,11 +82,11 @@ a {
   top: 0; left: 0; right: 0;
   z-index: 997;
   isolation: isolate;
-  border-bottom: 1px solid rgba(231, 101, 149, 0.10);
+  border-bottom: 1px solid rgba(49, 94, 143, 0.10);
   /* 頂邊光澤線：模擬磨砂玻璃迎光面 */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.70),
-    0 1px 0 rgba(231, 101, 149, 0.06);
+    0 1px 0 rgba(49, 94, 143, 0.06);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -95,7 +95,7 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255, 246, 249, 0.88);
+  background: rgba(234, 241, 248, 0.88);
   backdrop-filter: blur(28px) saturate(1.6) brightness(1.02);
   -webkit-backdrop-filter: blur(28px) saturate(1.6) brightness(1.02);
   opacity: 1;
@@ -117,10 +117,10 @@ a {
 }
 
 .top-nav.scrolled {
-  border-color: rgba(231, 101, 149, 0.20);
+  border-color: rgba(49, 94, 143, 0.20);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.70),
-    0 6px 32px rgba(231, 101, 149, 0.11);
+    0 6px 32px rgba(49, 94, 143, 0.11);
 }
 
 .top-nav-inner {
@@ -146,20 +146,20 @@ a {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 2px solid rgba(231, 101, 149, 0.28);
+  border: 2px solid rgba(49, 94, 143, 0.28);
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(231, 101, 149, 0.06);
-  box-shadow: 0 0 0 4px rgba(231, 101, 149, 0.07);
+  background: rgba(49, 94, 143, 0.06);
+  box-shadow: 0 0 0 4px rgba(49, 94, 143, 0.07);
 }
 
 .top-nav-logo-text {
   font-size: 20px;
   font-weight: 600;
-  color: #E76595;
+  color: #315E8F;
   letter-spacing: 0.5px;
 }
 
@@ -179,7 +179,7 @@ a {
   padding: 0 16px;
   font-size: 16px;
   font-weight: 500;
-  color: #FBA7BC;
+  color: #6F91B2;
   text-decoration: none;
   transition: color 0.25s ease;
   white-space: nowrap;
@@ -198,7 +198,7 @@ a {
   left: 0;
   right: 0;
   height: 2px;
-  background: #E76595;
+  background: #315E8F;
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.3s ease;
@@ -206,7 +206,7 @@ a {
 
 .top-nav-link:hover,
 .top-nav-link.active {
-  color: #E76595;
+  color: #315E8F;
 }
 
 .top-nav-link:hover .top-nav-link-inner::after,
@@ -227,19 +227,19 @@ a {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(231, 101, 149, 0.2);
+  border: 1px solid rgba(49, 94, 143, 0.2);
   background: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  color: #C9849C;
+  color: #5A7390;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
 
 .top-nav-action-btn:hover {
-  background: rgba(231, 101, 149, 0.08);
-  border-color: rgba(231, 101, 149, 0.4);
+  background: rgba(49, 94, 143, 0.08);
+  border-color: rgba(49, 94, 143, 0.4);
   transform: translateY(-1px);
 }
 
@@ -248,7 +248,7 @@ a {
   display: none;
   align-items: center;
   justify-content: center;
-  color: #C9849C;
+  color: #5A7390;
   background: none;
   border: none;
   cursor: pointer;
@@ -261,7 +261,7 @@ a {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(58, 30, 45, 0.40);
+  background: rgba(23, 42, 64, 0.40);
   z-index: 1400;
 }
 
@@ -275,7 +275,7 @@ a {
   top: 0; right: 0; bottom: 0;
   width: min(416px, calc(100vw - 56px));
   background: #ffffff;
-  box-shadow: -4px 0 24px rgba(58, 30, 45, 0.12);
+  box-shadow: -4px 0 24px rgba(23, 42, 64, 0.12);
   z-index: 1401;
   padding: 124px 28px 40px;
   display: flex;
@@ -294,7 +294,7 @@ a {
   height: 40px;
   border: none;
   background: transparent;
-  color: #B9798D;
+  color: #5A7390;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,7 +303,7 @@ a {
 }
 
 .mobile-nav-close:hover {
-  color: #E76595;
+  color: #315E8F;
 }
 
 .mobile-nav-panel.open {
@@ -315,19 +315,19 @@ a {
   padding: 18px 4px 19px;
   font-size: 22px;
   font-weight: 600;
-  color: #FBA7BC;
+  color: #6F91B2;
   text-decoration: none;
-  border-bottom: 1px solid rgba(231, 101, 149, 0.14);
+  border-bottom: 1px solid rgba(49, 94, 143, 0.14);
   transition: color 0.2s ease;
   line-height: 1.35;
 }
 
 .mobile-nav-link:hover {
-  color: #E76595;
+  color: #315E8F;
 }
 
 .mobile-nav-link.active {
-  color: #E76595;
+  color: #315E8F;
   font-weight: 800;
 }
 
@@ -336,7 +336,7 @@ a {
   gap: 14px;
   margin-top: 32px;
   padding-top: 30px;
-  border-top: 1px solid rgba(231, 101, 149, 0.14);
+  border-top: 1px solid rgba(49, 94, 143, 0.14);
 }
 
 /* ── 中等螢幕：960px 以下收合成漢堡 ── */

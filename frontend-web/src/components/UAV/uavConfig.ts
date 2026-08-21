@@ -28,15 +28,15 @@ export interface ParameterConfig {
 
 export const PARAMETER_CONFIG: Record<ParameterId, ParameterConfig> = {
   // 氣象
-  t:       { label: '氣溫',      unit: '°C',    color: '#e74c3c', category: 'meteorology', domainType: 'data-range', domainPadding: 1.5 },
+  t:       { label: '氣溫',      unit: '°C',    color: '#356F9A', category: 'meteorology', domainType: 'data-range', domainPadding: 1.5 },
   rh:      { label: '相對濕度',  unit: '%',     color: '#3498db', category: 'meteorology', domainType: 'data-range', domainPadding: 2   },
   p:       { label: '氣壓',      unit: 'hPa',   color: '#9b59b6', category: 'meteorology', domainType: 'data-range', domainPadding: 1   },
   ws:      { label: '風速',      unit: 'm/s',   color: '#2ecc71', category: 'meteorology', domainType: 'zero-based', domainPadding: 1   },
   wd:      { label: '風向',      unit: '°',     color: '#1abc9c', category: 'meteorology', domainType: 'fixed',      domainFixed: [0, 360], domainPadding: 0 },
-  theta:   { label: '位溫',      unit: 'K',     color: '#e67e22', category: 'meteorology', domainType: 'data-range', domainPadding: 1.5 },
+  theta:   { label: '位溫',      unit: 'K',     color: '#448BAB', category: 'meteorology', domainType: 'data-range', domainPadding: 1.5 },
   // 氣膠
   pm1:     { label: 'PM1',       unit: 'μg/m³', color: '#f39c12', category: 'aerosol',     domainType: 'zero-based', domainPadding: 2   },
-  'PM2.5': { label: 'PM2.5',     unit: 'μg/m³', color: '#e67e22', category: 'aerosol',     domainType: 'zero-based', domainPadding: 2   },
+  'PM2.5': { label: 'PM2.5',     unit: 'μg/m³', color: '#448BAB', category: 'aerosol',     domainType: 'zero-based', domainPadding: 2   },
   pm10:    { label: 'PM10',      unit: 'μg/m³', color: '#d35400', category: 'aerosol',     domainType: 'zero-based', domainPadding: 2   },
   // 氣體
   o3:      { label: '臭氧',      unit: 'ppb',   color: '#27ae60', category: 'gas',         domainType: 'zero-based', domainPadding: 2   },

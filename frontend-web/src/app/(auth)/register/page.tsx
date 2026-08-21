@@ -7,9 +7,9 @@ import { Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/lib/api-client';
 
 const C = {
-  primary: '#D4567A', primaryAlpha: 'rgba(212,86,122,0.12)',
-  primaryBorder: 'rgba(212,86,122,0.30)', text: '#1a1220',
-  muted: '#7a6880', hint: '#b0a0b8',
+  primary: '#315E8F', primaryAlpha: 'rgba(49,94,143,0.12)',
+  primaryBorder: 'rgba(49,94,143,0.30)', text: '#172A40',
+  muted: '#506780', hint: '#6F91B2',
   glass: 'rgba(255,255,255,0.80)', glassBorder: 'rgba(255,255,255,0.90)',
 };
 
@@ -90,7 +90,7 @@ export default function RegisterPage() {
         width: '100%', maxWidth: 520,
         backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`,
         borderRadius: 24, padding: '40px 36px',
-        boxShadow: '0 8px 32px rgba(180,140,160,0.14)',
+        boxShadow: '0 8px 32px rgba(23,58,94,0.14)',
       }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>建立帳號</h1>
         <p style={{ fontSize: 13, color: C.hint, marginBottom: 28 }}>填寫以下資訊以建立您的 Taoyuan Air 帳號</p>
@@ -99,7 +99,7 @@ export default function RegisterPage() {
           <div style={{
             padding: '12px 16px', borderRadius: 12, marginBottom: 20,
             backgroundColor: 'rgba(233,76,120,0.10)', border: '1px solid rgba(233,76,120,0.30)',
-            fontSize: 13, color: '#E94C78',
+            fontSize: 13, color: '#173A5E',
           }}>{error}</div>
         )}
 
@@ -162,7 +162,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div style={{ height: 1, backgroundColor: 'rgba(180,140,160,0.12)' }} />
+          <div style={{ height: 1, backgroundColor: 'rgba(23,58,94,0.12)' }} />
           <p style={{ fontSize: 12, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>健康資訊（選填）</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

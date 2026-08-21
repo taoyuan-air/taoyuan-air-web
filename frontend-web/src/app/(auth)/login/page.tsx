@@ -7,18 +7,18 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 const C = {
-  primary: '#D4567A',
-  primaryAlpha: 'rgba(212,86,122,0.12)',
-  primaryBorder: 'rgba(212,86,122,0.30)',
-  text: '#1a1220',
-  muted: '#7a6880',
-  hint: '#b0a0b8',
+  primary: '#315E8F',
+  primaryAlpha: 'rgba(49,94,143,0.12)',
+  primaryBorder: 'rgba(49,94,143,0.30)',
+  text: '#172A40',
+  muted: '#506780',
+  hint: '#6F91B2',
   glass: 'rgba(255,255,255,0.80)',
   glassBorder: 'rgba(255,255,255,0.90)',
 };
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, devLogin } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,6 +53,18 @@ export default function LoginPage() {
     }
   };
 
+  const handleDevLogin = async () => {
+    setError('');
+    setLoading(true);
+    const result = await devLogin();
+    setLoading(false);
+    if (result.ok) {
+      router.push('/dashboard');
+    } else {
+      setError(formatError(result.error) || 'Dev login failed');
+    }
+  };
+
   return (
     <div style={{
       minHeight: '90vh', background: 'var(--app-bg-gradient)',
@@ -63,7 +75,7 @@ export default function LoginPage() {
         width: '100%', maxWidth: 440,
         backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`,
         borderRadius: 24, padding: '40px 36px',
-        boxShadow: '0 8px 32px rgba(180,140,160,0.14)',
+        boxShadow: '0 8px 32px rgba(23,58,94,0.14)',
       }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>登入帳號</h1>
         <p style={{ fontSize: 13, color: C.hint, marginBottom: 28 }}>歡迎回來，請輸入您的帳號資訊</p>
@@ -72,7 +84,7 @@ export default function LoginPage() {
           <div style={{
             padding: '12px 16px', borderRadius: 12, marginBottom: 20,
             backgroundColor: 'rgba(233,76,120,0.10)', border: '1px solid rgba(233,76,120,0.30)',
-            fontSize: 13, color: '#E94C78',
+            fontSize: 13, color: '#173A5E',
           }}>{error}</div>
         )}
 
@@ -130,6 +142,26 @@ export default function LoginPage() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={handleDevLogin}
+          disabled={loading}
+          aria-label="快速登入"
+          title="快速登入"
+          style={{
+            width: 18,
+            height: 18,
+            marginTop: 10,
+            borderRadius: 999,
+            border: `1px solid ${C.primaryBorder}`,
+            background: 'rgba(49,94,143,0.08)',
+            color: C.primary,
+            opacity: 0.28,
+            cursor: loading ? 'wait' : 'pointer',
+            float: 'right',
+          }}
+        />
 
         <p style={{ fontSize: 13, color: C.hint, textAlign: 'center', marginTop: 20 }}>
           還沒有帳號？{' '}

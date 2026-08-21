@@ -13,15 +13,15 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 /*  Design tokens                                               */
 /* ──────────────────────────────────────────────────────────── */
 const C = {
-  rose:        '#D4567A',
-  roseAlpha:   'rgba(212,86,122,0.10)',
-  roseBorder:  'rgba(212,86,122,0.28)',
+  blue:        '#315E8F',
+  blueAlpha:   'rgba(49,94,143,0.10)',
+  blueBorder:  'rgba(49,94,143,0.28)',
   glass:       'rgba(255,255,255,0.90)',
   glassBorder: 'rgba(255,255,255,0.72)',
-  glassShadow: '0 4px 20px rgba(180,140,160,0.12)',
-  text:        '#1a1220',
-  muted:       '#7a6880',
-  hint:        '#b0a0b8',
+  glassShadow: '0 4px 20px rgba(23,58,94,0.12)',
+  text:        '#172A40',
+  muted:       '#506780',
+  hint:        '#6F91B2',
 };
 
 type ActiveView = 'uav' | 'wind-lidar';
@@ -58,7 +58,7 @@ function ViewSwitcher({
         margin: '40px 0px 8px 36px',
         background: 'rgba(255,255,255,0.70)',
         borderRadius: 999,
-        border: `1px solid ${C.roseBorder}`,
+        border: `1px solid ${C.blueBorder}`,
         boxShadow: C.glassShadow,
         width: 'fit-content',
       }}
@@ -78,8 +78,8 @@ function ViewSwitcher({
               fontSize: 13,
               fontWeight: isActive ? 800 : 600,
               color: isActive ? '#fff' : C.muted,
-              background: isActive ? C.rose : 'transparent',
-              boxShadow: isActive ? '0 2px 10px rgba(212,86,122,0.30)' : 'none',
+              background: isActive ? C.blue : 'transparent',
+              boxShadow: isActive ? '0 2px 10px rgba(49,94,143,0.30)' : 'none',
               transition: 'all 0.18s',
             }}
             aria-pressed={isActive}
@@ -116,9 +116,9 @@ function FlightDropdown({
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 20px', borderRadius: 999, cursor: 'pointer',
           background: C.glass,
-          border: `1px solid ${C.roseBorder}`,
+          border: `1px solid ${C.blueBorder}`,
           boxShadow: C.glassShadow,
-          fontSize: 14, fontWeight: 700, color: C.rose,
+          fontSize: 14, fontWeight: 700, color: C.blue,
           transition: 'all 0.15s',
         }}
       >
@@ -139,8 +139,8 @@ function FlightDropdown({
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 300,
             background: '#fff',
-            border: `1px solid ${C.roseBorder}`,
-            borderRadius: 14, boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            border: `1px solid ${C.blueBorder}`,
+            borderRadius: 14, boxShadow: '0 8px 32px rgba(23,58,94,0.18)',
             minWidth: 280, overflow: 'hidden',
           }}
         >
@@ -154,16 +154,16 @@ function FlightDropdown({
                 padding: '12px 18px',
                 border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: selected === f.flight_id ? 700 : 500,
-                color: selected === f.flight_id ? C.rose : C.text,
-                background: selected === f.flight_id ? C.roseAlpha : 'transparent',
-                borderBottom: i < flights.length - 1 ? '1px solid rgba(180,140,160,0.08)' : 'none',
+                color: selected === f.flight_id ? C.blue : C.text,
+                background: selected === f.flight_id ? C.blueAlpha : 'transparent',
+                borderBottom: i < flights.length - 1 ? '1px solid rgba(23,58,94,0.08)' : 'none',
                 transition: 'background-color 0.12s',
               }}
             >
               <div
                 style={{
                   width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: selected === f.flight_id ? C.rose : 'rgba(180,140,160,0.4)',
+                  background: selected === f.flight_id ? C.blue : 'rgba(23,58,94,0.4)',
                 }}
               />
               <span style={{ flex: 1 }}>
@@ -264,8 +264,8 @@ export default function EventsPage() {
     ? '無人機大氣量測 · 觀音站 · 2026-03-30 共 6 次飛行'
     : '風光達觀測 · TMA_328 測站';
   const pageIcon = activeView === 'uav'
-    ? <Plane size={20} color={C.rose} strokeWidth={2} />
-    : <Wind  size={20} color={C.rose} strokeWidth={2} />;
+    ? <Plane size={20} color={C.blue} strokeWidth={2} />
+    : <Wind  size={20} color={C.blue} strokeWidth={2} />;
 
   return (
     <AuthGuard>
@@ -281,13 +281,13 @@ export default function EventsPage() {
           <div
             style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-              background: C.roseAlpha, border: `1px solid ${C.roseBorder}`,
+              background: C.blueAlpha, border: `1px solid ${C.blueBorder}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             {pageIcon}
           </div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.rose }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.blue }}>
             {pageTitle}
           </h1>
         </div>
@@ -307,7 +307,7 @@ export default function EventsPage() {
           style={{
             margin: '20px 40px 0',
             background: C.glass,
-            border: `1px solid rgba(212,86,122,0.08)`,
+            border: `1px solid rgba(49,94,143,0.08)`,
             borderRadius: 16,
             boxShadow: C.glassShadow,
             padding: '18px 24px',
@@ -323,7 +323,7 @@ export default function EventsPage() {
               飛行任務
             </span>
             {loadError ? (
-              <span style={{ fontSize: 13, color: '#e74c3c' }}>⚠ {loadError}</span>
+              <span style={{ fontSize: 13, color: '#c0392b', fontWeight: 700 }}>⚠ {loadError}</span>
             ) : flights.length === 0 ? (
               <span style={{ fontSize: 13, color: C.hint }}>載入中…</span>
             ) : (
@@ -339,7 +339,7 @@ export default function EventsPage() {
           </div>
 
           {/* Divider */}
-          <div style={{ height: 1, background: 'rgba(180,140,160,0.10)' }} />
+          <div style={{ height: 1, background: 'rgba(23,58,94,0.10)' }} />
 
           {/* Parameter selector */}
           <UAVParameterSelector
@@ -396,7 +396,7 @@ export default function EventsPage() {
           display: flex;
           flex-direction: column;
           background: ${C.glass};
-          border: 1px solid rgba(212,86,122,0.08);
+          border: 1px solid rgba(49,94,143,0.08);
           border-radius: 16px;
           box-shadow: ${C.glassShadow};
           padding: 24px 28px;
@@ -410,14 +410,14 @@ export default function EventsPage() {
         .uav-flight-title-inner {
           display: flex; flex-direction: column; gap: 6px;
           background: ${C.glass};
-          border: 1px solid rgba(212,86,122,0.14);
+          border: 1px solid rgba(49,94,143,0.14);
           border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(212,86,122,0.10), ${C.glassShadow};
+          box-shadow: 0 2px 12px rgba(49,94,143,0.10), ${C.glassShadow};
           padding: 14px 20px;
         }
 
         .uav-flight-id {
-          font-size: 15px; font-weight: 800; color: ${C.rose}; letter-spacing: 0.3px;
+          font-size: 15px; font-weight: 800; color: ${C.blue}; letter-spacing: 0.3px;
         }
 
         .uav-flight-meta {
@@ -442,7 +442,7 @@ export default function EventsPage() {
         /* ── Individual parameter card ───────────────────────── */
         .uav-param-card {
           background: ${C.glass};
-          border: 1px solid rgba(212,86,122,0.08);
+          border: 1px solid rgba(49,94,143,0.08);
           border-radius: 16px; box-shadow: ${C.glassShadow};
           padding: 16px 18px; box-sizing: border-box;
           height: 420px; display: flex; flex-direction: column;
@@ -457,35 +457,97 @@ export default function EventsPage() {
         /* ── Placeholder cards ───────────────────────────────── */
         .uav-placeholder {
           min-height: 480px; display: flex; align-items: center; justify-content: center;
-          background: ${C.glass}; border: 1px solid rgba(212,86,122,0.08);
+          background: ${C.glass}; border: 1px solid rgba(49,94,143,0.08);
           border-radius: 16px; color: ${C.hint}; font-size: 14px; font-weight: 600;
         }
 
         /* ── Parameter selector ─────────────────────────────── */
         .uav-param-selector {
-          display: flex; flex-wrap: wrap; align-items: center;
-          gap: 10px 12px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 10px;
         }
-        .uav-param-label { font-size: 12px; font-weight: 800; color: ${C.muted}; white-space: nowrap; padding-right: 10px; }
-        .uav-param-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .uav-param-category { font-size: 10px; font-weight: 700; color: ${C.hint}; letter-spacing: 0.5px; padding: 2px 4px; white-space: nowrap; }
+        .uav-param-label {
+          font-size: 12px;
+          font-weight: 800;
+          color: ${C.muted};
+          white-space: nowrap;
+          margin-right: 4px;
+        }
+        .uav-param-group {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+          min-width: 0;
+        }
+        .uav-param-category {
+          font-size: 10px;
+          font-weight: 800;
+          color: ${C.hint};
+          letter-spacing: 0;
+          white-space: nowrap;
+          width: 28px;
+          text-align: center;
+        }
         .uav-param-btn {
-          display: flex; flex-direction: column; align-items: center;
-          padding: 5px 11px; border-radius: 10px; border: 1.5px solid;
-          cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit;
-          transition: all 0.15s; line-height: 1.4; gap: 1px;
+          width: 104px;
+          height: 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 4px 7px;
+          border-radius: 9px;
+          border: 1.5px solid rgba(49,94,143,0.34);
+          background: rgba(255,255,255,0.74);
+          color: ${C.blue};
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 800;
+          font-family: inherit;
+          transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+          line-height: 1.15;
+          gap: 2px;
+          box-sizing: border-box;
         }
-        .uav-param-btn:hover { filter: brightness(0.92); }
-        .uav-param-btn-text { white-space: nowrap; }
-        .uav-param-unit { font-size: 10px; opacity: 0.75; }
-        .uav-param-range { font-size: 10px; font-weight: 500; white-space: nowrap; line-height: 1.2; }
+        .uav-param-btn:hover {
+          background: rgba(49,94,143,0.10);
+          border-color: rgba(49,94,143,0.55);
+        }
+        .uav-param-btn.active {
+          background: ${C.blue};
+          border-color: ${C.blue};
+          color: #fff;
+          box-shadow: 0 5px 14px rgba(49,94,143,0.18);
+        }
+        .uav-param-btn-text {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 4px;
+          width: 100%;
+          white-space: nowrap;
+        }
+        .uav-param-range {
+          min-height: 10px;
+          font-size: 8.5px;
+          font-weight: 700;
+          white-space: nowrap;
+          line-height: 1.2;
+          opacity: 0.82;
+        }
+        .uav-param-unit-line {
+          opacity: 0.68;
+        }
 
         /* ── Custom Tooltip ──────────────────────────────────── */
         .uav-tooltip {
           background: rgba(255,255,255,0.97);
-          border: 1px solid rgba(212,86,122,0.18);
+          border: 1px solid rgba(49,94,143,0.18);
           border-radius: 10px; padding: 10px 14px;
-          box-shadow: 0 4px 20px rgba(180,140,160,0.18);
+          box-shadow: 0 4px 20px rgba(23,58,94,0.18);
           font-size: 12px; min-width: 160px;
         }
         .uav-tooltip-label { font-size: 11px; font-weight: 700; color: ${C.hint}; margin: 0 0 6px; }
@@ -503,7 +565,12 @@ export default function EventsPage() {
         /* ── Responsive ──────────────────────────────────────── */
         @media (max-width: 768px) {
           .uav-chart-wrapper { margin: 16px 16px 0; }
-          .uav-param-selector { gap: 8px 10px; }
+          .uav-param-selector {
+            gap: 8px;
+          }
+          .uav-param-btn {
+            width: 102px;
+          }
           .uav-flight-title-inner { padding: 12px 16px; }
         }
         @media (max-width: 600px) {

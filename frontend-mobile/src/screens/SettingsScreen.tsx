@@ -17,7 +17,7 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   return (
-    <LinearGradient colors={["#FFF6F9", "#FFEAF0"]} style={styles.container}>
+    <LinearGradient colors={["#EAF1F8", "#DCE8F3"]} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
@@ -49,7 +49,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#E76595" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#315E8F" }]}
                 >
                   <Feather name="shield" size={20} color="white" />
                 </View>
@@ -63,7 +63,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#FBA7BC" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#6F91B2" }]}
                 >
                   <Feather name="user-check" size={20} color="white" />
                 </View>
@@ -77,7 +77,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#E76595" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#315E8F" }]}
                 >
                   <Feather name="heart" size={20} color="white" />
                 </View>
@@ -93,7 +93,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: "#FBA7BC" }]}
+                  style={[styles.settingIcon, { backgroundColor: "#6F91B2" }]}
                 >
                   <Feather name="bell" size={20} color="white" />
                 </View>
@@ -107,7 +107,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton}>
           <View style={styles.logoutIcon}>
-            <Feather name="log-out" size={16} color="#E76F51" />
+            <Feather name="log-out" size={16} color="#346D9C" />
           </View>
           <Text style={styles.logoutText}>登出</Text>
         </TouchableOpacity>
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -8,
     right: -4,
-    backgroundColor: "#E76595",
+    backgroundColor: "#315E8F",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   settingSubtitle: {
     fontSize: 12,
-    color: "#E76595",
+    color: "#315E8F",
     marginTop: 2,
   },
   logoutButton: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 14,
-    color: "#E76F51",
+    color: "#346D9C",
     fontWeight: "600",
   },
 });

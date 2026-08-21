@@ -65,7 +65,7 @@ export const WebTopNavigator: React.FC<WebHeaderProps> = ({
           {/* Logo 區域 */}
           <View style={styles.logoSection}>
             <Image
-              source={{ uri: "https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp" }}
+              source={{ uri: "https://res.cloudinary.com/da3bvump4/image/upload/v1787303369/5f7a91ad-47c8-40e5-9981-cd41395dcb99_vrclgp.png" }}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -140,8 +140,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    color: "#E76595",
-    backgroundColor: "#FFF6F9",
+    color: "#315E8F",
+    backgroundColor: "#EAF1F8",
     paddingVertical: 20,
     // transition: "all 0.5s",
     zIndex: 997,
@@ -155,13 +155,13 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     paddingVertical: 5,
     paddingHorizontal: 25,
-    shadowColor: "rgba(231, 101, 149, 0.08)",
+    shadowColor: "rgba(49, 94, 143, 0.08)",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "rgba(231, 101, 149, 0.08)",
+    borderColor: "rgba(49, 94, 143, 0.08)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#E76595",
+    color: "#315E8F",
     letterSpacing: 0.5,
     paddingLeft: 5,
   },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   navText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#FBA7BC",
+    color: "#6F91B2",
     fontFamily: Platform.select({
       web: '"Noto Sans", sans-serif',
       default: "System",
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   navTextActive: {
-    color: "#E76595",
+    color: "#315E8F",
     fontWeight: "600",
   },
   actions: {
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 6,
     borderWidth: 1,
-    borderColor: "rgba(231, 101, 149, 0.1)",
+    borderColor: "rgba(49, 94, 143, 0.1)",
     //transition: "all 0.3s ease",
   },
 });

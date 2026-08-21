@@ -61,7 +61,7 @@ const GAUGE_RADIUS = (GAUGE_SIZE - STROKE_WIDTH) / 2;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
 const getAQIColor = (aqi: number) => {
-  if (aqi <= 50) return "#E76595";
+  if (aqi <= 50) return "#315E8F";
   if (aqi <= 100) return COLORS.MODERATE;
   if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
   if (aqi <= 200) return COLORS.UNHEALTHY;
@@ -141,7 +141,7 @@ const getPM25StatusLabel = (v: number) => {
 };
 
 const getPM25Color = (v: number) => {
-  if (v <= 15.4)  return "#E76595";
+  if (v <= 15.4)  return "#315E8F";
   if (v <= 35.4)  return COLORS.MODERATE;
   if (v <= 54.4)  return COLORS.UNHEALTHY_SENSITIVE; 
   if (v <= 150.4) return COLORS.UNHEALTHY;
@@ -150,7 +150,7 @@ const getPM25Color = (v: number) => {
 };
 
 const getO3Color = (v: number) => {
-  if (v <= 54)  return "#E76595";
+  if (v <= 54)  return "#315E8F";
   if (v <= 70)  return COLORS.MODERATE;
   if (v <= 85)  return COLORS.UNHEALTHY_SENSITIVE;
   if (v <= 105) return COLORS.UNHEALTHY;
@@ -169,7 +169,7 @@ const getActivityInfo = (
   if (aqi <= 50)
     return {
       icon: "smile",
-      color: "#E76595",
+      color: "#315E8F",
       generalAdvice: "正常戶外活動，無須特別注意。",
     };
   if (aqi <= 100)
@@ -519,7 +519,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E76595" />
+        <ActivityIndicator size="large" color="#315E8F" />
         <Text style={styles.loadingText}>載入中...</Text>
       </View>
     );
@@ -553,7 +553,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
           <View style={styles.insightCard}>
             <View style={styles.insightIconContainer}>
               <View style={styles.insightIconBg}>
-                <Feather name="trending-up" size={20} color="#E76595" />
+                <Feather name="trending-up" size={20} color="#315E8F" />
               </View>
             </View>
             <View style={styles.insightContent}>
@@ -572,7 +572,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
             {/* Card header */}
             <View style={styles.cardHeaderRow}>
               <View style={styles.cardTitleGroup}>
-                <Feather name="wind" size={15} color="#E76595" />
+                <Feather name="wind" size={15} color="#315E8F" />
                 <Text style={styles.cardSectionTitle}>空氣品質</Text>
               </View>
               {/* AQI mini badge */}
@@ -657,7 +657,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
             {/* Activity advice */}
             <View style={{ marginBottom: 4 }}>
               <View style={[styles.cardTitleGroup, { marginTop: 20 }]}>
-                <Feather name="alert-circle" size={15} color="#E76595" />
+                <Feather name="alert-circle" size={15} color="#315E8F" />
                 <Text style={styles.cardSectionTitle}>活動建議</Text>
               </View>
 
@@ -768,12 +768,12 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                 <Feather
                   name={getWeatherIcon(currentWeather.weather)}
                   size={15}
-                  color="#E76595"
+                  color="#315E8F"
                 />
                 <Text style={styles.cardSectionTitle}>天氣</Text>
               </View>
               <View style={styles.districtBadge}>
-                <Feather name="map-pin" size={10} color="#FBA7BC" />
+                <Feather name="map-pin" size={10} color="#6F91B2" />
                 <Text style={styles.districtBadgeText}>{currentDistrict}</Text>
               </View>
             </View>
@@ -795,7 +795,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                 <Feather
                   name={getWeatherIcon(currentWeather.weather)}
                   size={34}
-                  color="#E76595"
+                  color="#315E8F"
                 />
               </View>
             </View>
@@ -812,7 +812,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                     <Feather
                       name={item.icon as any}
                       size={13}
-                      color="#E76595"
+                      color="#315E8F"
                     />
                     <Text style={styles.weatherStatVal}>{item.val}</Text>
                     <Text style={styles.weatherStatLabel}>{item.label}</Text>
@@ -841,7 +841,7 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
                   <Feather
                     name={getWeatherIcon(day.weather)}
                     size={22}
-                    color="#FBA7BC"
+                    color="#6F91B2"
                     style={{ marginVertical: 8 }}
                   />
                   <View style={styles.forecastTempRow}>
@@ -879,9 +879,9 @@ export const DashboardScreenMobile: React.FC<DashboardScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container:              { flex: 1, backgroundColor: "#FFF6F9" },
-  loadingContainer:       { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF6F9" },
-  loadingText:            { marginTop: 16, fontSize: 16, color: "#E76595" },
+  container:              { flex: 1, backgroundColor: "#EAF1F8" },
+  loadingContainer:       { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#EAF1F8" },
+  loadingText:            { marginTop: 16, fontSize: 16, color: "#315E8F" },
   scrollView:             { flex: 1 },
 
   // ── Gauge ──
@@ -896,11 +896,11 @@ const styles = StyleSheet.create({
   insightSection:         { paddingHorizontal: 24, marginBottom: 24 },
   insightCard:            { backgroundColor: "rgba(255, 255, 255, 0.8)", borderRadius: 20, padding: 20, flexDirection: "row", gap: 16, alignItems: "flex-start", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.3)" },
   insightIconContainer:   { marginTop: 2 },
-  insightIconBg:          { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(231, 101, 149, 0.15)", justifyContent: "center", alignItems: "center" },
+  insightIconBg:          { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(49, 94, 143, 0.15)", justifyContent: "center", alignItems: "center" },
   insightContent:         { flex: 1 },
   insightTitle:           { fontSize: 14, fontWeight: "bold", color: "#666", letterSpacing: 1, marginBottom: 8 },
   insightText:            { fontSize: 15, color: "#374151", lineHeight: 22 },
-  highlightText:          { color: "#E76595", fontWeight: "bold" },
+  highlightText:          { color: "#315E8F", fontWeight: "bold" },
 
   // ── Shared card container ──
   sectionPad:             { paddingHorizontal: 24, marginBottom: 20 },
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   adviceRow:              { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, borderWidth: 0.5 },
   adviceIcon:             { width: 36, height: 36, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center", flexShrink: 0, marginTop: 2, marginRight: 3 },
   // adviceLabel:         { fontSize: 13, fontWeight: "600", marginBottom: 4 }, // 未使用
-  adviceText:             { fontSize: 13, color: "#7a6880", lineHeight: 20 },
+  adviceText:             { fontSize: 13, color: "#506780", lineHeight: 20 },
 
   // ── Mini pollutant rows ──
   miniPollutRow:          { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 10 },
@@ -943,27 +943,27 @@ const styles = StyleSheet.create({
   miniPollutSub:          { fontSize: 10, color: "#aaa", marginTop: 1 },
   miniPollutBar:          { flex: 1 },
   miniBarTrack:           { height: 6, backgroundColor: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" },
-  miniBarFill:            { backgroundColor: "#E76595", height: "100%", borderRadius: 3 },
+  miniBarFill:            { backgroundColor: "#315E8F", height: "100%", borderRadius: 3 },
   miniPollutRight:        { flexDirection: "row", alignItems: "baseline", gap: 3, width: 52, justifyContent: "flex-end" },
-  miniPollutVal:          { color: "#E76595", fontSize: 15, fontWeight: "700" },
+  miniPollutVal:          { color: "#315E8F", fontSize: 15, fontWeight: "700" },
   miniPollutUnit:         { fontSize: 10, color: "#aaa" },
 
   miniPollutStrip:   { flexDirection: "row", overflow: "hidden" },
   miniPillCard:      { flex: 1, paddingVertical: 8, alignItems: "center", gap: 2 },
   miniPillDivider:   { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 8 },
   miniPillName:      { fontSize: 15, fontWeight: "700", color: "#555" },
-  miniPillSub:       { fontSize: 10, color: "#7a6880", marginBottom: 4 },
-  miniPillVal:       { color: "#E76595",fontSize: 14, fontWeight: "700" },
+  miniPillSub:       { fontSize: 10, color: "#506780", marginBottom: 4 },
+  miniPillVal:       { color: "#315E8F",fontSize: 14, fontWeight: "700" },
   miniPillValRow:    { flexDirection: "row", justifyContent: "center", alignItems: "center" , gap: 8 },
   miniPillUnit:      { fontSize: 9, color: "#aaa" },
 
   // ── Weather card ──
-  districtBadge:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "rgba(251, 167, 188, 0.12)", borderRadius: 10, borderWidth: 1, borderColor: "rgba(251, 167, 188, 0.25)" },
-  districtBadgeText:      { fontSize: 12, fontWeight: "600", color: "#FBA7BC" },
+  districtBadge:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: "rgba(111, 145, 178, 0.12)", borderRadius: 10, borderWidth: 1, borderColor: "rgba(111, 145, 178, 0.25)" },
+  districtBadgeText:      { fontSize: 12, fontWeight: "600", color: "#6F91B2" },
   weatherCurrentRow:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   weatherTempBig:         { fontSize: 54, fontWeight: "bold", color: "#222", lineHeight: 58 },
   weatherDesc:            { fontSize: 14, color: "#666", marginTop: 2 },
-  weatherIconCircle:      { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(231, 101, 149, 0.1)", justifyContent: "center", alignItems: "center" },
+  weatherIconCircle:      { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(49, 94, 143, 0.1)", justifyContent: "center", alignItems: "center" },
   weatherStatsRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(0,0,0,0.025)", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 8 },
   weatherStatItem:        { flex: 1, alignItems: "center", gap: 3 },
   weatherStatVal:         { fontSize: 12, fontWeight: "700", color: "#333", marginTop: 2 },
@@ -978,8 +978,8 @@ const styles = StyleSheet.create({
   forecastLabel:          { fontSize: 12, fontWeight: "700", color: "#444" },
   forecastDate:           { fontSize: 10, color: "#bbb", marginTop: 2 },
   forecastTempRow:        { flexDirection: "row", alignItems: "baseline" },
-  forecastTempHigh:       { fontSize: 13, fontWeight: "700", color: "#e05c2a" },
-  forecastTempLow:        { fontSize: 13, color: "#FBA7BC", fontWeight: "600" },
+  forecastTempHigh:       { fontSize: 13, fontWeight: "700", color: "#357DA4" },
+  forecastTempLow:        { fontSize: 13, color: "#6F91B2", fontWeight: "600" },
   forecastPopRow:         { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
   forecastPopText:        { fontSize: 11, color: "#bbb", fontWeight: "600" },
   // weatherHighLow:      { fontSize: 12, color: "#999", marginTop: 2 }, // 未使用

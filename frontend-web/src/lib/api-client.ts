@@ -25,6 +25,7 @@ export const authApi = {
     apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: unknown) =>
     apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  devLogin: () => apiFetch('/auth/dev-login', { method: 'POST' }),
   logout: () => apiFetch('/auth/logout', { method: 'POST' }),
   me: () => apiFetch('/auth/me'),
   updateSecurity: (data: unknown) =>

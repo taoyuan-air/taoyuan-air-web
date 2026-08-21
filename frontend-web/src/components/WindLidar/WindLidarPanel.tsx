@@ -65,7 +65,7 @@ const WIND_DIR_COLORSCALE: [number, string][] = [
   [45 / 360,  '#6600CC'],  // NE  45°
   [90 / 360,  '#2255FF'],  // E   90°
   [135 / 360, '#33AAFF'],  // SE  135°
-  [180 / 360, '#FFAAAA'],  // S   180°
+  [180 / 360, '#A9C7DD'],  // S   180°
   [225 / 360, '#FF2200'],  // SW  225°
   [270 / 360, '#00CCFF'],  // W   270°
   [315 / 360, '#0055EE'],  // NW  315°
@@ -147,10 +147,10 @@ export interface WindLidarPanelProps {
 const CHART_HEIGHT = 260;
 
 const C = {
-  rose:      '#D4567A',
-  hint:      '#b0a0b8',
+  blue:      '#315E8F',
+  hint:      '#6F91B2',
   glass:     'rgba(255,255,255,0.90)',
-  glassShadow: '0 4px 20px rgba(180,140,160,0.12)',
+  glassShadow: '0 4px 20px rgba(23,58,94,0.12)',
 };
 
 // ── 元件 ──────────────────────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ export default function WindLidarPanel({
       font: { family: 'system-ui, sans-serif', size: 11 },
       title: {
         text: `<b>${title}</b>`,
-        font: { size: 13, color: C.rose },
+        font: { size: 13, color: C.blue },
         x: 0.01,
         xanchor: 'left',
       },
@@ -237,8 +237,8 @@ export default function WindLidarPanel({
       modebar: {
         orientation: 'h',
         bgcolor: 'rgba(255,255,255,0.75)',
-        color: C.hint ?? '#b0a0b8',
-        activecolor: C.rose,
+        color: C.hint ?? '#6F91B2',
+        activecolor: C.blue,
       },
     };
   }
@@ -308,7 +308,7 @@ export default function WindLidarPanel({
     <div
       style={{
         background: C.glass,
-        border: '1px solid rgba(212,86,122,0.08)',
+        border: '1px solid rgba(49,94,143,0.08)',
         borderRadius: 16,
         boxShadow: C.glassShadow,
         padding: '4px 8px 8px',
@@ -330,10 +330,10 @@ export default function WindLidarPanel({
         }
         .plotly-notifier .notifier-note {
           background: rgba(255, 255, 255, 0.95) !important;
-          border: 1.5px solid rgba(212, 86, 122, 0.5) !important;
-          color: #D4567A !important;
+          border: 1.5px solid rgba(49, 94, 143, 0.5) !important;
+          color: #315E8F !important;
           border-radius: 12px !important;
-          box-shadow: 0 4px 20px rgba(180,140,160,0.25) !important;
+          box-shadow: 0 4px 20px rgba(23,58,94,0.25) !important;
           padding: 10px 14px !important;
           font-family: system-ui, sans-serif !important;
           font-weight: 900;
@@ -342,7 +342,7 @@ export default function WindLidarPanel({
           margin-bottom: 12px !important;
         }
         .plotly-notifier .notifier-close {
-          color: #D4567A !important;
+          color: #315E8F !important;
         }
       `}</style>
       <div ref={divRef} style={{ width: '100%', minHeight: CHART_HEIGHT }} />

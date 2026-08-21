@@ -110,7 +110,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
             const left = index * (barWidth + barSpacing);
             return label ? (
               <View key={index} style={{ position: "absolute", left: left - 10, top: 0, width: 50 }}>
-                <Text style={{ fontSize: 10, color: C.rose, fontWeight: "700" }}>{label}</Text>
+                <Text style={{ fontSize: 10, color: C.blue, fontWeight: "700" }}>{label}</Text>
               </View>
             ) : null;
           })}
@@ -130,7 +130,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
                     position: "absolute",
                     width: 1.5,
                     height: 55,           // 跟 bar 區域等高
-                    backgroundColor: C.rose,
+                    backgroundColor: C.blue,
                     bottom: 0,
                     left: barWidth / 2 - 0.5,          // bar 正中間
                     zIndex: 0,
@@ -145,7 +145,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
                       backgroundColor: getBarColor(value, isPrediction),
                       marginRight: index < displayData.length - 1 ? barSpacing : 0,
                       borderWidth: isNow ? 1 : 0,
-                      borderColor: isNow ? '#FBA7BC' : 'transparent',
+                      borderColor: isNow ? '#6F91B2' : 'transparent',
                       zIndex: 1,                 // bar 疊在線上面
                     },
                   ]}
@@ -183,7 +183,7 @@ const TrendBars: React.FC<{ trend: number[] }> = ({ trend }) => {
         {/* 底部區段說明文字 */}
         <View style={{ flexDirection: "row", width: totalWidth, marginTop: 4 }}>
           <Text style={{ width: pastWidth, fontSize: 11, color: C.hint, textAlign: "left" }}>過去 5h</Text>
-          <Text style={{ position: "absolute", left: nowOffset - 14, top: 1, fontSize: 11, color: C.rose, fontWeight: "700" }}>NOW</Text>
+          <Text style={{ position: "absolute", left: nowOffset - 14, top: 1, fontSize: 11, color: C.blue, fontWeight: "700" }}>NOW</Text>
           <Text style={{ flex: 1, fontSize: 11, color: C.hint, textAlign: "right" }}>未來 32h</Text>
         </View>
       </View>
@@ -299,12 +299,12 @@ const useUserLocation = () => {
 
 // ─── Design tokens ────────────────────────────────────────────────────
 const C = {
-  // Primary accent — one rose ramp only
-  rose:     "#D4567A",
-  roseMid:  "#C2446A",
-  roseLt:   "rgba(212,86,122,0.12)",
-  roseGlow: "rgba(212,86,122,0.22)",
-  roseBorder: "rgba(212,86,122,0.30)",
+  // Primary accent — one blue ramp only
+  blue:     "#315E8F",
+  blueMid:  "#173A5E",
+  blueLt:   "rgba(49,94,143,0.12)",
+  blueGlow: "rgba(49,94,143,0.22)",
+  blueBorder: "rgba(49,94,143,0.30)",
 
   // Functional data colors (minimal)
   sky:   "#5BA0C8",
@@ -316,13 +316,13 @@ const C = {
   glass2:      "rgba(255,255,255,0.32)",
   glassBorder: "rgba(255,255,255,0.72)",
   glassBorder2:"rgba(255,255,255,0.50)",
-  glassShadow: "rgba(180,140,160,0.14)",
+  glassShadow: "rgba(23,58,94,0.14)",
   glassInner:  "rgba(255,255,255,0.80)",
 
   // Text
-  text:    "#1a1220",
-  muted:   "#7a6880",
-  hint:    "#b0a0b8",
+  text:    "#172A40",
+  muted:   "#506780",
+  hint:    "#6F91B2",
 };
 
 const COLORS = {
@@ -336,7 +336,7 @@ const COLORS = {
 
 // ─── Helper: AQI color ───────────────────────────────────────
 const getAQIColor = (aqi: number) => {
-  if (aqi <= 50) return "#E76595";
+  if (aqi <= 50) return "#315E8F";
   if (aqi <= 100) return COLORS.MODERATE;
   if (aqi <= 150) return COLORS.UNHEALTHY_SENSITIVE;
   if (aqi <= 200) return COLORS.UNHEALTHY;
@@ -357,7 +357,7 @@ const getAQIStatus = (aqi: number) => {
 // ─── Air Quality Helpers ──────────────────────────────────────────────────────
 
 const getPM25Color = (v: number) => {
-  if (v <= 15.4)  return "#E76595";
+  if (v <= 15.4)  return "#315E8F";
   if (v <= 35.4)  return COLORS.MODERATE;
   if (v <= 54.4)  return COLORS.UNHEALTHY_SENSITIVE; 
   if (v <= 150.4) return COLORS.UNHEALTHY;
@@ -366,7 +366,7 @@ const getPM25Color = (v: number) => {
 };
 
 const getO3Color = (v: number) => {
-  if (v <= 54)  return "#E76595";                  
+  if (v <= 54)  return "#315E8F";                  
   if (v <= 70)  return COLORS.MODERATE;             
   if (v <= 85)  return COLORS.UNHEALTHY_SENSITIVE;  
   if (v <= 105) return COLORS.UNHEALTHY;            
@@ -383,7 +383,7 @@ const getActivityInfo = ( aqi: number,): {
   if (aqi <= 50)
     return {
       icon: "smile",
-      color: "#E76595",
+      color: "#315E8F",
       generalAdvice: "正常戶外活動，無須特別注意。",
     };
   if (aqi <= 100)
@@ -555,7 +555,7 @@ function GaugeArc({
   );
 }
 
-/** Section label with rose accent bar */
+/** Section label with blue accent bar */
 const SecLabel: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => (
   <View style={S.secLabel}>
     <View style={S.secDot} />
@@ -662,7 +662,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                         justifyContent: "center",
                         alignItems: "center",
                         backgroundColor: palette.bgBase }}>
-            <ActivityIndicator size="large" color={C.rose} />
+            <ActivityIndicator size="large" color={C.blue} />
             <Text style={S.loadingText}>載入中...</Text>
         </View>
     );
@@ -686,8 +686,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
             {/* 左下角詳情按鈕 */}             
               <TouchableOpacity
                 style={S.areaDetailBtn}>
-                <Text style={{ color: '#d4567a', fontWeight: '700', fontSize: 15 }}>
-                  點選查看區域詳情　<Feather name="map-pin" size={15} color="#d4567a" /> {selectedDistrict}
+                <Text style={{ color: '#315E8F', fontWeight: '700', fontSize: 15 }}>
+                  點選查看區域詳情　<Feather name="map-pin" size={15} color="#315E8F" /> {selectedDistrict}
                 </Text>
               </TouchableOpacity>            
           </View>    
@@ -700,7 +700,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
 
             {/* Choosen District Name */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Feather name="map-pin" size={30} color="#d4567a" style={{marginRight: 10 ,marginTop: 5}} />
+              <Feather name="map-pin" size={30} color="#315E8F" style={{marginRight: 10 ,marginTop: 5}} />
               <Text style={S.districtName}>{selectedDistrict}</Text>
             </View>
             
@@ -811,7 +811,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                 <SecLabel title="AI 趨勢分析" />
                 <View style={S.insightRow}>
                   <View style={S.insightIcon}>
-                    <Feather name="trending-down" size={15} color={C.rose} />
+                    <Feather name="trending-down" size={15} color={C.blue} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={S.insightMain}>PM2.5 濃度預計下降</Text>
@@ -842,12 +842,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ scrollRef }) =
                   {showScrollHint && (
                     <View style={{
                       flexDirection: 'row', alignItems: 'center', gap: 4,
-                      backgroundColor: 'rgba(212,86,122,0.10)',
-                      borderWidth: 1, borderColor: 'rgba(212,86,122,0.30)',
+                      backgroundColor: 'rgba(49,94,143,0.10)',
+                      borderWidth: 1, borderColor: 'rgba(49,94,143,0.30)',
                       borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4,
                     }}>
-                      <Feather name="chevrons-right" size={13} color="#d4567a" />
-                      <Text style={{ fontSize: 11, color: '#d4567a', fontWeight: '700' }}>左右滑動查看</Text>
+                      <Feather name="chevrons-right" size={13} color="#315E8F" />
+                      <Text style={{ fontSize: 11, color: '#315E8F', fontWeight: '700' }}>左右滑動查看</Text>
                     </View>
                   )}
                 </View>
@@ -903,7 +903,7 @@ const glass2Base: object = {
 const S = StyleSheet.create({
   root:    { flex: 1 },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 14, fontSize: 15, color: C.rose, fontWeight: "600" },
+  loadingText: { marginTop: 14, fontSize: 15, color: C.blue, fontWeight: "600" },
 
   // Header
   headerWrap:  { paddingHorizontal: 28, paddingTop: 28 },
@@ -918,20 +918,20 @@ const S = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     backgroundColor: C.glass2, borderWidth: 1, borderColor: C.glassBorder2,
   },
-  badgeRose:    { backgroundColor: "rgba(212,86,122,0.10)", borderColor: C.roseBorder },
+  badgeBlue:    { backgroundColor: "rgba(49,94,143,0.10)", borderColor: C.blueBorder },
   badgeText:    { fontSize: 11, color: C.muted, fontWeight: "600" },
 
   // District name
-  districtName: { fontSize: 30, fontWeight: "800", color: "#d4567a", letterSpacing: -0.5 },
+  districtName: { fontSize: 30, fontWeight: "800", color: "#315E8F", letterSpacing: -0.5 },
 
   // 查看區域詳情按鈕
-  areaDetailBtn: { position: 'absolute', bottom: 50, left: 100, backgroundColor: '#f7e9ec', borderWidth: 1, borderColor: '#d4567a', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, alignItems: 'center', },
+  areaDetailBtn: { position: 'absolute', bottom: 50, left: 100, backgroundColor: '#DCE8F3', borderWidth: 1, borderColor: '#315E8F', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, alignItems: 'center', },
 
   // Grid
   grid: { flexDirection: "column", paddingHorizontal: 12, gap: 10, alignItems: "stretch", },
 
   // 右半部全部資訊
-  rightDataInfoGrid: { width: '59%', backgroundColor: 'rgb(255, 255, 255)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28, shadowColor: "rgba(231, 101, 149, 0.08)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 20, elevation: 8, borderWidth: 1, borderColor: "rgba(231, 101, 149, 0.08)" },
+  rightDataInfoGrid: { width: '59%', backgroundColor: 'rgb(255, 255, 255)', borderRadius: 20, paddingVertical: 14, paddingHorizontal: 28, shadowColor: "rgba(49, 94, 143, 0.08)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 20, elevation: 8, borderWidth: 1, borderColor: "rgba(49, 94, 143, 0.08)" },
 
   // Rows 
   firstRow:  { flexDirection: "row", alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: "100%", marginBottom: 20 },
@@ -943,7 +943,7 @@ const S = StyleSheet.create({
 
   // Section label
   secLabel: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
-  secDot:   { width: 3, height: 14, backgroundColor: C.rose, borderRadius: 2, shadowColor: C.roseGlow, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 6 },
+  secDot:   { width: 3, height: 14, backgroundColor: C.blue, borderRadius: 2, shadowColor: C.blueGlow, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 6 },
   secTitle: { fontSize: 13, fontWeight: "700", color: C.text, letterSpacing: 0.2 },
   secSub:   { fontSize: 10, color: C.hint, fontWeight: "500", marginTop: 1, letterSpacing: 0.4 },
 
@@ -957,8 +957,8 @@ const S = StyleSheet.create({
     shadowColor: C.glassShadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 2, shadowRadius: 12,
   },
   gaugeLabel:    { fontSize: 9, color: C.hint, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "monospace" },
-  gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.rose, lineHeight: 44 },
-  gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.roseLt, borderWidth: 1.2 },
+  gaugeValue:    { fontSize: 40, fontWeight: "800", color: C.blue, lineHeight: 44 },
+  gaugePill:     { marginTop: 5, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: C.blueLt, borderWidth: 1.2 },
   gaugePillText: { fontSize: 11, fontWeight: "700" },
   aqiHint:       { textAlign: "center", fontSize: 10, color: C.hint, marginTop: 20 },
 
@@ -987,12 +987,12 @@ const S = StyleSheet.create({
   pollVal:    { width: 28, textAlign: "right", fontSize: 12, fontWeight: "700" },
 
   // AI insight
-  insightRow:     { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, backgroundColor: C.roseLt, borderWidth: 1, borderColor: C.roseBorder, marginBottom: 10, },
-  insightIcon:    { width: 34, height: 34, borderRadius: 8, backgroundColor: "rgba(212,86,122,0.16)", justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  insightMain:    { fontSize: 12, fontWeight: "700", color: C.rose },
+  insightRow:     { flexDirection: "row", alignItems: "center", gap: 11, padding: 13, borderRadius: 12, backgroundColor: C.blueLt, borderWidth: 1, borderColor: C.blueBorder, marginBottom: 10, },
+  insightIcon:    { width: 34, height: 34, borderRadius: 8, backgroundColor: "rgba(49,94,143,0.16)", justifyContent: "center", alignItems: "center", flexShrink: 0 },
+  insightMain:    { fontSize: 12, fontWeight: "700", color: C.blue },
   insightSub:     { fontSize: 10, color: C.muted, marginTop: 2 },
-  insightChip:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(212,86,122,0.14)", borderWidth: 1, borderColor: C.roseBorder, flexShrink: 0 },
-  insightChipText:{ fontSize: 12, fontWeight: "700", color: C.rose },
+  insightChip:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(49,94,143,0.14)", borderWidth: 1, borderColor: C.blueBorder, flexShrink: 0 },
+  insightChipText:{ fontSize: 12, fontWeight: "700", color: C.blue },
 
   
   // ── Mini pollutant rows (PM2.5, O₃ 長條) ──
@@ -1006,7 +1006,7 @@ const S = StyleSheet.create({
   miniPillDivider:   { width: 0.5, backgroundColor: "rgba(0,0,0,0.08)", marginVertical: 8 },
   miniPillName:      { fontSize: 17, fontWeight: "700", color: "#555" },
   miniPillSub:       { fontSize: 10, color: C.muted, marginBottom: 4 },
-  miniPillVal:       { color: "#E76595",fontSize: 18, fontWeight: "700" },
+  miniPillVal:       { color: "#315E8F",fontSize: 18, fontWeight: "700" },
   miniPillValRow:    { flexDirection: "row", justifyContent: "center", alignItems: "center" , gap: 8 },
   miniPillUnit:      { fontSize: 9, color: "#aaa" },
 });
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   timeLabelsContainer: { flexDirection: "row", alignItems: "center", height: 20 },
   timeLabelWrapper:    { alignItems: "center", justifyContent: "center" },
   timeLabel:           { fontSize: 9, color: "rgba(93,115,137,0.6)", fontWeight: "400", textAlign: "center" },
-  timeLabelNow:        { color: C.rose, fontWeight: "700", fontSize: 10 },
+  timeLabelNow:        { color: C.blue, fontWeight: "700", fontSize: 10 },
   timeLabelPrediction: { color: "rgba(93,115,137,0.4)", fontStyle: "italic" },
-  nowIndicator:        { width: 2, height: 2, borderRadius: 1, backgroundColor: C.rose, marginTop: 2 },
+  nowIndicator:        { width: 2, height: 2, borderRadius: 1, backgroundColor: C.blue, marginTop: 2 },
 });
