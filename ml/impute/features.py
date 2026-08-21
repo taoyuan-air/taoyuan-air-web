@@ -21,9 +21,15 @@ LAG_HOURS = VARIABLES['pm25']['lag_hours']
 TARGET_COL = VARIABLES['pm25']['value_col']
 FEATURE_COLS = (
     [f'lag_{h}h' for h in LAG_HOURS]
-    + ['hour', 'weekday', 'month']
-    + ['sin_hour', 'cos_hour', 'sin_month', 'cos_month', 'sin_weekday', 'cos_weekday']
+    + ['hour', 'weekday', 'month', 'day_of_year']
+    + [
+        'sin_hour', 'cos_hour',
+        'sin_month', 'cos_month',
+        'sin_weekday', 'cos_weekday',
+        'sin_day_of_year', 'cos_day_of_year',
+    ]
     + ['latitude', 'longitude']
+    + VARIABLES['pm25'].get('external_features', [])
     + ['neighbor1_lag_1h', 'neighbor1_lag_24h', 'neighbor2_lag_1h', 'neighbor2_lag_24h']
     + ['rolling_mean_3h', 'rolling_mean_6h', 'rolling_std_6h']
 )
@@ -52,13 +58,19 @@ def feature_columns(variable: str = 'pm25', target_col: str | None = None) -> li
     config = VARIABLES[variable]
     lag_hours = config['lag_hours']
     cols = [f'lag_{h}h' for h in lag_hours]
-    cols += ['hour', 'weekday', 'month']
-    cols += ['sin_hour', 'cos_hour', 'sin_month', 'cos_month', 'sin_weekday', 'cos_weekday']
+    cols += ['hour', 'weekday', 'month', 'day_of_year']
+    cols += [
+        'sin_hour', 'cos_hour',
+        'sin_month', 'cos_month',
+        'sin_weekday', 'cos_weekday',
+        'sin_day_of_year', 'cos_day_of_year',
+    ]
     cols += ['latitude', 'longitude']
     if config.get('use_altitude'):
         cols.append('altitude')
     if config.get('use_rain_flag'):
         cols.append('is_raining')
+    cols += config.get('external_features', [])
 
     neighbor_lags = [1, 24] if 24 in lag_hours else [1, lag_hours[-1]]
     for i in (1, 2):
@@ -67,6 +79,43 @@ def feature_columns(variable: str = 'pm25', target_col: str | None = None) -> li
 
     cols += ['rolling_mean_3h', 'rolling_mean_6h', 'rolling_std_6h']
     return cols
+
+
+def required_input_columns(variable: str = 'pm25', target_col: str | None = None) -> list[str]:
+    """Columns that must exist in the source parquet before feature engineering."""
+    config = VARIABLES[variable]
+    target_col = target_col or config['value_col']
+    cols = ['station_id', 'monitor_date', 'latitude', 'longitude', target_col]
+    if config.get('use_altitude'):
+        cols.append('altitude')
+    if config.get('use_rain_flag'):
+        cols.append('is_raining')
+    cols += config.get('external_features', [])
+    return cols
+
+
+def validate_input_columns(
+    df: pd.DataFrame,
+    variable: str = 'pm25',
+    target_col: str | None = None,
+) -> None:
+    """Raise a clear error when the parquet does not match the configured schema."""
+    missing = [col for col in required_input_columns(variable, target_col) if col not in df.columns]
+    if not missing:
+        return
+
+    hint = (
+        f"Run ml/export_parquet.py --variable {variable} to regenerate the parquet "
+        "with the current feature schema."
+    )
+    if variable == 'pm25':
+        hint = (
+            "PM2.5 now requires CWA meteorological external features. "
+            "Run ml/export_parquet.py --variable pm25 after the database is available."
+        )
+    raise ValueError(
+        f"Missing required columns for {variable}: {missing}. {hint}"
+    )
 
 
 def add_features(
@@ -78,6 +127,7 @@ def add_features(
     config = VARIABLES[variable]
     target_col = target_col or config['value_col']
     lag_hours = config['lag_hours']
+    validate_input_columns(df, variable=variable, target_col=target_col)
 
     df = df.sort_values(['station_id', 'monitor_date']).copy()
     df['monitor_date'] = pd.to_datetime(df['monitor_date'])
@@ -88,6 +138,8 @@ def add_features(
         df['altitude'] = pd.to_numeric(df['altitude'], errors='coerce').fillna(0.0)
     if config.get('use_rain_flag'):
         df['is_raining'] = df.get('is_raining', 0).fillna(0).astype(int)
+    for col in config.get('external_features', []):
+        df[col] = pd.to_numeric(df[col], errors='coerce')
 
     df = _add_rolling_stats(df, target_col)
 
@@ -97,22 +149,32 @@ def add_features(
         lagged = lagged.rename(columns={target_col: f'lag_{h}h'})
         df = df.merge(lagged, on=['station_id', 'monitor_date'], how='left')
 
-    dt = df['monitor_date']
-    df['hour'] = dt.dt.hour
-    df['weekday'] = dt.dt.weekday
-    df['month'] = dt.dt.month
-    df['sin_hour'] = np.sin(2 * np.pi * df['hour'] / 24)
-    df['cos_hour'] = np.cos(2 * np.pi * df['hour'] / 24)
-    df['sin_month'] = np.sin(2 * np.pi * df['month'] / 12)
-    df['cos_month'] = np.cos(2 * np.pi * df['month'] / 12)
-    df['sin_weekday'] = np.sin(2 * np.pi * df['weekday'] / 7)
-    df['cos_weekday'] = np.cos(2 * np.pi * df['weekday'] / 7)
+    df = add_time_features(df)
 
     df = df.dropna(subset=[f'lag_{h}h' for h in lag_hours])
 
     neighbor_lags = [1, 24] if 24 in lag_hours else [1, lag_hours[-1]]
     df = _add_neighbor_lag(df, lag_hours=neighbor_lags, n=2)
 
+    return df
+
+
+def add_time_features(df: pd.DataFrame, time_col: str = 'monitor_date') -> pd.DataFrame:
+    """Add scalar and cyclic calendar features from a timestamp column."""
+    df = df.copy()
+    dt = pd.to_datetime(df[time_col])
+    df['hour'] = dt.dt.hour
+    df['weekday'] = dt.dt.weekday
+    df['month'] = dt.dt.month
+    df['day_of_year'] = dt.dt.dayofyear
+    df['sin_hour'] = np.sin(2 * np.pi * df['hour'] / 24)
+    df['cos_hour'] = np.cos(2 * np.pi * df['hour'] / 24)
+    df['sin_month'] = np.sin(2 * np.pi * df['month'] / 12)
+    df['cos_month'] = np.cos(2 * np.pi * df['month'] / 12)
+    df['sin_weekday'] = np.sin(2 * np.pi * df['weekday'] / 7)
+    df['cos_weekday'] = np.cos(2 * np.pi * df['weekday'] / 7)
+    df['sin_day_of_year'] = np.sin(2 * np.pi * df['day_of_year'] / 366)
+    df['cos_day_of_year'] = np.cos(2 * np.pi * df['day_of_year'] / 366)
     return df
 
 

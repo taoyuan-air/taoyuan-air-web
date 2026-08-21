@@ -27,6 +27,14 @@ VARIABLES = {
         'use_altitude': False,
         'use_rain_flag': False,
         'circular': False,
+        'external_features': [
+            'temperature',
+            'humidity',
+            'wind_speed',
+            'wind_u',
+            'wind_v',
+            'pressure',
+        ],
         'clip_min': 0.0,
         'clip_max': None,
         'unit': 'ug/m3',
@@ -74,6 +82,17 @@ VARIABLES = {
         'clip_min': None,
         'clip_max': None,
         'unit': 'degree',
+    },
+    'pressure': {
+        'parquet': 'pressure_hourly.parquet',
+        'value_col': 'pressure',
+        'lag_hours': [1, 3, 6, 12, 24],
+        'use_altitude': True,
+        'use_rain_flag': False,
+        'circular': False,
+        'clip_min': None,
+        'clip_max': None,
+        'unit': 'hPa',
     },
 }
 

@@ -36,8 +36,8 @@ from pykrige.ok import OrdinaryKriging
 from scipy.spatial import cKDTree
 from xgboost import XGBRegressor
 
-from config import EXPORTS_DIR, MODELS_DIR, XGB_PARAMS
-from impute.features import FEATURE_COLS, LAG_HOURS, find_nearest_stations
+from config import EXPORTS_DIR, MODELS_DIR, VARIABLES, XGB_PARAMS
+from impute.features import FEATURE_COLS, LAG_HOURS, find_nearest_stations, validate_input_columns
 from impute.uncertainty import update_thresholds
 
 
@@ -47,6 +47,25 @@ _KM_PER_DEG_LON = 101.0
 # Timestamps needed for rolling stats beyond LAG_HOURS (hours 4, 5)
 _ROLLING_EXTRA_HOURS = [4, 5]
 _ALL_NEEDED_HOURS = sorted(set([0] + LAG_HOURS + _ROLLING_EXTRA_HOURS))
+_PM25_EXTERNAL_FEATURES = VARIABLES['pm25'].get('external_features', [])
+
+
+def _calendar_feature_values(target_time: pd.Timestamp) -> dict:
+    day_of_year = target_time.dayofyear
+    return {
+        'hour': target_time.hour,
+        'weekday': target_time.weekday(),
+        'month': target_time.month,
+        'day_of_year': day_of_year,
+        'sin_hour': np.sin(2 * np.pi * target_time.hour / 24),
+        'cos_hour': np.cos(2 * np.pi * target_time.hour / 24),
+        'sin_month': np.sin(2 * np.pi * target_time.month / 12),
+        'cos_month': np.cos(2 * np.pi * target_time.month / 12),
+        'sin_weekday': np.sin(2 * np.pi * target_time.weekday() / 7),
+        'cos_weekday': np.cos(2 * np.pi * target_time.weekday() / 7),
+        'sin_day_of_year': np.sin(2 * np.pi * day_of_year / 366),
+        'cos_day_of_year': np.cos(2 * np.pi * day_of_year / 366),
+    }
 
 
 def load_model() -> XGBRegressor:
@@ -64,6 +83,7 @@ def load_station_data() -> pd.DataFrame:
         raise FileNotFoundError(f"Parquet not found: {path}\nRun ml/export_parquet.py first.")
     df = pd.read_parquet(path)
     df['monitor_date'] = pd.to_datetime(df['monitor_date'])
+    validate_input_columns(df, variable='pm25', target_col='pm25')
     return df
 
 
@@ -96,8 +116,11 @@ def _build_station_features(
 
     def _val(h):
         t   = target_time - pd.Timedelta(hours=h)
+        cols = ['station_id', 'latitude', 'longitude', 'pm25']
+        if h == 0:
+            cols += [col for col in _PM25_EXTERNAL_FEATURES if col in window.columns]
         sub = window[window['monitor_date'] == t][
-            ['station_id', 'latitude', 'longitude', 'pm25']
+            cols
         ]
         return sub.set_index('station_id')
 
@@ -116,15 +139,8 @@ def _build_station_features(
     st = st.reset_index()
 
     # Calendar + cyclic features (same value for all stations at this timestamp)
-    st['hour']        = target_time.hour
-    st['weekday']     = target_time.weekday()
-    st['month']       = target_time.month
-    st['sin_hour']    = np.sin(2 * np.pi * target_time.hour      / 24)
-    st['cos_hour']    = np.cos(2 * np.pi * target_time.hour      / 24)
-    st['sin_month']   = np.sin(2 * np.pi * target_time.month     / 12)
-    st['cos_month']   = np.cos(2 * np.pi * target_time.month     / 12)
-    st['sin_weekday'] = np.sin(2 * np.pi * target_time.weekday() / 7)
-    st['cos_weekday'] = np.cos(2 * np.pi * target_time.weekday() / 7)
+    for col, value in _calendar_feature_values(target_time).items():
+        st[col] = value
 
     # Rolling stats per station
     st = st.set_index('station_id')
@@ -194,18 +210,13 @@ def _build_station_features(
     point = {
         'latitude':     target_lat,
         'longitude':    target_lon,
-        'hour':         target_time.hour,
-        'weekday':      target_time.weekday(),
-        'month':        target_time.month,
-        'sin_hour':     np.sin(2 * np.pi * target_time.hour      / 24),
-        'cos_hour':     np.cos(2 * np.pi * target_time.hour      / 24),
-        'sin_month':    np.sin(2 * np.pi * target_time.month     / 12),
-        'cos_month':    np.cos(2 * np.pi * target_time.month     / 12),
-        'sin_weekday':  np.sin(2 * np.pi * target_time.weekday() / 7),
-        'cos_weekday':  np.cos(2 * np.pi * target_time.weekday() / 7),
+        **_calendar_feature_values(target_time),
     }
     for h in LAG_HOURS:
         point[f'lag_{h}h'] = _idw(f'lag_{h}h')
+    for col in _PM25_EXTERNAL_FEATURES:
+        if col in st.columns:
+            point[col] = _idw(col)
     for col in ['rolling_mean_3h', 'rolling_mean_6h', 'rolling_std_6h']:
         point[col] = _idw(col)
     for i in range(2):
@@ -348,7 +359,13 @@ def run_loo(
               f"Bias={bias:+.2f}  R2={r2:.3f}  "
               f"nearest={nearest_km:.1f} km  n={len(y_true)}")
 
-    return pd.DataFrame(results).sort_values('mae', ascending=False)
+    columns = [
+        'station_id', 'station_name', 'latitude', 'longitude',
+        'mae', 'rmse', 'bias', 'r2', 'sample_count', 'nearest_station_distance',
+    ]
+    if not results:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(results, columns=columns).sort_values('mae', ascending=False)
 
 
 def calibrate_confidence_thresholds(
@@ -481,4 +498,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        print(f"[ERROR] {exc}")
+        sys.exit(1)
