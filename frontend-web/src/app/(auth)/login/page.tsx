@@ -18,7 +18,7 @@ const C = {
 };
 
 export default function LoginPage() {
-  const { login, devLogin } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,17 +53,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleDevLogin = async () => {
-    setError('');
-    setLoading(true);
-    const result = await devLogin();
-    setLoading(false);
-    if (result.ok) {
-      router.push('/dashboard');
-    } else {
-      setError(formatError(result.error) || 'Dev login failed');
-    }
-  };
 
   return (
     <div style={{
@@ -143,25 +132,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={handleDevLogin}
-          disabled={loading}
-          aria-label="快速登入"
-          title="快速登入"
-          style={{
-            width: 18,
-            height: 18,
-            marginTop: 10,
-            borderRadius: 999,
-            border: `1px solid ${C.primaryBorder}`,
-            background: 'rgba(49,94,143,0.08)',
-            color: C.primary,
-            opacity: 0.28,
-            cursor: loading ? 'wait' : 'pointer',
-            float: 'right',
-          }}
-        />
 
         <p style={{ fontSize: 13, color: C.hint, textAlign: 'center', marginTop: 20 }}>
           還沒有帳號？{' '}
