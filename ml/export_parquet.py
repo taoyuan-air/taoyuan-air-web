@@ -276,7 +276,7 @@ def export_variable(variable: str) -> pd.DataFrame:
         f"  {len(df):,} rows | {df['station_id'].nunique()} stations | "
         f"{df['monitor_date'].min()} ~ {df['monitor_date'].max()}"
     )
-    print(f"  raw shape: {df.shape}")
+    print(f"  exported rows: {len(df):,}")
     print(f"  {value_col}: {df[value_col].min():.3f} ~ {df[value_col].max():.3f}")
 
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)

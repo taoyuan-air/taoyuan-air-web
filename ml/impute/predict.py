@@ -354,11 +354,10 @@ def main() -> None:
 
     result = predict_grid(target, variable=variable)
     print(
-        f"Grid shape: {len(result)} points  "
+        f"Grid points: {len(result)}  "
         f"{variable} range: [{result[final_col].min():.1f}, "
         f"{result[final_col].max():.1f}] {config['unit']}"
     )
-    print(f"Grid output shape: {result.shape}")
 
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     fname = f"grid_{variable}_{target.strftime('%Y%m%d_%H%M')}.parquet"

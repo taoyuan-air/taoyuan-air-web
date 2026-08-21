@@ -61,25 +61,16 @@ def report_name(variable: str, target_col: str) -> str:
 
 def train_target(variable: str, target_col: str) -> XGBRegressor:
     df = load_data(variable)
-    raw_shape = df.shape
     df = add_features(df, variable=variable, target_col=target_col)
-    feature_shape = df.shape
     cols = feature_columns(variable=variable, target_col=target_col)
     df = df.dropna(subset=cols + [target_col])
-    model_shape = df.shape
 
     train_df, val_df = split(df)
     if train_df.empty or val_df.empty:
         raise RuntimeError(f"Train/validation split produced empty data for {variable}:{target_col}")
 
     print(f"Variable: {variable} | target: {target_col}")
-    print(f"Raw shape: {raw_shape}")
-    print(f"After add_features shape: {feature_shape}")
-    print(f"After feature dropna shape: {model_shape}")
-    print(f"Features: {len(cols)}")
     print(f"Train: {len(train_df):,} rows | Val: {len(val_df):,} rows")
-    print(f"X_train shape: {train_df[cols].shape} | y_train shape: {train_df[target_col].shape}")
-    print(f"X_val shape:   {val_df[cols].shape} | y_val shape:   {val_df[target_col].shape}")
     print(f"Train period: {train_df['monitor_date'].min()} ~ {train_df['monitor_date'].max()}")
     print(f"Val period:   {val_df['monitor_date'].min()} ~ {val_df['monitor_date'].max()}")
 
@@ -110,13 +101,6 @@ def train_target(variable: str, target_col: str) -> XGBRegressor:
     with open(report, 'w', encoding='utf-8') as f:
         f.write(f"variable={variable}\n")
         f.write(f"target={target_col}\n")
-        f.write(f"raw_shape={raw_shape}\n")
-        f.write(f"after_add_features_shape={feature_shape}\n")
-        f.write(f"after_feature_dropna_shape={model_shape}\n")
-        f.write(f"x_train_shape={X_train.shape}\n")
-        f.write(f"y_train_shape={y_train.shape}\n")
-        f.write(f"x_val_shape={X_val.shape}\n")
-        f.write(f"y_val_shape={y_val.shape}\n")
         f.write(f"features={','.join(cols)}\n")
         for m in [train_metrics, val_metrics]:
             f.write(
