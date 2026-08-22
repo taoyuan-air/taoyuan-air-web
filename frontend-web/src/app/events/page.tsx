@@ -261,8 +261,8 @@ export default function EventsPage() {
   // ── 根據 activeView 決定頁面標題 ─────────────────────────
   const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達廓線分析';
   const pageSubtitle = activeView === 'uav'
-    ? '無人機大氣量測 · 觀音站 · 2026-03-30 共 6 次飛行'
-    : '風光達觀測 · TMA_328 測站';
+    ? '無人機大氣量測 · Guanyin(觀音)站'
+    : '風光達觀測 · L02240328_Guanyin(觀音) 測站';
   const pageIcon = activeView === 'uav'
     ? <Plane size={20} color={C.rose} strokeWidth={2} />
     : <Wind  size={20} color={C.rose} strokeWidth={2} />;
