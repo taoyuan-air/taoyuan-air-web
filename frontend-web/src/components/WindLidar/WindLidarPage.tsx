@@ -46,8 +46,8 @@ type PanelConfig = {
 };
 
 const PANEL_CONFIGS: PanelConfig[] = [
+  { key: 'wind_direction', title: '水平風向 (Wdir)',   colorscale: 'WindDir', zmin: 0,  zmax: 360, unit: '°',   showArrows: true  },
   { key: 'wind_speed',     title: '水平風速 (Hsp)',   colorscale: 'Jet',     zmin: 0,  zmax: 30,  unit: 'm/s', showArrows: true  },
-  { key: 'wind_direction', title: '風向 (Wdir)',       colorscale: 'WindDir', zmin: 0,  zmax: 360, unit: '°',   showArrows: true  },
   { key: 'turbulence',     title: '亂流強度 (Turb)',  colorscale: 'Viridis', zmin: 0,  zmax: 1,   unit: '',    showArrows: false },
   { key: 'cnr',            title: '訊號強度 (Mean Int.)', colorscale: 'Plasma', zmin: 0, zmax: 10, unit: '',    showArrows: false },
 ];

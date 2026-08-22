@@ -19,7 +19,7 @@ const C = {
 // ── 面板中文標籤 ──────────────────────────────────────────────────────────────
 export const PANEL_LABELS: Record<PanelKey, string> = {
   wind_speed:     '水平風速',
-  wind_direction: '風向',
+  wind_direction: '水平風向',
   turbulence:     '亂流強度',
   cnr:            '訊號強度',
 };
@@ -27,7 +27,7 @@ export const PANEL_LABELS: Record<PanelKey, string> = {
 const ALL_PANELS: PanelKey[] = ['wind_speed', 'wind_direction', 'turbulence', 'cnr'];
 
 // ── 高度上限選項 ──────────────────────────────────────────────────────────────
-const HEIGHT_OPTIONS = [0.5, 1.0, 1.5, 2.0];
+const HEIGHT_OPTIONS = [0.5, 1.0, 1.5];
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 export interface WindLidarControlsProps {
