@@ -187,6 +187,18 @@ export default function WindLidarPanel({
         thickness: 14,
         len: 0.9,
         tickfont: { size: 10 },
+        tickvals: (() => {
+          const step = (zmax - zmin) / 4;
+          return [0, 1, 2, 3, 4].map((i) => zmin + step * i);
+        })(),
+        ticktext: (() => {
+          const step = (zmax - zmin) / 4;
+          return [0, 1, 2, 3, 4].map((i) => {
+            const v = zmin + step * i;
+            // 避免浮點數醜數字：最多保留兩位小數，去掉多餘的零
+            return parseFloat(v.toFixed(2)).toString();
+          });
+        })(),
       },
       hovertemplate: '時間: %{x}<br>高度: %{y:.3f} km<br>數值: %{z:.3f}<extra></extra>',
     };
