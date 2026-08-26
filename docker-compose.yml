@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432" # 只綁本機,不再對外開放
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,9 +21,16 @@ services:
   redis:
     image: redis:7-alpine
     container_name: taoyuan-air-redis
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --protected-mode yes
+      --rename-command CONFIG ""
+      --rename-command FLUSHALL ""
+      --rename-command FLUSHDB ""
+    # 完全拿掉 ports 對外映射,只讓同一個 docker network 內的服務(如 backend)透過
+    # container name "taoyuan-air-redis" 連線,外部網路無法直接存取 6379
     volumes:
       - redis_data:/data
     restart: unless-stopped
