@@ -18,23 +18,5 @@ services:
       retries: 5
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: taoyuan-air-redis
-    command: >
-      redis-server
-      --appendonly yes
-      --requirepass ${REDIS_PASSWORD}
-      --protected-mode yes
-      --rename-command CONFIG ""
-      --rename-command FLUSHALL ""
-      --rename-command FLUSHDB ""
-    # 完全拿掉 ports 對外映射,只讓同一個 docker network 內的服務(如 backend)透過
-    # container name "taoyuan-air-redis" 連線,外部網路無法直接存取 6379
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  redis_data:
