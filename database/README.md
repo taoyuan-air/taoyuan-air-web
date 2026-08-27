@@ -12,7 +12,14 @@
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
+| `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
+
+## 設計文檔
+
+| 檔案 | 用途 |
+| --- | --- |
+| `naqo_database_design.md` | NAQO Supabase 對接、後端 adapter、本地 cache 與 VM 部署規劃 |
 
 ## 資料源檔名格式（2026-08 更新）
 
@@ -34,6 +41,27 @@
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+| NAQO | 第一版不分區 | `database/naqo_schema.sql` | 第一階段後端即時查 Supabase；第二階段 `scripts/sync_naqo.py` 以 `inserted_at` 浮標同步 |
+
+## NAQO 對接流程
+
+NAQO 資料來源維持 Supabase，第一階段不需要先匯入本地 PostgreSQL：
+
+```text
+NAQO cron job -> Supabase table min60 -> FastAPI /api/naqo/* -> frontend-web 數據檢索頁「中大空品站」
+```
+
+後端環境變數設定在 `backend/.env`：
+
+```bash
+NAQO_SUPABASE_URL=https://ohofnntxmncifmssbmpt.supabase.co
+NAQO_SUPABASE_ANON_KEY=your_naqo_supabase_anon_key
+NAQO_SUPABASE_TABLE=min60
+NAQO_DEFAULT_DATA_TYPE=min60
+NAQO_TZ_WORKAROUND=true
+```
+
+`NAQO_SUPABASE_ANON_KEY` 不要寫進 Git。若需要本地歷史查詢或 cache，再進入第二階段：建立 `database/naqo_schema.sql`，並用 `scripts/sync_naqo.py` 從 Supabase 增量同步。
 
 ## 建議建置順序
 
@@ -46,6 +74,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/tyd
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_point_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
 
@@ -69,6 +98,12 @@ python scripts/import_moe_stations.py
 # TYDEP（需先轉檔）
 python scripts/convert_tydep_xlsx.py
 python scripts/import_tydep_stations.py
+
+# NAQO（第二階段：同步 Supabase min60 至本地 PostgreSQL）
+python scripts/sync_naqo.py
+
+# NAQO 指定時間範圍回補
+python scripts/import_naqo_supabase.py --start "2026-08-01T00:00:00" --end "2026-08-08T00:00:00"
 ```
 
 ## 重新匯入（清空重來）
@@ -85,6 +120,11 @@ DROP TABLE IF EXISTS wind_lidar_parameters CASCADE;
 DROP TABLE IF EXISTS uav_data CASCADE;
 DROP TABLE IF EXISTS uav_flights CASCADE;
 DROP TABLE IF EXISTS uav_parameters CASCADE;
+
+-- 範例：重建 NAQO
+DROP TABLE IF EXISTS naqo_hourly_data CASCADE;
+DROP TABLE IF EXISTS naqo_stations CASCADE;
+DROP TABLE IF EXISTS naqo_pollutants CASCADE;
 ```
 
 然後重新執行 schema SQL + import 腳本。

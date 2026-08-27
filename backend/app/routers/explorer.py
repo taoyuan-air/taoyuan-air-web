@@ -120,7 +120,7 @@ async def _fetch_air_history(
     if not await _table_exists(db, table_name):
         return []
 
-    station_extra = ", s.district AS district" if station_table == "tydep_stations" else ", NULL AS district"
+    station_extra = ", s.district AS district" if station_table in {"tydep_stations", "naqo_stations"} else ", NULL AS district"
     query = text(
         f"""
         SELECT
@@ -195,12 +195,14 @@ async def get_history(
         records = []
         records.extend(await _fetch_air_history(db, "moe_hourly_data", "moe_stations", "環境部", days))
         records.extend(await _fetch_air_history(db, "tydep_hourly_data", "tydep_stations", "桃園市環保局", days))
+        records.extend(await _fetch_air_history(db, "naqo_hourly_data", "naqo_stations", "中大空品站", days))
         records.extend(await _fetch_cwa_history(db, days))
 
         latest_at: Dict[str, Optional[str]] = {}
         for table, source in [
             ("moe_hourly_data", "環境部"),
             ("tydep_hourly_data", "桃園市環保局"),
+            ("naqo_hourly_data", "中大空品站"),
             ("cwa_hourly_data", "氣象署"),
         ]:
             if await _table_exists(db, table):
