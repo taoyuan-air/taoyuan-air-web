@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -191,23 +190,34 @@ async def get_history(
     days: int = Query(default=7, ge=1, le=90),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        records = []
-        records.extend(await _fetch_air_history(db, "moe_hourly_data", "moe_stations", "環境部", days))
-        records.extend(await _fetch_air_history(db, "tydep_hourly_data", "tydep_stations", "桃園市環保局", days))
-        records.extend(await _fetch_air_history(db, "naqo_hourly_data", "naqo_stations", "中大空品站", days))
-        records.extend(await _fetch_cwa_history(db, days))
+    records = []
+    errors: Dict[str, str] = {}
 
-        latest_at: Dict[str, Optional[str]] = {}
-        for table, source in [
-            ("moe_hourly_data", "環境部"),
-            ("tydep_hourly_data", "桃園市環保局"),
-            ("naqo_hourly_data", "中大空品站"),
-            ("cwa_hourly_data", "氣象署"),
-        ]:
+    sources = [
+        ("環境部", lambda: _fetch_air_history(db, "moe_hourly_data", "moe_stations", "環境部", days)),
+        ("桃園市環保局", lambda: _fetch_air_history(db, "tydep_hourly_data", "tydep_stations", "桃園市環保局", days)),
+        ("中大空品站", lambda: _fetch_air_history(db, "naqo_hourly_data", "naqo_stations", "中大空品站", days)),
+        ("氣象署", lambda: _fetch_cwa_history(db, days)),
+    ]
+    for source, fetcher in sources:
+        try:
+            records.extend(await fetcher())
+        except Exception as exc:
+            errors[source] = str(exc)
+            await db.rollback()
+
+    latest_at: Dict[str, Optional[str]] = {}
+    for table, source in [
+        ("moe_hourly_data", "環境部"),
+        ("tydep_hourly_data", "桃園市環保局"),
+        ("naqo_hourly_data", "中大空品站"),
+        ("cwa_hourly_data", "氣象署"),
+    ]:
+        try:
             if await _table_exists(db, table):
                 latest_at[source] = await _get_latest(db, table)
+        except Exception as exc:
+            errors[f"{source} latestAt"] = str(exc)
+            await db.rollback()
 
-        return {"data": records, "count": len(records), "latestAt": latest_at}
-    except SQLAlchemyError as exc:
-        return {"data": [], "count": 0, "error": str(exc), "latestAt": {}}
+    return {"data": records, "count": len(records), "latestAt": latest_at, "errors": errors}
