@@ -490,7 +490,7 @@ const DEFAULT_PARAMETER = '全部量測參數';
 const DEFAULT_SOURCE = '全部來源';
 const DEFAULT_REGION = '所有區域';
 
-const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', 'NOx', '氣溫', '風速', '1小時雨量'];
+const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', 'NOx', 'CO2', '氣溫', '風速', '1小時雨量'];
 
 // 新增資料來源時，請同步補上該來源可查詢的量測參數。
 const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
@@ -499,7 +499,7 @@ const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
   桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
   氣象署: [DEFAULT_PARAMETER, '氣溫', '風速', '1小時雨量'],
   微感測器: [DEFAULT_PARAMETER, 'PM2.5'],
-  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'O3', 'CO', 'SO2', 'NOx'],
+  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'O3', 'CO', 'SO2', 'NOx', 'CO2'],
 };
 
 const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區', '新屋區', '楊梅區','復興區', '八德區',];
@@ -1144,10 +1144,12 @@ export default function ExplorerPage() {
     const moeHistory = historyData.filter(d => d.source === '環境部');
     const cwaHistory = historyData.filter(d => d.source === '氣象署');
     const tydepSource = historyData.filter(d => d.source === '桃園市環保局');
-    const historySource = activeTime === '近24小時' ? [] : [...tydepSource, ...moeHistory, ...cwaHistory];
+    const naqoHistory = historyData.filter(d => d.source === '中大空品站');
 
-    return [...moeCards, ...cwaCards, ...historySource, ...naqoCards, ...MICRO_SENSOR_MOCK_DATA];
-  }, [activeTime, historyData, moeStations, cwaCards, naqoCards]);
+    const realtimeSource = [...moeCards, ...cwaCards, ...naqoCards, ...MICRO_SENSOR_MOCK_DATA];
+    const historySource = [...tydepSource, ...moeHistory, ...cwaHistory, ...naqoHistory];
+
+    return activeTime === '近24小時' ? realtimeSource : historySource;}, [activeTime, historyData, moeStations, cwaCards, naqoCards]);
 
   const filtered = useMemo(() => allMonitoringData.filter(item => {
     if (searchText) {
