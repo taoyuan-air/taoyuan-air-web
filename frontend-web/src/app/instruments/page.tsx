@@ -41,12 +41,13 @@ interface OrbitNode {
   summary: string;
   icon: React.ReactNode;
 }
+// 公式：(angleDeg - 90) * PI/180，所以 angleDeg=0 → 正上方，順時針每 72°
 const ORBIT_NODES: OrbitNode[] = [
-  { id: 'specs',      angleDeg: 315, title: '技術規格',   summary: '飛行高度、解析度、定位精度等硬體參數',  icon: <Cpu      size={16}/> },
-  { id: 'params',     angleDeg: 45,  title: '量測參數',   summary: '溫度、濕度、PM2.5 等多項大氣量測值',   icon: <Activity size={16}/> },
-  { id: 'deploy',     angleDeg: 135, title: '部署站點',   summary: '觀音站現地部署位置與儀器序號',          icon: <MapPin   size={16}/> },
-  { id: 'advantages', angleDeg: 225, title: '儀器優勢',   summary: '相較傳統固定站的五大核心優勢',          icon: <Zap      size={16}/> },
-  { id: 'principle',  angleDeg: 180, title: '量測原理',   summary: '感測器工作機制與資料採集流程說明',       icon: <Info     size={16}/> },
+  { id: 'specs',      angleDeg: 0,   title: '技術規格', summary: '飛行高度、解析度、定位精度等硬體參數', icon: <Cpu      size={16}/> },
+  { id: 'params',     angleDeg: 72,  title: '量測參數', summary: '溫度、濕度、PM2.5 等多項大氣量測值',  icon: <Activity size={16}/> },
+  { id: 'deploy',     angleDeg: 144, title: '部署站點', summary: '觀音站現地部署位置與儀器序號',         icon: <MapPin   size={16}/> },
+  { id: 'advantages', angleDeg: 216, title: '儀器優勢', summary: '相較傳統固定站的五大核心優勢',         icon: <Zap      size={16}/> },
+  { id: 'principle',  angleDeg: 288, title: '量測原理', summary: '感測器工作機制與資料採集流程說明',      icon: <Info     size={16}/> },
 ];
 
 /* ─────────────────────────────────────────────────────────────
@@ -296,7 +297,7 @@ function PopoverContent({
    - 浮層從節點往「遠離中心」方向打開，
      translateX/Y 由角度決定，確保不擋中心圖示
 ───────────────────────────────────────────────────────────── */
-const SCENE    = 900;          // 容器邊長（px）
+const SCENE    = 750;          // 容器邊長（px）
 const CX       = SCENE / 2;   // 450 中心
 const ORBIT_R  = 300;         // 軌道半徑
 const NODE_D   = 90;          // 節點直徑
@@ -363,7 +364,7 @@ function OrbitScene({
 
   return (
     /* 外層置中容器，overflow visible 讓浮層可超出 */
-    <div style={{ display:'flex', justifyContent:'center', marginTop:16, overflow:'visible' }}>
+    <div style={{ display:'flex', justifyContent:'center', marginTop:40, overflow:'visible' }}>
       <div ref={sceneRef}
         style={{
           position:'relative',
