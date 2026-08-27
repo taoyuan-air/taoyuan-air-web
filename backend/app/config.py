@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     FRONTEND_URL: str = "http://localhost:3000"
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_PATH: str = "/"
 
     class Config:
         env_file = ".env"

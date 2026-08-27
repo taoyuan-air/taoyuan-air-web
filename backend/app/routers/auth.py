@@ -17,9 +17,13 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# 暫時關閉安全加密（適用於本機 http 開發）
-COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=False)
-# COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=True)
+# 由 env 控制：本機開發預設 secure=False，Production 透過 COOKIE_SECURE=true 啟用
+COOKIE_OPTS = dict(
+    httponly=True,
+    samesite=settings.COOKIE_SAMESITE,
+    secure=settings.COOKIE_SECURE,
+    path=settings.COOKIE_PATH,
+)
 
 @router.post("/register", response_model=UserPublic, status_code=201)
 async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
@@ -102,8 +106,8 @@ async def logout(response: Response, refresh_token: str = Cookie(default=None), 
         token_hash = hash_token(refresh_token)
         await db.execute(delete(RefreshToken).where(RefreshToken.token_hash == token_hash))
 
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", path=settings.COOKIE_PATH, samesite=settings.COOKIE_SAMESITE, secure=settings.COOKIE_SECURE)
+    response.delete_cookie("refresh_token", path=settings.COOKIE_PATH, samesite=settings.COOKIE_SAMESITE, secure=settings.COOKIE_SECURE)
     return {"message": "已登出"}
 
 

@@ -1,0 +1,12 @@
+# 範本檔案。VM 安裝時複製到 /etc/systemd/system/，並確認 User/WorkingDirectory
+# 與 deploy/deploy.env 的 PROJECT_DIR 一致，見 docs/VM_DEPLOYMENT_STEPS.md。
+[Unit]
+Description=Taoyuan Air deployment
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=__DEPLOY_USER__
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__PROJECT_DIR__/scripts/deploy.sh
