@@ -1,4 +1,5 @@
 // Wind Lidar API client — 與 uavApi.ts 使用相同的 /api proxy 模式
+import { API_BASE } from './apiBase';
 
 export type PanelKey = 'wind_speed' | 'wind_direction' | 'turbulence' | 'cnr';
 
@@ -28,7 +29,7 @@ export interface PlotData {
   warnings: string[];
 }
 
-const BASE = '/api/wind-lidar';
+const BASE = `${API_BASE}/wind-lidar`;
 
 export async function fetchStations(): Promise<StationInfo[]> {
   const res = await fetch(`${BASE}/stations`);
