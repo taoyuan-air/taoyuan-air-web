@@ -72,16 +72,17 @@ const WIND_DIR_COLORSCALE: [number, string][] = [
   [360 / 360, '#1010FF'],  // N   360°（循環封閉）
 ];
 
-export type ColorscaleSpec = 'Jet' | 'WindDir' | 'Viridis' | 'Plasma';
+export type ColorscaleSpec = 'Jet' | 'WindDir' | 'RdBu' | 'Viridis' | 'Plasma';
 
 const COLORSCALE_MAP: Record<ColorscaleSpec, unknown> = {
   Jet:     JET_COLORSCALE,
   WindDir: WIND_DIR_COLORSCALE,
+  RdBu:    'RdBu',
   Viridis: 'Viridis',
   Plasma:  'Plasma',
 };
 
-// ── 方向箭頭降採樣 ────────────────────────────────────────────────────────────
+// ── 方向箭頭降採樣（水平風向用：固定大小 arrow marker，方向代表風從哪來） ──────
 const MAX_ARROW_T = 40;
 const MAX_ARROW_H = 15;
 
@@ -127,6 +128,54 @@ function buildArrowTrace(
   };
 }
 
+/**
+ * 垂直風向箭頭（Vertical Wind Profile 用）
+ * X 方向帶 0，Y 方向帶 Vsp → 箭頭只有 ↑（上升）或 ↓（下降）
+ * 角度規則：Vsp > 0 → 朝上（0°），Vsp < 0 → 朝下（180°）
+ */
+function buildVerticalArrowTrace(
+  vspZ: (number | null)[][],
+  times: string[],
+  heightsKm: number[],
+): unknown {
+  const nH = heightsKm.length;
+  const nT = times.length;
+  const stepT = Math.max(1, Math.floor(nT / MAX_ARROW_T));
+  const stepH = Math.max(1, Math.floor(nH / MAX_ARROW_H));
+
+  const ax: string[] = [];
+  const ay: number[] = [];
+  const angles: number[] = [];
+
+  for (let hi = 0; hi < nH; hi += stepH) {
+    for (let ti = 0; ti < nT; ti += stepT) {
+      const vsp = vspZ[hi]?.[ti];
+      if (vsp !== null && vsp !== undefined) {
+        ax.push(times[ti]);
+        ay.push(heightsKm[hi]);
+        // Vsp > 0 上升 → 箭頭朝上（0°）；Vsp < 0 下降 → 箭頭朝下（180°）
+        angles.push(vsp >= 0 ? 0 : 180);
+      }
+    }
+  }
+
+  return {
+    type: 'scatter',
+    mode: 'markers',
+    x: ax,
+    y: ay,
+    marker: {
+      symbol: 'arrow',
+      size: 8,
+      angle: angles,
+      color: 'rgba(255,255,255,0.85)',
+      line: { color: 'rgba(0,0,0,0.3)', width: 0.5 },
+    },
+    hoverinfo: 'skip',
+    showlegend: false,
+  };
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 export interface WindLidarPanelProps {
   title: string;
@@ -138,7 +187,9 @@ export interface WindLidarPanelProps {
   zmax: number;
   unit: string;
   showArrows: boolean;
-  wdirZ?: (number | null)[][];      // 僅 showArrows=true 時需要
+  /** 'horizontal'（預設）：用 wdirZ 畫風向符號；'vertical'：用 z 自身畫 ↑↓ 箭頭 */
+  arrowType?: 'horizontal' | 'vertical';
+  wdirZ?: (number | null)[][];      // arrowType='horizontal' 時需要
   xRange?: [string, string] | null;
   onRelayout?: (event: Record<string, unknown>) => void;
   onDoubleClick?: () => void;
@@ -164,6 +215,7 @@ export default function WindLidarPanel({
   zmax,
   unit,
   showArrows,
+  arrowType = 'horizontal',
   wdirZ,
   xRange,
   onRelayout,
@@ -195,7 +247,6 @@ export default function WindLidarPanel({
           const step = (zmax - zmin) / 4;
           return [0, 1, 2, 3, 4].map((i) => {
             const v = zmin + step * i;
-            // 避免浮點數醜數字：最多保留兩位小數，去掉多餘的零
             return parseFloat(v.toFixed(2)).toString();
           });
         })(),
@@ -205,8 +256,14 @@ export default function WindLidarPanel({
 
     const traces: unknown[] = [heatmap];
 
-    if (showArrows && wdirZ && wdirZ.length > 0) {
-      traces.push(buildArrowTrace(wdirZ, times, heightsKm));
+    if (showArrows) {
+      if (arrowType === 'vertical') {
+        // 垂直風向：用 z（Vsp）自身畫 ↑↓ 箭頭
+        traces.push(buildVerticalArrowTrace(z, times, heightsKm));
+      } else if (wdirZ && wdirZ.length > 0) {
+        // 水平風向：用 wdirZ 畫方向符號
+        traces.push(buildArrowTrace(wdirZ, times, heightsKm));
+      }
     }
 
     return traces;
@@ -275,7 +332,7 @@ export default function WindLidarPanel({
       PLOTLY_CONFIG as never,
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [times, heightsKm, z, colorscale, zmin, zmax, unit, showArrows, wdirZ, xRange]);
+  }, [times, heightsKm, z, colorscale, zmin, zmax, unit, showArrows, arrowType, wdirZ, xRange]);
 
   // 初次掛載：newPlot + 綁定事件
   useEffect(() => {

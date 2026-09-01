@@ -18,13 +18,14 @@ const C = {
 
 // ── 面板中文標籤 ──────────────────────────────────────────────────────────────
 export const PANEL_LABELS: Record<PanelKey, string> = {
-  wind_speed:     '水平風速',
   wind_direction: '水平風向',
+  vertical_wind:  '垂直風向',
+  wind_speed:     '水平風速',
   turbulence:     '亂流強度',
   cnr:            '訊號強度',
 };
 
-const ALL_PANELS: PanelKey[] = ['wind_speed', 'wind_direction', 'turbulence', 'cnr'];
+const ALL_PANELS: PanelKey[] = ['wind_direction', 'vertical_wind', 'wind_speed', 'turbulence', 'cnr'];
 
 // ── 高度上限選項 ──────────────────────────────────────────────────────────────
 const HEIGHT_OPTIONS = [0.5, 1.0, 1.5];

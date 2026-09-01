@@ -38,23 +38,63 @@ const C = {
 type PanelConfig = {
   key:        PanelKey;
   title:      string;
-  colorscale: 'Jet' | 'WindDir' | 'Viridis' | 'Plasma';
+  colorscale: 'Jet' | 'WindDir' | 'RdBu' | 'Viridis' | 'Plasma';
   zmin:       number;
   zmax:       number;
   unit:       string;
   showArrows: boolean;
+  arrowType?: 'horizontal' | 'vertical';
 };
 
 const PANEL_CONFIGS: PanelConfig[] = [
-  { key: 'wind_direction', title: '水平風向 (Wdir)',   colorscale: 'WindDir', zmin: 0,  zmax: 360, unit: '°',   showArrows: true  },
-  { key: 'wind_speed',     title: '水平風速 (Hsp)',   colorscale: 'Jet',     zmin: 0,  zmax: 30,  unit: 'm/s', showArrows: true  },
-  { key: 'turbulence',     title: '亂流強度 (Turb)',  colorscale: 'Viridis', zmin: 0,  zmax: 1,   unit: '',    showArrows: false },
-  { key: 'cnr',            title: '訊號強度 (Mean Int.)', colorscale: 'Plasma', zmin: 0, zmax: 10, unit: '',    showArrows: false },
+  {
+    key: 'wind_direction',
+    title: '水平風向 (Wdir)',
+    colorscale: 'WindDir',
+    zmin: 0, zmax: 360,
+    unit: '°',
+    showArrows: false,
+  },
+  {
+    key: 'vertical_wind',
+    title: '垂直風速 (Vsp)',
+    colorscale: 'RdBu',
+    zmin: -10, zmax: 10,
+    unit: 'm/s',
+    showArrows: true,
+    arrowType: 'vertical',
+  },
+  {
+    key: 'wind_speed',
+    title: '水平風速 (Hsp)',
+    colorscale: 'Jet',
+    zmin: 0, zmax: 30,
+    unit: 'm/s',
+    showArrows: true,
+    arrowType: 'horizontal',
+  },
+  {
+    key: 'turbulence',
+    title: '亂流強度 (Turb)',
+    colorscale: 'Viridis',
+    zmin: 0, zmax: 1,
+    unit: '',
+    showArrows: false,
+  },
+  {
+    key: 'cnr',
+    title: '訊號強度 (Mean Int.)',
+    colorscale: 'Plasma',
+    zmin: 0, zmax: 10,
+    unit: '',
+    showArrows: false,
+  },
 ];
 
 const ALL_PANEL_VISIBILITY: Record<PanelKey, boolean> = {
-  wind_speed:     true,
   wind_direction: true,
+  vertical_wind:  true,
+  wind_speed:     true,
   turbulence:     true,
   cnr:            true,
 };
@@ -264,7 +304,12 @@ export default function WindLidarPage() {
                 zmax={cfg.zmax}
                 unit={cfg.unit}
                 showArrows={cfg.showArrows}
-                wdirZ={cfg.showArrows ? plotData.panels.wind_direction?.z : undefined}
+                arrowType={cfg.arrowType}
+                wdirZ={
+                  cfg.showArrows && cfg.arrowType === 'horizontal'
+                    ? plotData.panels.wind_direction?.z
+                    : undefined
+                }
                 xRange={sharedXRange}
                 onRelayout={handleRelayout}
                 onDoubleClick={handleDoubleClick}
