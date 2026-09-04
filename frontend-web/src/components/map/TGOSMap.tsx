@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { GridCell } from '@shared/types';
+import taiwanTownsData from '@/data/map-assets/TOWN_MOI_1140318.json';
+import { feature } from 'topojson-client';
 
 interface TGOSMapProps {
   gridCells: GridCell[];
@@ -49,6 +51,7 @@ interface TGOSApi {
   LineString: new (points: TGOSPoint[]) => unknown;
   LinearRing: new (lineString: unknown) => unknown;
   Polygon: new (rings: unknown[]) => unknown;
+  Polyline: new (points: TGOSPoint[], options?: Record<string, unknown>) => unknown;
   Fill: new (map: TGOSMapInstance, polygon: unknown, options: Record<string, unknown>) => TGOSFillInstance;
   OnlineMap: new (
     container: HTMLElement,
@@ -98,6 +101,40 @@ export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapPr
     }
   }, [onGridPress]);
 
+  const renderDistrictBoundaries = useCallback((TGOS: TGOSApi, map: TGOSMapInstance) => {
+    try {
+      const topoData = taiwanTownsData as any;
+      const objectKey = Object.keys(topoData.objects)[0];
+      const districtCollection = feature(topoData, topoData.objects[objectKey]) as any;
+      const districtFeatures = districtCollection.features.filter((f: any) => {
+        const name = f.properties.COUNTYNAME || '';
+        return name.includes('桃園');
+      });
+
+      districtFeatures.forEach((feature: any) => {
+        const polygons = feature.geometry.type === 'MultiPolygon'
+          ? feature.geometry.coordinates
+          : [feature.geometry.coordinates];
+        polygons.forEach((polygonCoords: any[]) => {
+          polygonCoords.forEach((ring: any) => {
+            const points = ring.map((coord: [number, number]) => new TGOS.Point(coord[0], coord[1]));
+            if (points.length > 1) {
+              const polyline = new TGOS.Polyline(points, {
+                strokeColor: '#1976D2',
+                strokeWeight: 2.5,
+                strokeOpacity: 0.75,
+                strokeStyle: 'dashed'
+              });
+              (polyline as any).addTo?.(map);
+            }
+          });
+        });
+      });
+    } catch (err) {
+      console.error('行政區邊界繪製失敗:', err);
+    }
+  }, []);
+
   useEffect(() => {
     const loadScript = (src: string, id: string) => new Promise((resolve, reject) => {
       if (document.getElementById(id)) return resolve(true);
@@ -119,6 +156,7 @@ export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapPr
         const map = new TGOS.OnlineMap(container, 'EPSG4326', { mapMode: 3 }, () => {
           map.setCenter(new TGOS.Point(121.25, 25.0));
           map.setZoom(11);
+          renderDistrictBoundaries(TGOS, map);
           if (gridCells.length > 0) renderPolygons(gridCells, TGOS, map);
         });
         tgosMapRef.current = map;
@@ -127,7 +165,7 @@ export default function TGOSMap({ gridCells, onGridPress, focusGrid }: TGOSMapPr
       }
     };
     init();
-  }, [apiKey, gridCells, renderPolygons]);
+  }, [apiKey, gridCells, renderPolygons, renderDistrictBoundaries]);
 
   useEffect(() => {
     const TGOS = getTGOS();
