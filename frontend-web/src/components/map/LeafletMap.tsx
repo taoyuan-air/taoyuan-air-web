@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExamPoint, GridCell, TEDSPoint } from '@shared/types';
-import taiwanCountiesData from '@/data/map-assets/taiwan-counties.json';
+import taiwanTownsData from '@/data/map-assets/TOWN_MOI_1140318.json';
+import { feature, mesh } from 'topojson-client';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
@@ -398,7 +399,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
             maxZoom: DETAIL_MAX_ZOOM,
             zoomControl: false,
           });
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri',
             maxZoom: DETAIL_MAX_ZOOM,
           }).addTo(detailMap);
@@ -409,28 +410,64 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           detailPointLayerGroupRef.current = L.layerGroup().addTo(detailMap);
 
           try {
-            if (taiwanCountiesData) {
-              // 從本地的全台資料中過濾出桃園
-              const taoyuanFeature = (taiwanCountiesData as any).features.find((f: any) => 
-                f.properties.COUNTYNAME === '桃園市' || f.properties.COUNTYNAME === '桃園縣'
-              );
-              
-              if (taoyuanFeature) {
-                const boundaryStyle = {
-                  color: '#d4567a', 
+            if (taiwanTownsData) {
+              const topoData = taiwanTownsData as any;
+              const objectKey = Object.keys(topoData.objects)[0];
+
+              const outerBoundary = mesh(topoData, topoData.objects[objectKey], (a, b) => a === b);
+              (L as any).geoJSON(outerBoundary, {
+                style: {
+                  color: '#1976D2', 
                   weight: 3,        
-                  fillOpacity: 0.0, 
+                  fillOpacity: 0,
                   interactive: false 
-                };
-                
-                (L as any).geoJSON(taoyuanFeature, {
-                  style: boundaryStyle
-                }).addTo(detailMap);
-              }
+                }
+              }).addTo(detailMap);
+
+              const innerBoundaries = mesh(topoData, topoData.objects[objectKey], (a, b) => a !== b);
+              (L as any).geoJSON(innerBoundaries, {
+                style: {
+                  color: '#1976D2', 
+                  weight: 1.5,      
+                  dashArray: '5, 4',
+                  fillOpacity: 0,
+                  interactive: false 
+                }
+              }).addTo(detailMap);
             }
           } catch (err) {
-            console.error('桃園市邊界繪製失敗:', err);
+            console.error('行政區邊界繪製失敗:', err);
           }
+
+          const taoyuanDistricts = [
+            { name: '桃園區', lat: 25.000, lng: 121.300 },
+            { name: '中壢區', lat: 24.980, lng: 121.215 },
+            { name: '平鎮區', lat: 24.920, lng: 121.220 },
+            { name: '八德區', lat: 24.945, lng: 121.290 },
+            { name: '楊梅區', lat: 24.920, lng: 121.130 },
+            { name: '蘆竹區', lat: 25.055, lng: 121.280 },
+            { name: '大溪區', lat: 24.875, lng: 121.293 },
+            { name: '龍潭區', lat: 24.855, lng: 121.210 },
+            { name: '龜山區', lat: 25.018, lng: 121.355 },
+            { name: '大園區', lat: 25.060, lng: 121.210 },
+            { name: '觀音區', lat: 25.025, lng: 121.110 },
+            { name: '新屋區', lat: 24.975, lng: 121.070 },
+            { name: '復興區', lat: 24.715, lng: 121.375 }
+          ];
+
+          taoyuanDistricts.forEach(dist => {
+            const textIcon = (L as any).divIcon({
+              className: 'custom-district-label',
+              html: `<div style="text-align: center;">${dist.name}</div>`,
+              iconSize: [50, 20],
+              iconAnchor: [25, 10], 
+            });
+
+            (L as any).marker([dist.lat, dist.lng], { 
+              icon: textIcon, 
+              interactive: false 
+            }).addTo(detailMap);
+          });
 
           if (gridCellsRef.current.length > 0 && detailPolygonLayerGroupRef.current) {
             renderPolygons(gridCellsRef.current, L, detailPolygonLayerGroupRef.current);
