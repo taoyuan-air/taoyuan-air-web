@@ -389,3 +389,18 @@ a {
     font-size: 21px;
   }
 }
+
+.custom-district-label {
+  background: transparent !important; 
+  border: none !important;            
+  box-shadow: none !important;        
+  color: #3b4d61;                     
+  font-weight: 800;                   
+  font-size: 13px;                    
+  white-space: nowrap;                
+  text-shadow:                        
+    -1.5px -1.5px 0 #ffffff,  
+     1.5px -1.5px 0 #ffffff,
+    -1.5px  1.5px 0 #ffffff,
+     1.5px  1.5px 0 #ffffff;
+}
