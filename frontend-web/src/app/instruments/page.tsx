@@ -43,11 +43,11 @@ interface OrbitNode {
 }
 // 公式：(angleDeg - 90) * PI/180，所以 angleDeg=0 → 正上方，順時針每 72°
 const ORBIT_NODES: OrbitNode[] = [
-  { id: 'specs',      angleDeg: 0,   title: '技術規格', summary: '飛行高度、解析度、定位精度等硬體參數', icon: <Cpu      size={16}/> },
-  { id: 'params',     angleDeg: 72,  title: '量測參數', summary: '溫度、濕度、PM2.5 等多項大氣量測值',  icon: <Activity size={16}/> },
-  { id: 'deploy',     angleDeg: 144, title: '部署站點', summary: '觀音站現地部署位置與儀器序號',         icon: <MapPin   size={16}/> },
-  { id: 'advantages', angleDeg: 216, title: '儀器優勢', summary: '相較傳統固定站的五大核心優勢',         icon: <Zap      size={16}/> },
-  { id: 'principle',  angleDeg: 288, title: '量測原理', summary: '感測器工作機制與資料採集流程說明',      icon: <Info     size={16}/> },
+  { id: 'specs',      angleDeg: 0,   title: '技術規格', summary: '飛行高度、解析度、定位精度等硬體參數', icon: <Cpu      size={20}/> },
+  { id: 'params',     angleDeg: 72,  title: '量測參數', summary: '溫度、濕度、PM2.5 等多項大氣量測值',  icon: <Activity size={20}/> },
+  { id: 'deploy',     angleDeg: 144, title: '部署站點', summary: '觀音站現地部署位置與儀器序號',         icon: <MapPin   size={20}/> },
+  { id: 'advantages', angleDeg: 216, title: '儀器優勢', summary: '相較傳統固定站的五大核心優勢',         icon: <Zap      size={20}/> },
+  { id: 'principle',  angleDeg: 288, title: '量測原理', summary: '感測器工作機制與資料採集流程說明',      icon: <Info     size={20}/> },
 ];
 
 /* ─────────────────────────────────────────────────────────────
@@ -289,108 +289,94 @@ function PopoverContent({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   軌道節點元件（桌面用）
-   
-   設計原則：
-   - 容器固定 900×900px，中心 (450,450)
-   - 軌道半徑 300px，節點按鈕 90px
-   - 浮層從節點往「遠離中心」方向打開，
-     translateX/Y 由角度決定，確保不擋中心圖示
+   軌道場景常數
 ───────────────────────────────────────────────────────────── */
-const SCENE    = 750;          // 容器邊長（px）
-const CX       = SCENE / 2;   // 450 中心
-const ORBIT_R  = 300;         // 軌道半徑
-const NODE_D   = 90;          // 節點直徑
-const NODE_R   = NODE_D / 2;  // 45
-const POP_W    = 360;         // 浮層寬度
-const POP_GAP  = NODE_R + 14; // 節點邊緣到浮層起點距離
+const SCENE   = 750;          // 容器邊長（px），全寬模式
+const CX      = SCENE / 2;   // 375 中心
+const ORBIT_R = 278;          // 軌道半徑（縮減使放大後節點不超邊）
+const NODE_D  = 114;          // 節點直徑（放大）
 
-/** 根據節點角度算出浮層的 transform，往外側推 */
-function popoverTransform(angleDeg: number): string {
-  const rad = (angleDeg - 90) * Math.PI / 180;
-  // 外側方向的單位向量
-  const ux = Math.cos(rad);
-  const uy = Math.sin(rad);
+// 分割模式：場景等比縮小以適應左半寬度
+// 左半約 48vw，最大 560px，場景要留一些 padding
+const SPLIT_SCALE = 0.68;     // 750 * 0.68 ≈ 510px
 
-  // 水平：右側 → 左邊緣對齊節點右側；左側 → 右邊緣對齊節點左側
-  const toRight = ux >= 0;
-  // 垂直：下方 → 上緣對齊；上方 → 下緣對齊；中間 → 垂直居中
-  const absMidY = Math.abs(uy);
-
-  let tx: number;
-  let ty: number;
-
-  if (toRight) {
-    // 浮層左邊緣 = 節點右邊緣 + gap
-    tx = POP_GAP;
-  } else {
-    // 浮層右邊緣 = 節點左邊緣 - gap  →  left = -(POP_W + POP_GAP)
-    tx = -(POP_W + POP_GAP);
-  }
-
-  if (absMidY < 0.3) {
-    // 幾乎純水平（左右）：垂直居中
-    ty = -200; // 約浮層高度一半
-  } else if (uy > 0) {
-    // 節點偏下方 → 浮層往上展（底部對齊節點中心）
-    ty = -380;
-  } else {
-    // 節點偏上方 → 浮層往下展（頂部對齊節點中心）
-    ty = 0;
-  }
-
-  return `translate(${tx}px, ${ty}px)`;
+/* ─────────────────────────────────────────────────────────────
+   InfoPanel — 右側資訊面板
+───────────────────────────────────────────────────────────── */
+function InfoPanel({
+  nodeId, ins, accent, onClose,
+}: {
+  nodeId: NodeId; ins: Instrument; accent: string; onClose: () => void;
+}) {
+  const node = ORBIT_NODES.find(n => n.id === nodeId)!;
+  return (
+    <div className="info-panel" style={{ '--ac': accent } as React.CSSProperties}>
+      {/* 標題欄 */}
+      <div className="info-panel-header">
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div className="info-panel-icon" style={{ background:`${accent}18`, border:`1.5px solid ${accent}40`, color:accent }}>
+            {node.icon}
+          </div>
+          <div>
+            <div className="info-panel-title">{node.title}</div>
+            <div className="info-panel-summary">{node.summary}</div>
+          </div>
+        </div>
+        <button className="info-panel-close" onClick={onClose} aria-label="關閉">
+          <X size={14}/>
+        </button>
+      </div>
+      {/* 內容 */}
+      <div className="info-panel-body">
+        <PopoverContent nodeId={nodeId} ins={ins} accent={accent}/>
+      </div>
+    </div>
+  );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   OrbitScene — 桌面版軌道場景
+───────────────────────────────────────────────────────────── */
 function OrbitScene({
-  ins, accent, openId, setOpenId,
+  ins, accent, openId, onNodeClick,
 }: {
   ins: Instrument; accent: string;
-  openId: NodeId | null; setOpenId: (id: NodeId | null) => void;
+  openId: NodeId | null;
+  onNodeClick: (id: NodeId) => void;
 }) {
-  const sceneRef   = useRef<HTMLDivElement>(null);
-
-  // 點外部關閉
-  useEffect(() => {
-    if (!openId) return;
-    const handler = (e: MouseEvent) => {
-      if (sceneRef.current && !sceneRef.current.contains(e.target as Node)) {
-        setOpenId(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [openId, setOpenId]);
+  const splitMode = openId !== null;
 
   return (
-    /* 外層置中容器，overflow visible 讓浮層可超出 */
-    <div style={{ display:'flex', justifyContent:'center', marginTop:40, overflow:'visible' }}>
-      <div ref={sceneRef}
+    <div
+      className={`orbit-scene-wrap${splitMode ? ' orbit-scene-wrap--split' : ''}`}
+      style={{ '--ac': accent } as React.CSSProperties}
+    >
+      {/* 縮放容器：scale 由 CSS 控制，transformOrigin center */}
+      <div
+        className="orbit-scene-inner"
         style={{
-          position:'relative',
-          width: SCENE, height: SCENE,
-          flexShrink: 0,
-          userSelect:'none',
-          overflow:'visible',
-        }}>
-
+          position: 'relative',
+          width: SCENE,
+          height: SCENE,
+          userSelect: 'none',
+          overflow: 'visible',
+          transformOrigin: 'center center',
+        }}
+      >
         {/* ── 軌道圓 + 連線（SVG 底層） ── */}
         <svg style={{ position:'absolute', inset:0, width:SCENE, height:SCENE, pointerEvents:'none', overflow:'visible' }}>
-          {/* 外環裝飾 */}
           <circle cx={CX} cy={CX} r={ORBIT_R + 28}
             fill="none" stroke="rgba(212,86,122,0.05)" strokeWidth="1"/>
-          {/* 主軌道 */}
           <circle cx={CX} cy={CX} r={ORBIT_R}
             fill="none"
             stroke="rgba(212,86,122,0.18)"
             strokeWidth="1.5"
             strokeDasharray="7 5"
           />
-          {/* 中心 → 各節點的連線 */}
           {ORBIT_NODES.map(n => {
-            const rad = (n.angleDeg - 90) * Math.PI / 180;
-            const nx  = CX + Math.cos(rad) * ORBIT_R;
-            const ny  = CX + Math.sin(rad) * ORBIT_R;
+            const rad    = (n.angleDeg - 90) * Math.PI / 180;
+            const nx     = CX + Math.cos(rad) * ORBIT_R;
+            const ny     = CX + Math.sin(rad) * ORBIT_R;
             const isOpen = openId === n.id;
             return (
               <line key={n.id}
@@ -398,7 +384,7 @@ function OrbitScene({
                 stroke={isOpen ? accent : 'rgba(212,86,122,0.10)'}
                 strokeWidth={isOpen ? 2 : 1}
                 strokeDasharray={isOpen ? 'none' : '4 4'}
-                style={{ transition:'stroke 0.2s, stroke-width 0.2s' }}
+                style={{ transition:'stroke 0.25s, stroke-width 0.25s' }}
               />
             );
           })}
@@ -418,12 +404,7 @@ function OrbitScene({
           zIndex: 2,
           overflow: 'hidden',
         }}>
-          <div style={{ width:164, height:164 }}>{ins.centerIcon}</div>
-          <div style={{
-            position:'absolute', bottom:10, left:0, right:0,
-            textAlign:'center', fontSize:10, fontWeight:700, color:accent, opacity:0.50,
-          }}>（老師提供圖片替換）</div>
-        </div>
+          <div style={{ width:164, height:164 }}>{ins.centerIcon}</div></div>
 
         {/* ── 各節點 ── */}
         {ORBIT_NODES.map(n => {
@@ -438,12 +419,10 @@ function OrbitScene({
                 position:'absolute',
                 left: nx, top: ny,
                 transform: 'translate(-50%, -50%)',
-                zIndex: isOpen ? 30 : 5,
+                zIndex: 5,
               }}>
-
-              {/* 節點按鈕 */}
               <button
-                onClick={() => setOpenId(isOpen ? null : n.id)}
+                onClick={() => onNodeClick(n.id)}
                 aria-expanded={isOpen}
                 className={`orbit-node${isOpen ? ' orbit-node--open' : ''}`}
                 style={{ '--ac': accent } as React.CSSProperties}
@@ -451,32 +430,6 @@ function OrbitScene({
                 <span className="orbit-node-icon">{n.icon}</span>
                 <span className="orbit-node-title">{n.title}</span>
               </button>
-
-              {/* 浮層：往節點外側方向打開 */}
-              {isOpen && (
-                <div
-                  className="orbit-popover"
-                  style={{
-                    position:'absolute',
-                    top: 0, left: 0,
-                    transform: popoverTransform(n.angleDeg),
-                    '--ac': accent,
-                  } as React.CSSProperties}
-                >
-                  <div className="orbit-popover-header">
-                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ color: accent, display:'flex' }}>{n.icon}</span>
-                      <span className="orbit-popover-title">{n.title}</span>
-                    </div>
-                    <button onClick={() => setOpenId(null)} className="orbit-popover-close">
-                      <X size={13}/>
-                    </button>
-                  </div>
-                  <div className="orbit-popover-body">
-                    <PopoverContent nodeId={n.id} ins={ins} accent={accent}/>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
@@ -550,18 +503,72 @@ function TabBar({ active, onChange }: { active: 'uav' | 'wind-lidar'; onChange: 
    主頁面
 ───────────────────────────────────────────────────────────── */
 export default function InstrumentsPage() {
-  const [tab, setTab]       = useState<'uav' | 'wind-lidar'>('uav');
-  const [openId, setOpenId] = useState<NodeId | null>(null);
+  const [tab, setTab]         = useState<'uav' | 'wind-lidar'>('uav');
+  // openId  = 實際顯示中的節點（面板可見）
+  // visId   = 右側面板渲染的節點（切換時短暫保留舊內容）
+  const [openId, setOpenId]   = useState<NodeId | null>(null);
+  const [visId, setVisId]     = useState<NodeId | null>(null);
+  const [panelVisible, setPanelVisible] = useState(false);
+  const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const ins    = INSTRUMENTS.find(i => i.id === tab)!;
   const accent = ins.accentColor;
+
+  // 切換節點：先淡出 → 快速換內容 → 淡入
+  const handleNodeClick = (id: NodeId) => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+
+    if (openId === id) {
+      // 點同一個 → 關閉
+      setPanelVisible(false);
+      switchTimer.current = setTimeout(() => {
+        setOpenId(null);
+        setVisId(null);
+      }, 200);
+    } else if (openId === null) {
+      // 從無到有 → 直接打開
+      setVisId(id);
+      setOpenId(id);
+      // 下一 frame 設 visible 觸發動畫
+      requestAnimationFrame(() => setPanelVisible(true));
+    } else {
+      // 切換到另一個 → 快速淡出再換
+      setPanelVisible(false);
+      switchTimer.current = setTimeout(() => {
+        setVisId(id);
+        setOpenId(id);
+        requestAnimationFrame(() => setPanelVisible(true));
+      }, 130); // 比關閉短，感覺更快
+    }
+  };
+
+  const handleClose = () => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+    setPanelVisible(false);
+    switchTimer.current = setTimeout(() => {
+      setOpenId(null);
+      setVisId(null);
+    }, 200);
+  };
+
+  // Tab 切換時重置
+  const handleTabChange = (v: 'uav' | 'wind-lidar') => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+    setPanelVisible(false);
+    setOpenId(null);
+    setVisId(null);
+    setTab(v);
+  };
+
+  // 清理 timer
+  useEffect(() => () => { if (switchTimer.current) clearTimeout(switchTimer.current); }, []);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--app-bg-gradient)', paddingBottom:80 }}>
 
       {/* Tab */}
       <div style={{ padding:'40px 0 8px 36px' }}>
-        <TabBar active={tab} onChange={v => { setTab(v); setOpenId(null); }}/>
+        <TabBar active={tab} onChange={handleTabChange}/>
       </div>
 
       {/* ── 頂部橫幅 ── */}
@@ -586,9 +593,23 @@ export default function InstrumentsPage() {
         </div>
       </div>
 
-      {/* ── 桌面版：軌道場景 ── */}
-      <div className="inst-orbit-wrapper">
-        <OrbitScene ins={ins} accent={accent} openId={openId} setOpenId={setOpenId}/>
+      {/* ── 桌面版：split-screen 容器 ── */}
+      <div className={`inst-split-container${openId ? ' inst-split-container--open' : ''}`}>
+        {/* 左半：軌道場景 */}
+        <div className="inst-split-left">
+          <OrbitScene ins={ins} accent={accent} openId={openId} onNodeClick={handleNodeClick}/>
+        </div>
+        {/* 右半：資訊面板 */}
+        <div className={`inst-split-right${panelVisible ? ' inst-split-right--visible' : ''}`}>
+          {visId && (
+            <InfoPanel
+              nodeId={visId}
+              ins={ins}
+              accent={accent}
+              onClose={handleClose}
+            />
+          )}
+        </div>
       </div>
 
       {/* ── 手機版：垂直卡片 ── */}
@@ -608,7 +629,7 @@ export default function InstrumentsPage() {
 
       {/* ── Styles ── */}
       <style>{`
-        /* Banner */
+        /* ── Banner ── */
         .inst-banner {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -630,15 +651,84 @@ export default function InstrumentsPage() {
           box-shadow: ${C.glassShadow};
         }
 
-        /* Orbit */
-        .inst-orbit-wrapper {
-          display: block;
-          overflow: visible;
-          margin: 0 auto;
+        /* ── Split-screen 容器 ── */
+        /*
+         * 預設：軌道場景置中顯示（全寬）
+         * --open：左半 + 右半 side-by-side
+         */
+        .inst-split-container {
+          display: flex;
+          align-items: flex-start;
+          overflow: hidden;
+          margin-top: 16px;
+          min-height: ${SCENE * SPLIT_SCALE + 40}px;
+          /* 防止右側面板在任何尺寸下溢出 */
+          box-sizing: border-box;
+          width: 100%;
         }
-        .inst-mobile-list { display: none; }
 
-        /* 軌道節點按鈕 */
+        /* 左半：軌道場景 */
+        .inst-split-left {
+          flex: 0 0 100%;
+          min-width: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          transition: flex-basis 0.55s cubic-bezier(0.34, 1.28, 0.64, 1);
+          overflow: visible;
+          padding-top: 24px;
+        }
+        .inst-split-container--open .inst-split-left {
+          flex-basis: 48%;
+        }
+
+        /* 右半：資訊面板容器 */
+        .inst-split-right {
+          flex: 0 0 0%;
+          min-width: 0;
+          overflow: hidden;
+          opacity: 0;
+          transition: flex-basis 0.55s cubic-bezier(0.34, 1.28, 0.64, 1),
+                      opacity   0.20s ease;
+          padding-top: 24px;
+          padding-right: 36px;
+          box-sizing: border-box;
+        }
+        .inst-split-container--open .inst-split-right {
+          flex-basis: 52%;
+        }
+        .inst-split-right--visible {
+          opacity: 1;
+        }
+
+        /* ── 軌道場景 wrap（內部縮放） ── */
+        .orbit-scene-wrap {
+          display: flex;
+          justify-content: center;
+          overflow: visible;
+          transition: transform 0.50s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transform-origin: center top;
+          transform: scale(1);
+        }
+        .orbit-scene-wrap--split {
+          transform: scale(${SPLIT_SCALE});
+          animation: scene-bounce 0.50s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes scene-bounce {
+          0%   { transform: scale(1); }
+          100% { transform: scale(${SPLIT_SCALE}); }
+        }
+
+        /* 恢復全寬時 */
+        .orbit-scene-wrap:not(.orbit-scene-wrap--split) {
+          animation: scene-expand 0.50s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes scene-expand {
+          0%   { transform: scale(${SPLIT_SCALE}); }
+          100% { transform: scale(1); }
+        }
+
+        /* ── 軌道節點按鈕 ── */
         .orbit-node {
           width: ${NODE_D}px;
           height: ${NODE_D}px;
@@ -650,7 +740,7 @@ export default function InstrumentsPage() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 5px;
+          gap: 6px;
           box-shadow: 0 2px 14px rgba(180,140,160,0.16);
           transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.18s;
           outline: none;
@@ -670,12 +760,47 @@ export default function InstrumentsPage() {
             0 0 0 6px color-mix(in srgb, var(--ac) 14%, transparent),
             0 6px 28px rgba(180,140,160,0.22);
           transform: scale(1.12);
-          animation: node-pop 0.24s cubic-bezier(0.34,1.56,0.64,1);
+          animation: node-pop 0.28s cubic-bezier(0.34,1.56,0.64,1);
         }
         @keyframes node-pop {
-          0%   { transform: scale(0.86); }
+          0%   { transform: scale(0.82); }
+          60%  { transform: scale(1.18); }
           100% { transform: scale(1.12); }
         }
+
+        /* split mode 時節點放大：補回 scale(0.68) 並再額外放大
+           使用 animation 取代 transition，避免與場景 scale 動畫衝突 */
+        .orbit-scene-wrap--split .orbit-node {
+          transform: scale(1.40);
+          transform-origin: center center;
+          animation: node-counter-scale-in 0.50s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+        @keyframes node-counter-scale-in {
+          0%   { transform: scale(1); }
+          100% { transform: scale(1.40); }
+        }
+        .orbit-scene-wrap:not(.orbit-scene-wrap--split) .orbit-node {
+          animation: node-counter-scale-out 0.50s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+        @keyframes node-counter-scale-out {
+          0%   { transform: scale(1.40); }
+          100% { transform: scale(1); }
+        }
+        .orbit-scene-wrap--split .orbit-node:hover {
+          transform: scale(1.50);
+        }
+        .orbit-scene-wrap--split .orbit-node--open {
+          transform: scale(1.58);
+          animation: node-pop-split 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards;
+        }
+        @keyframes node-pop-split {
+          0%   { transform: scale(1.20); }
+          60%  { transform: scale(1.64); }
+          100% { transform: scale(1.58); }
+        }
+
         .orbit-node-icon {
           display: flex; align-items: center;
           color: ${C.muted};
@@ -684,7 +809,7 @@ export default function InstrumentsPage() {
         .orbit-node--open .orbit-node-icon,
         .orbit-node:hover .orbit-node-icon { color: var(--ac); }
         .orbit-node-title {
-          font-size: 11px; font-weight: 800;
+          font-size: 12px; font-weight: 800;
           color: ${C.muted};
           text-align: center; line-height: 1.2;
           letter-spacing: 0.2px;
@@ -693,55 +818,68 @@ export default function InstrumentsPage() {
         .orbit-node--open .orbit-node-title,
         .orbit-node:hover .orbit-node-title { color: var(--ac); }
 
-        /* 浮層 */
-        .orbit-popover {
-          position: absolute;
-          width: ${POP_W}px;
-          max-height: 520px;
-          overflow-y: auto;
+        /* ── InfoPanel（右側面板） ── */
+        .info-panel {
           background: rgba(255,255,255,0.97);
           border: 2px solid var(--ac);
-          border-radius: 18px;
+          border-radius: 20px;
           box-shadow:
             0 0 0 5px color-mix(in srgb, var(--ac) 10%, transparent),
-            0 16px 48px rgba(130,80,110,0.20);
-          z-index: 40;
-          animation: pop-in 0.24s cubic-bezier(0.34,1.4,0.64,1);
+            0 16px 48px rgba(130,80,110,0.18);
+          display: flex;
+          flex-direction: column;
+          max-height: ${SCENE * SPLIT_SCALE}px;
+          animation: panel-slide-in 0.32s cubic-bezier(0.34,1.4,0.64,1);
         }
-        @keyframes pop-in {
-          0%   { opacity:0; scale: 0.88; }
-          100% { opacity:1; scale: 1; }
+        @keyframes panel-slide-in {
+          0%   { opacity: 0; transform: translateX(40px) scale(0.95); }
+          60%  { transform: translateX(-6px) scale(1.01); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
         }
-        .orbit-popover-header {
+        .info-panel-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 12px 14px 10px;
+          padding: 16px 18px 14px;
           border-bottom: 1px solid rgba(180,140,160,0.12);
           position: sticky;
           top: 0;
           background: rgba(255,255,255,0.97);
-          border-radius: 16px 16px 0 0;
+          border-radius: 18px 18px 0 0;
           z-index: 1;
+          flex-shrink: 0;
         }
-        .orbit-popover-title {
-          font-size: 14px; font-weight: 800;
-          color: ${C.text};
+        .info-panel-icon {
+          width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
         }
-        .orbit-popover-close {
-          width: 24px; height: 24px; border-radius: 6px;
-          border: 1px solid rgba(180,140,160,0.20);
+        .info-panel-title {
+          font-size: 15px; font-weight: 900; color: ${C.text}; margin-bottom: 2px;
+        }
+        .info-panel-summary {
+          font-size: 11px; color: ${C.hint}; font-weight: 500;
+        }
+        .info-panel-close {
+          width: 28px; height: 28px; border-radius: 8px;
+          border: 1.5px solid rgba(180,140,160,0.22);
           background: rgba(0,0,0,0.03);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: ${C.hint};
-          transition: background 0.15s, color 0.15s;
+          transition: background 0.15s, color 0.15s, transform 0.15s;
+          flex-shrink: 0;
         }
-        .orbit-popover-close:hover { background: rgba(212,86,122,0.08); color: ${C.rose}; }
-        .orbit-popover-body {
-          padding: 12px 14px 14px;
+        .info-panel-close:hover {
+          background: rgba(212,86,122,0.08);
+          color: ${C.rose};
+          transform: scale(1.1);
+        }
+        .info-panel-body {
+          padding: 16px 18px 20px;
+          overflow-y: auto;
+          flex: 1;
         }
 
-        /* 規格列 */
+        /* ── 規格列 ── */
         .pop-spec-row {
           display: flex; align-items: flex-start; gap: 9px;
           padding: 9px 0;
@@ -762,7 +900,7 @@ export default function InstrumentsPage() {
         }
         .pop-expand-btn:hover { opacity: 1; }
 
-        /* 參數按鈕（浮層內）*/
+        /* ── 參數按鈕 ── */
         .pop-param-btn {
           width: 100%; text-align: left;
           background: rgba(255,255,255,0.60);
@@ -798,7 +936,7 @@ export default function InstrumentsPage() {
         .pop-param-range { font-size:10.5px; color:${C.hint}; font-weight:600; margin-bottom:3px; }
         .pop-param-desc  { font-size:12px; color:${C.muted}; line-height:1.6; }
 
-        /* 手機版卡片 */
+        /* ── 手機版卡片 ── */
         .mobile-section {
           background: rgba(255,255,255,0.90);
           border: 1px solid rgba(212,86,122,0.08);
@@ -832,19 +970,93 @@ export default function InstrumentsPage() {
           to   { opacity:1; transform:translateY(0); }
         }
 
-        /* RWD */
-        @media (max-width: 768px) {
+        /* ── RWD ── */
+
+        /* 大螢幕（>= 1200px）：標準 split-screen，左 48% / 右 52% */
+
+        /* 中等螢幕（1000~1199px）：縮小 split scale，左右各 50% */
+        @media (min-width: 1000px) and (max-width: 1199px) {
+          .inst-split-container--open .inst-split-left  { flex-basis: 50%; }
+          .inst-split-container--open .inst-split-right { flex-basis: 50%; }
+          .inst-split-right { padding-right: 20px; }
+          .orbit-scene-wrap--split { transform: scale(0.60); }
+          @keyframes scene-bounce {
+            0%   { transform: scale(1); }
+            100% { transform: scale(0.60); }
+          }
+          @keyframes scene-expand {
+            0%   { transform: scale(0.60); }
+            100% { transform: scale(1); }
+          }
+          @keyframes node-counter-scale-in {
+            0%   { transform: scale(1); }
+            100% { transform: scale(1.40); }
+          }
+          @keyframes node-counter-scale-out {
+            0%   { transform: scale(1.40); }
+            100% { transform: scale(1); }
+          }
+        }
+
+        /* 小桌面 / 大平板（901~999px）：
+           改成直向排列：場景在上（全寬縮放），面板在下 */
+        @media (min-width: 901px) and (max-width: 999px) {
+          .inst-split-container {
+            flex-direction: column;
+            align-items: center;
+            min-height: unset;
+          }
+          .inst-split-left {
+            flex-basis: auto !important;
+            width: 100%;
+          }
+          .inst-split-right {
+            flex-basis: auto !important;
+            width: calc(100% - 72px);
+            padding-right: 36px;
+            padding-left: 36px;
+            padding-top: 16px;
+          }
+          .orbit-scene-wrap--split {
+            transform: scale(0.82);
+          }
+          @keyframes scene-bounce {
+            0%   { transform: scale(1); }
+            100% { transform: scale(0.82); }
+          }
+          @keyframes scene-expand {
+            0%   { transform: scale(0.82); }
+            100% { transform: scale(1); }
+          }
+          @keyframes node-counter-scale-in {
+            0%   { transform: scale(1); }
+            100% { transform: scale(1.40); }
+          }
+          @keyframes node-counter-scale-out {
+            0%   { transform: scale(1.40); }
+            100% { transform: scale(1); }
+          }
+          .inst-split-container--open .inst-split-left  { flex-basis: auto; }
+          .inst-split-container--open .inst-split-right { flex-basis: auto; opacity: 1; }
+          .inst-split-right--visible { opacity: 1; }
+        }
+
+        /* 手機 / 小平板（<= 900px）：隱藏 split，顯示 mobile list */
+        @media (max-width: 900px) {
           .inst-banner {
             grid-template-columns: 1fr;
             margin: 16px 20px 0;
           }
-          .inst-orbit-wrapper { display: none; }
+          .inst-split-container { display: none; }
           .inst-mobile-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
             margin: 20px 20px 0;
           }
+        }
+        @media (min-width: 901px) {
+          .inst-mobile-list { display: none; }
         }
       `}</style>
     </div>
