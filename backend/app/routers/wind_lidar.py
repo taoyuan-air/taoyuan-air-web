@@ -23,10 +23,11 @@ router = APIRouter(prefix="/wind-lidar", tags=["wind-lidar"])
 
 # ── 面板設定（colorMin / colorMax / unit）────────────────────────────────────
 PANEL_CONFIG: dict[str, dict] = {
-    "wind_speed":      {"param_id": "hsp",      "unit": "m/s", "colorMin": 0.0,  "colorMax": 30.0},
-    "wind_direction":  {"param_id": "wdir",     "unit": "°",   "colorMin": 0.0,  "colorMax": 360.0},
-    "turbulence":      {"param_id": "turb",     "unit": "",    "colorMin": 0.0,  "colorMax": 1.0},
-    "cnr":             {"param_id": "mean_int", "unit": "",    "colorMin": 0.0,  "colorMax": 10.0},
+    "wind_direction":  {"param_id": "wdir",     "unit": "°",   "colorMin": 0.0,   "colorMax": 360.0},
+    "vertical_wind":   {"param_id": "vsp",      "unit": "m/s", "colorMin": -10.0, "colorMax": 10.0},
+    "wind_speed":      {"param_id": "hsp",      "unit": "m/s", "colorMin": 0.0,   "colorMax": 30.0},
+    "turbulence":      {"param_id": "turb",     "unit": "",    "colorMin": 0.0,   "colorMax": 1.0},
+    "cnr":             {"param_id": "mean_int", "unit": "",    "colorMin": 0.0,   "colorMax": 10.0},
 }
 
 ALL_PANELS = list(PANEL_CONFIG.keys())
@@ -122,7 +123,7 @@ async def get_plot_data(
     station:   str   = Query(..., description="測站 ID，例如 TMA_328"),
     date:      str   = Query(..., description="日期 YYYY-MM-DD（台灣時間）"),
     heightMax: float = Query(default=1.0, description="高度上限（km）"),
-    panels:    str   = Query(default="wind_speed,wind_direction,turbulence,cnr",
+    panels:    str   = Query(default="wind_direction,vertical_wind,wind_speed,turbulence,cnr",
                              description="要回傳的面板，逗號分隔"),
     db: AsyncSession = Depends(get_db),
 ):

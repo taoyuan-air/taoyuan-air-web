@@ -1,7 +1,7 @@
 // Wind Lidar API client — 與 uavApi.ts 使用相同的 /api proxy 模式
 import { API_BASE } from './apiBase';
 
-export type PanelKey = 'wind_speed' | 'wind_direction' | 'turbulence' | 'cnr';
+export type PanelKey = 'wind_direction' | 'vertical_wind' | 'wind_speed' | 'turbulence' | 'cnr';
 
 export interface StationInfo {
   station: string;
@@ -21,8 +21,9 @@ export interface PlotData {
   heightsKm: number[];    // 升冪，單位公里
   times: string[];        // 'YYYY-MM-DD HH:MM' 格式，台灣本地時間
   panels: {
-    wind_speed:     PanelData;
     wind_direction: PanelData;
+    vertical_wind:  PanelData;
+    wind_speed:     PanelData;
     turbulence:     PanelData;
     cnr:            PanelData;
   };
