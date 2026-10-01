@@ -259,7 +259,7 @@ export default function EventsPage() {
   const selectedFlight = flights.find((f) => f.flight_id === selectedId);
 
   // ── 根據 activeView 決定頁面標題 ─────────────────────────
-  const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達廓線分析';
+  const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達剖面時序分析';
   const pageSubtitle = activeView === 'uav'
     ? '無人機大氣量測 · Guanyin(觀音)站'
     : '風光達觀測 · L02240328_Guanyin(觀音) 測站';
