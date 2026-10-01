@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { PanelKey, StationInfo } from '@/lib/windLidarApi';
 
 // ── Design tokens（與 events/page.tsx 一致） ──────────────────────────────────
@@ -116,28 +116,94 @@ function StationDropdown({
   );
 }
 
-// ── 日期下拉選單 ──────────────────────────────────────────────────────────────
-function DateDropdown({
+// ── 日期月曆選擇器 ────────────────────────────────────────────────────────────
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+/** 從 YYYY-MM-DD 字串取出 { year, month(1-12), day } */
+function parseDate(d: string) {
+  const [y, m, day] = d.split('-').map(Number);
+  return { year: y, month: m, day };
+}
+
+/** 產生某年某月的日曆格子（含前後補位），每格 null 表示空白 */
+function buildCalendarGrid(year: number, month: number): (number | null)[] {
+  if (!year || !month || isNaN(year) || isNaN(month)) return [];
+  const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  // 補尾到 7 的倍數
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+function DateCalendar({
   dates,
   selected,
   onSelect,
   disabled,
 }: {
-  dates: string[];
+  dates: string[];     // YYYY-MM-DD，降冪排序（最新在前）
   selected: string;
   onSelect: (d: string) => void;
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // 有資料的日期 Set（快速查詢）
+  const dateSet = new Set(dates);
+
+  // 從 dates 推算可瀏覽的月份範圍
+  const months = Array.from(
+    new Set(dates.map((d) => d.slice(0, 7)))
+  ).sort(); // 升冪，e.g. ['2026-03', '2026-04']
+
+  // 目前顯示的月份，預設為選取日期所在月份（或最新月份）
+  const defaultMonth = selected ? selected.slice(0, 7) : (months[months.length - 1] ?? '');
+  const [viewMonth, setViewMonth] = useState(defaultMonth);
+
+  // 當 selected 或 dates 改變時，同步 viewMonth
+  useEffect(() => {
+    const target = selected ? selected.slice(0, 7) : (months[months.length - 1] ?? '');
+    if (target) setViewMonth(target);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, dates.join(',')]);
+
+  // 點選外部關閉
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const parts = viewMonth ? viewMonth.split('-').map(Number) : [];
+  const [viewYear, viewMonthNum] = parts.length === 2 ? parts : [NaN, NaN];
+  const cells = (viewYear && viewMonthNum) ? buildCalendarGrid(viewYear, viewMonthNum) : [];
+
+  const monthIdx = months.indexOf(viewMonth);
+  const canPrev = monthIdx > 0;
+  const canNext = monthIdx < months.length - 1;
+
+  const handlePrev = () => { if (canPrev) setViewMonth(months[monthIdx - 1]); };
+  const handleNext = () => { if (canNext) setViewMonth(months[monthIdx + 1]); };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      {/* 觸發按鈕 */}
       <button
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 16px', borderRadius: 999, cursor: disabled ? 'not-allowed' : 'pointer',
+          padding: '8px 16px', borderRadius: 999,
+          cursor: disabled ? 'not-allowed' : 'pointer',
           background: C.glass,
           border: `1px solid ${C.roseBorder}`,
           boxShadow: C.glassShadow,
@@ -155,6 +221,7 @@ function DateDropdown({
         />
       </button>
 
+      {/* 月曆彈出層 */}
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
@@ -162,27 +229,140 @@ function DateDropdown({
             position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 400,
             background: '#fff',
             border: `1px solid ${C.roseBorder}`,
-            borderRadius: 12, boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
-            minWidth: 160, maxHeight: 260, overflowY: 'auto',
+            borderRadius: 14,
+            boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            padding: '14px 16px 16px',
+            width: 252,
           }}
         >
-          {dates.map((d, i) => (
+          {/* 月份導航列 */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 12,
+          }}>
             <button
-              key={d}
-              onClick={() => { onSelect(d); setOpen(false); }}
+              onClick={handlePrev}
+              disabled={!canPrev}
               style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '9px 16px',
-                border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: selected === d ? 700 : 500,
-                color: selected === d ? C.rose : C.text,
-                background: selected === d ? C.roseAlpha : 'transparent',
-                borderBottom: i < dates.length - 1 ? '1px solid rgba(180,140,160,0.06)' : 'none',
+                width: 28, height: 28, borderRadius: 8,
+                border: `1px solid ${canPrev ? C.roseBorder : 'rgba(180,140,160,0.12)'}`,
+                background: 'transparent',
+                color: canPrev ? C.rose : C.hint,
+                cursor: canPrev ? 'pointer' : 'default',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s', flexShrink: 0,
               }}
+              aria-label="上個月"
             >
-              {d}
+              <ChevronLeft size={14} strokeWidth={2.5} />
             </button>
-          ))}
+
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+              {viewYear} 年 {String(viewMonthNum).padStart(2, '0')} 月
+            </span>
+
+            <button
+              onClick={handleNext}
+              disabled={!canNext}
+              style={{
+                width: 28, height: 28, borderRadius: 8,
+                border: `1px solid ${canNext ? C.roseBorder : 'rgba(180,140,160,0.12)'}`,
+                background: 'transparent',
+                color: canNext ? C.rose : C.hint,
+                cursor: canNext ? 'pointer' : 'default',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s', flexShrink: 0,
+              }}
+              aria-label="下個月"
+            >
+              <ChevronRight size={14} strokeWidth={2.5} />
+            </button>
+          </div>
+
+          {/* 星期標頭 */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+            marginBottom: 4,
+          }}>
+            {WEEKDAYS.map((w) => (
+              <div
+                key={w}
+                style={{
+                  textAlign: 'center', fontSize: 11, fontWeight: 700,
+                  color: C.hint, padding: '2px 0 6px',
+                }}
+              >
+                {w}
+              </div>
+            ))}
+          </div>
+
+          {/* 日期格子 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+            {cells.map((day, i) => {
+              if (day === null) {
+                return <div key={`empty-${i}`} />;
+              }
+
+              const dateStr = `${viewYear}-${String(viewMonthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const hasData = dateSet.has(dateStr);
+              const isSelected = selected === dateStr;
+
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => {
+                    if (!hasData) return;
+                    onSelect(dateStr);
+                    setOpen(false);
+                  }}
+                  disabled={!hasData}
+                  title={hasData ? dateStr : '無資料'}
+                  style={{
+                    width: '100%', aspectRatio: '1',
+                    borderRadius: 8,
+                    border: isSelected
+                      ? `1.5px solid ${C.rose}`
+                      : '1.5px solid transparent',
+                    background: isSelected ? C.rose : 'transparent',
+                    color: isSelected
+                      ? '#fff'
+                      : hasData ? C.text : 'rgba(180,160,170,0.45)',
+                    fontSize: 12,
+                    fontWeight: isSelected ? 800 : hasData ? 600 : 400,
+                    cursor: hasData ? 'pointer' : 'default',
+                    transition: 'all 0.12s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (hasData && !isSelected) {
+                      (e.currentTarget as HTMLButtonElement).style.background = C.roseAlpha;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                    }
+                  }}
+                  aria-pressed={isSelected}
+                  aria-disabled={!hasData}
+                >
+                  {day}
+                  {/* 有資料的日期底部加小圓點 */}
+                  {hasData && !isSelected && (
+                    <span style={{
+                      position: 'absolute', bottom: 3, left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: C.rose,
+                      opacity: 0.6,
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -230,7 +410,7 @@ export default function WindLidarControls({
           disabled={loading || stations.length === 0}
         />
         <span style={{ fontSize: 12, fontWeight: 800, color: C.muted }}>日期</span>
-        <DateDropdown
+        <DateCalendar
           dates={dates}
           selected={selectedDate}
           onSelect={onDateChange}
