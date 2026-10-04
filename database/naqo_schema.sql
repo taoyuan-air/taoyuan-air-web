@@ -118,7 +118,7 @@ SELECT
     MAX(CASE WHEN h.pollutant_eng_name = 'O3'    THEN h.concentration_numeric END) AS o3,
     MAX(CASE WHEN h.pollutant_eng_name = 'CO'    THEN h.concentration_numeric END) AS co,
     MAX(CASE WHEN h.pollutant_eng_name = 'SO2'   THEN h.concentration_numeric END) AS so2,
-    MAX(CASE WHEN h.pollutant_eng_name = 'NO2'   THEN h.concentration_numeric END) AS NO2,
+    MAX(CASE WHEN h.pollutant_eng_name = 'NO2'   THEN h.concentration_numeric END) AS no2,
     MAX(CASE WHEN h.pollutant_eng_name = 'CO2'   THEN h.concentration_numeric END) AS co2
 FROM latest l
 JOIN naqo_stations s ON s.station_id = l.station_id

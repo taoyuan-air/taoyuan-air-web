@@ -72,7 +72,7 @@ NAQO_TZ_WORKAROUND=true
 1. 從 `backend/.env` 讀取 Supabase 設定，前端不直接接觸 key。
 2. 處理 NAQO 來源時間欄位的時區修正。
 3. 將 Supabase 寬表轉成前端卡片需要的資料格式。
-4. 欄位正規化：`PM25` 顯示為 `PM2.5`，`NOX` 顯示為 `NOx`。
+4. 欄位正規化：`PM25` 顯示為 `PM2.5`；`NO2` 由 Supabase 原始欄位 `NOX - NO` 推算。
 5. 補上展示欄位：`source = '中大空品站'`、`region = '中壢區'`、`station = 'NAQO 中大空品站'`。
 6. 上游或單一歷史資料源失敗時回傳明確錯誤資訊，避免前端整頁掛掉。
 

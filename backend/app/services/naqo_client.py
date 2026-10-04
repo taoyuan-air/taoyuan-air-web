@@ -67,6 +67,19 @@ def _aqi_placeholder(value: Optional[float], pollutant_id: str) -> int:
         return min(200, max(0, round(value * 10)))
     return min(200, max(0, round(value)))
 
+def _pollutant_raw_value(row: dict[str, Any], pollutant_id: str) -> Any:
+    if pollutant_id == "NO2":
+        no_value = row.get("NO")
+        nox_value = row.get("NOX")
+        if no_value is None or nox_value is None:
+            return None
+        try:
+            no2 = float(nox_value) - float(no_value)
+        except (TypeError, ValueError):
+            return None
+        return max(no2, 0)
+
+    return row.get(pollutant_id)
 
 def row_to_station_cards(row: dict[str, Any]) -> list[dict[str, Any]]:
     observed_at = normalize_observed_at(row.get("observed_at"))
@@ -76,11 +89,11 @@ def row_to_station_cards(row: dict[str, Any]) -> list[dict[str, Any]]:
     data_type = row.get("data_type") or settings.NAQO_DEFAULT_DATA_TYPE
     cards: list[dict[str, Any]] = []
     for pollutant_id, meta in PARAMETERS.items():
-        if pollutant_id not in row:
-            continue
-        value, quality = parse_concentration(row.get(pollutant_id), pollutant_id)
+        raw_value = _pollutant_raw_value(row, pollutant_id)
+        value, quality = parse_concentration(raw_value, pollutant_id)
         if quality != "good" or value is None:
             continue
+            
         cards.append({
             "id": f"naqo:{data_type}:{pollutant_id}:{observed_at.isoformat()}",
             "district": "中大空品站",

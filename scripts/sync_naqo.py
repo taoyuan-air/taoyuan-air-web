@@ -124,6 +124,18 @@ def fetch_supabase_rows(params: dict[str, str], limit: int = 1000) -> list[dict[
     payload = response.json()
     return payload if isinstance(payload, list) else []
 
+def pollutant_raw_value(row: dict[str, Any], pollutant_id: str) -> Any:
+    if pollutant_id == "NO2":
+        no_value = row.get("NO")
+        nox_value = row.get("NOX")
+        if no_value is None or nox_value is None:
+            return None
+        try:
+            return float(nox_value) - float(no_value)
+        except (TypeError, ValueError):
+            return None
+    return row.get(pollutant_id)
+
 
 def row_to_records(row: dict[str, Any]) -> list[tuple]:
     observed_at = parse_time(row.get("observed_at"))
@@ -134,9 +146,8 @@ def row_to_records(row: dict[str, Any]) -> list[tuple]:
     data_type = str(row.get("data_type") or os.getenv("NAQO_DEFAULT_DATA_TYPE", "min60"))
     records = []
     for pollutant_id, (name, display, unit) in PARAMETERS.items():
-        if pollutant_id not in row:
-            continue
-        value, quality = parse_concentration(row.get(pollutant_id), pollutant_id)
+        raw_value = pollutant_raw_value(row, pollutant_id)
+        value, quality = parse_concentration(raw_value, pollutant_id)
         records.append((
             "NCU_NAQO",
             observed_at,
@@ -145,7 +156,7 @@ def row_to_records(row: dict[str, Any]) -> list[tuple]:
             name,
             display,
             unit,
-            None if row.get(pollutant_id) is None else str(row.get(pollutant_id)),
+            None if raw_value is None else str(raw_value),
             value,
             quality,
             source_inserted_at,
