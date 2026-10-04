@@ -51,7 +51,7 @@ VALUES
     ('O3',   '臭氧',       'O3',    'PPB', NULL),
     ('CO',   '一氧化碳',   'CO',    'PPM', NULL),
     ('SO2',  '二氧化硫',   'SO2',   'PPB', NULL),
-    ('NOX',  '氮氧化物',   'NOx',   'PPB', NULL),
+    ('NO2',  '二氧化氮',   'NO2',   'PPB', NULL),
     ('CO2',  '二氧化碳',   'CO2',   'PPM', '預留')
 ON CONFLICT (pollutant_id) DO UPDATE SET
     pollutant_name = EXCLUDED.pollutant_name,
@@ -118,7 +118,7 @@ SELECT
     MAX(CASE WHEN h.pollutant_eng_name = 'O3'    THEN h.concentration_numeric END) AS o3,
     MAX(CASE WHEN h.pollutant_eng_name = 'CO'    THEN h.concentration_numeric END) AS co,
     MAX(CASE WHEN h.pollutant_eng_name = 'SO2'   THEN h.concentration_numeric END) AS so2,
-    MAX(CASE WHEN h.pollutant_eng_name = 'NOx'   THEN h.concentration_numeric END) AS nox,
+    MAX(CASE WHEN h.pollutant_eng_name = 'NO2'   THEN h.concentration_numeric END) AS NO2,
     MAX(CASE WHEN h.pollutant_eng_name = 'CO2'   THEN h.concentration_numeric END) AS co2
 FROM latest l
 JOIN naqo_stations s ON s.station_id = l.station_id
@@ -140,7 +140,7 @@ SELECT
     MAX(CASE WHEN h.pollutant_eng_name = 'O3'    THEN h.concentration_numeric END) AS o3,
     MAX(CASE WHEN h.pollutant_eng_name = 'CO'    THEN h.concentration_numeric END) AS co,
     MAX(CASE WHEN h.pollutant_eng_name = 'SO2'   THEN h.concentration_numeric END) AS so2,
-    MAX(CASE WHEN h.pollutant_eng_name = 'NOx'   THEN h.concentration_numeric END) AS nox
+    MAX(CASE WHEN h.pollutant_eng_name = 'NO2'   THEN h.concentration_numeric END) AS no2
 FROM naqo_stations s
 JOIN naqo_hourly_data h ON s.station_id = h.station_id
 WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'

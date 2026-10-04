@@ -490,7 +490,7 @@ const DEFAULT_PARAMETER = '全部量測參數';
 const DEFAULT_SOURCE = '全部來源';
 const DEFAULT_REGION = '所有區域';
 
-const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', 'NOx', 'CO2', '氣溫', '風速', '1小時雨量'];
+const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', 'CO2', '氣溫', '風速', '1小時雨量'];
 
 // 新增資料來源時，請同步補上該來源可查詢的量測參數。
 const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
@@ -499,7 +499,7 @@ const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
   桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
   氣象署: [DEFAULT_PARAMETER, '氣溫', '風速', '1小時雨量'],
   微感測器: [DEFAULT_PARAMETER, 'PM2.5'],
-  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'O3', 'CO', 'SO2', 'NOx', 'CO2'],
+  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'O3', 'CO', 'SO2', 'NO2', 'CO2'],
 };
 
 const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區', '新屋區', '楊梅區','復興區', '八德區',];

@@ -13,7 +13,7 @@ PARAMETERS = {
     "O3": {"name": "臭氧", "display": "O3", "unit": "PPB"},
     "CO": {"name": "一氧化碳", "display": "CO", "unit": "PPM"},
     "SO2": {"name": "二氧化硫", "display": "SO2", "unit": "PPB"},
-    "NOX": {"name": "氮氧化物", "display": "NOx", "unit": "PPB"},
+    "NO2": {"name": "二氧化氮", "display": "NO2", "unit": "PPB"},
     "CO2": {"name": "二氧化碳", "display": "CO2", "unit": "PPM"},
 }
 
