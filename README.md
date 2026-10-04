@@ -124,7 +124,7 @@ uvicorn app.main:app --reload --port 8001
 確認 `backend/.env` 內容（依 docker-compose 預設值）：
 
 ```env
-DATABASE_URL=postgresql+asyncpg://taoyuan_user:taoyuan_pass@localhost:5432/taoyuan_air
+DATABASE_URL=postgresql+asyncpg://你的USER:你的PASSWORD@localhost:5432/taoyuan_air
 ```
 
 #### 5. 啟動 Web 應用
