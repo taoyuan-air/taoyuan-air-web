@@ -119,14 +119,14 @@ BACKEND_ORIGIN=http://127.0.0.1:8000
 Terminal 1：開本機資料庫。
 
 ```bash
-cd /Users/yunhsuan/taoyuan-air
+cd taoyuan-air
 docker-compose up -d
 ```
 
 Terminal 2：開後端。
 
 ```bash
-cd /Users/yunhsuan/taoyuan-air/backend
+cd taoyuan-air/backend
 source .venv/bin/activate
 python -m uvicorn app.main:app --reload --port 8000
 ```
@@ -134,7 +134,7 @@ python -m uvicorn app.main:app --reload --port 8000
 Terminal 3：開前端。
 
 ```bash
-cd /Users/yunhsuan/taoyuan-air
+cd taoyuan-air
 npm run web
 ```
 
@@ -161,7 +161,7 @@ http://localhost:3000/explorer
 ### 1. 確認資料庫容器
 
 ```bash
-cd /Users/yunhsuan/taoyuan-air
+cd taoyuan-air
 docker-compose up -d
 docker ps
 ```
