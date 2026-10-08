@@ -11,14 +11,14 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const C = {
-  rose:       '#D4567A',
-  roseAlpha:  'rgba(212,86,122,0.10)',
-  roseBorder: 'rgba(212,86,122,0.28)',
+  rose:       '#4895EC',
+  roseAlpha:  'rgba(72,149,236,0.10)',
+  roseBorder: 'rgba(72,149,236,0.28)',
   glass:      'rgba(255,255,255,0.92)',
-  glassShadow:'0 4px 20px rgba(180,140,160,0.12)',
-  text:       '#1a1220',
-  muted:      '#7a6880',
-  hint:       '#b0a0b8',
+  glassShadow:'0 4px 20px rgba(30,58,95,0.12)',
+  text:       '#0F1D3A',
+  muted:      '#4A6080',
+  hint:       '#7A9AC0',
 };
 
 /* ── 型別 ────────────────────────────────────────────────────── */
@@ -58,24 +58,24 @@ const INSTRUMENTS: Instrument[] = [
   {
     id: 'uav', name: 'UAV 無人機大氣探測系統',
     nameEn: 'UAV Atmospheric Measurement System',
-    accentColor: '#D4567A',
+    accentColor: '#4895EC',
     overview: '採用多旋翼無人機搭載輕量化多參數大氣感測模組，執行垂直剖面飛行任務，即時採集不同高度層的大氣環境數據，協助研究人員分析邊界層結構與垂直輸送機制。',
     purpose:  '觀察大氣邊界層內污染物（PM2.5、O₃、NOₓ 等）與氣象要素（溫度、濕度、風速）的垂直梯度分布，支援空氣品質預測模型的垂直參數驗證，以及重大污染事件的立體溯源分析。',
     centerIcon: (
       <svg viewBox="0 0 120 120" width="100%" height="100%" fill="none">
-        <line x1="60" y1="18" x2="60" y2="102" stroke="#D4567A" strokeWidth="4" strokeLinecap="round"/>
-        <line x1="18" y1="60" x2="102" y2="60" stroke="#D4567A" strokeWidth="4" strokeLinecap="round"/>
+        <line x1="60" y1="18" x2="60" y2="102" stroke="#4895EC" strokeWidth="4" strokeLinecap="round"/>
+        <line x1="18" y1="60" x2="102" y2="60" stroke="#4895EC" strokeWidth="4" strokeLinecap="round"/>
         {([[20,20],[100,20],[20,100],[100,100]] as [number,number][]).map(([cx,cy],i)=>(
           <g key={i}>
-            <circle cx={cx} cy={cy} r="14" fill="rgba(212,86,122,0.12)" stroke="#D4567A" strokeWidth="1.5"/>
-            <line x1={cx-9} y1={cy} x2={cx+9} y2={cy} stroke="#D4567A" strokeWidth="3" strokeLinecap="round"/>
-            <line x1={cx} y1={cy-9} x2={cx} y2={cy+9} stroke="#D4567A" strokeWidth="3" strokeLinecap="round"/>
+            <circle cx={cx} cy={cy} r="14" fill="rgba(72,149,236,0.12)" stroke="#4895EC" strokeWidth="1.5"/>
+            <line x1={cx-9} y1={cy} x2={cx+9} y2={cy} stroke="#4895EC" strokeWidth="3" strokeLinecap="round"/>
+            <line x1={cx} y1={cy-9} x2={cx} y2={cy+9} stroke="#4895EC" strokeWidth="3" strokeLinecap="round"/>
           </g>
         ))}
-        <rect x="47" y="47" width="26" height="26" rx="7" fill="rgba(212,86,122,0.18)" stroke="#D4567A" strokeWidth="2"/>
-        <circle cx="60" cy="60" r="5" fill="#D4567A"/>
-        <path d="M69 51 Q80 60 69 69" stroke="#D4567A" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-        <path d="M73 47 Q88 60 73 73" stroke="#D4567A" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.45"/>
+        <rect x="47" y="47" width="26" height="26" rx="7" fill="rgba(72,149,236,0.18)" stroke="#4895EC" strokeWidth="2"/>
+        <circle cx="60" cy="60" r="5" fill="#4895EC"/>
+        <path d="M69 51 Q80 60 69 69" stroke="#4895EC" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        <path d="M73 47 Q88 60 73 73" stroke="#4895EC" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.45"/>
       </svg>
     ),
     specs: [
@@ -367,10 +367,10 @@ function OrbitScene({
         {/* ── 軌道圓 + 連線（SVG 底層） ── */}
         <svg style={{ position:'absolute', inset:0, width:SCENE, height:SCENE, pointerEvents:'none', overflow:'visible' }}>
           <circle cx={CX} cy={CX} r={ORBIT_R + 28}
-            fill="none" stroke="rgba(212,86,122,0.05)" strokeWidth="1"/>
+            fill="none" stroke="rgba(72,149,236,0.05)" strokeWidth="1"/>
           <circle cx={CX} cy={CX} r={ORBIT_R}
             fill="none"
-            stroke="rgba(212,86,122,0.18)"
+            stroke="rgba(72,149,236,0.18)"
             strokeWidth="1.5"
             strokeDasharray="7 5"
           />
@@ -382,7 +382,7 @@ function OrbitScene({
             return (
               <line key={n.id}
                 x1={CX} y1={CX} x2={nx} y2={ny}
-                stroke={isOpen ? accent : 'rgba(212,86,122,0.10)'}
+                stroke={isOpen ? accent : 'rgba(72,149,236,0.10)'}
                 strokeWidth={isOpen ? 2 : 1}
                 strokeDasharray={isOpen ? 'none' : '4 4'}
                 style={{ transition:'stroke 0.25s, stroke-width 0.25s' }}
@@ -400,7 +400,7 @@ function OrbitScene({
           borderRadius: 32,
           background: 'rgba(255,255,255,0.88)',
           border: `2px solid ${accent}44`,
-          boxShadow: `0 0 0 16px ${accent}08, 0 8px 40px rgba(180,140,160,0.20)`,
+          boxShadow: `0 0 0 16px ${accent}08, 0 8px 40px rgba(30,58,95,0.20)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 2,
           overflow: 'hidden',
@@ -619,7 +619,7 @@ export default function InstrumentsPage() {
         {/* 儀器圖示 */}
         <div style={{ display:'flex', justifyContent:'center', margin:'8px 0 20px' }}>
           <div style={{ width:140, height:140, borderRadius:24, background:'rgba(255,255,255,0.80)',
-            border:`2px solid ${accent}44`, boxShadow:`0 4px 24px rgba(180,140,160,0.16)`,
+            border:`2px solid ${accent}44`, boxShadow:`0 4px 24px rgba(30,58,95,0.16)`,
             display:'flex', alignItems:'center', justifyContent:'center' }}>
             <div style={{ width:110, height:110 }}>{ins.centerIcon}</div>
           </div>
@@ -640,7 +640,7 @@ export default function InstrumentsPage() {
         }
         .inst-banner-left {
           background: rgba(255,255,255,0.92);
-          border: 1px solid rgba(212,86,122,0.08);
+          border: 1px solid rgba(72,149,236,0.08);
           border-radius: 16px;
           padding: 20px 24px;
           box-shadow: ${C.glassShadow};
@@ -735,7 +735,7 @@ export default function InstrumentsPage() {
           width: ${NODE_D}px;
           height: ${NODE_D}px;
           border-radius: 50%;
-          border: 2px solid rgba(212,86,122,0.22);
+          border: 2px solid rgba(72,149,236,0.22);
           background: rgba(255,255,255,0.88);
           cursor: pointer;
           display: flex;
@@ -743,7 +743,7 @@ export default function InstrumentsPage() {
           align-items: center;
           justify-content: center;
           gap: 6px;
-          box-shadow: 0 2px 14px rgba(180,140,160,0.16);
+          box-shadow: 0 2px 14px rgba(30,58,95,0.16);
           transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.18s;
           outline: none;
           font-family: inherit;
@@ -760,7 +760,7 @@ export default function InstrumentsPage() {
           background: rgba(255,255,255,0.98);
           box-shadow:
             0 0 0 6px color-mix(in srgb, var(--ac) 14%, transparent),
-            0 6px 28px rgba(180,140,160,0.22);
+            0 6px 28px rgba(30,58,95,0.22);
           transform: scale(1.12);
           animation: node-pop 0.28s cubic-bezier(0.34,1.56,0.64,1);
         }
@@ -843,7 +843,7 @@ export default function InstrumentsPage() {
           align-items: center;
           justify-content: space-between;
           padding: 16px 18px 14px;
-          border-bottom: 1px solid rgba(180,140,160,0.12);
+          border-bottom: 1px solid rgba(30,58,95,0.12);
           position: sticky;
           top: 0;
           background: rgba(255,255,255,0.97);
@@ -863,7 +863,7 @@ export default function InstrumentsPage() {
         }
         .info-panel-close {
           width: 28px; height: 28px; border-radius: 8px;
-          border: 1.5px solid rgba(180,140,160,0.22);
+          border: 1.5px solid rgba(30,58,95,0.22);
           background: rgba(0,0,0,0.03);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: ${C.hint};
@@ -871,7 +871,7 @@ export default function InstrumentsPage() {
           flex-shrink: 0;
         }
         .info-panel-close:hover {
-          background: rgba(212,86,122,0.08);
+          background: rgba(72,149,236,0.08);
           color: ${C.rose};
           transform: scale(1.1);
         }
@@ -885,7 +885,7 @@ export default function InstrumentsPage() {
         .pop-spec-row {
           display: flex; align-items: flex-start; gap: 9px;
           padding: 9px 0;
-          border-bottom: 1px solid rgba(180,140,160,0.08);
+          border-bottom: 1px solid rgba(30,58,95,0.08);
         }
         .pop-spec-icon { display:flex; align-items:center; flex-shrink:0; margin-top:2px; }
         .pop-spec-label { font-size:10px; font-weight:700; color:${C.hint}; margin-bottom:2px; }
@@ -906,7 +906,7 @@ export default function InstrumentsPage() {
         .pop-param-btn {
           width: 100%; text-align: left;
           background: rgba(255,255,255,0.60);
-          border: 1.5px solid rgba(180,140,160,0.15);
+          border: 1.5px solid rgba(30,58,95,0.15);
           border-radius: 8px;
           padding: 8px 10px;
           cursor: pointer;
@@ -914,7 +914,7 @@ export default function InstrumentsPage() {
           transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
           outline: none;
         }
-        .pop-param-btn:hover { border-color: rgba(212,86,122,0.28); }
+        .pop-param-btn:hover { border-color: rgba(72,149,236,0.28); }
         .pop-param-btn--open {
           border-color: var(--ac) !important;
           border-width: 2px;
@@ -934,14 +934,14 @@ export default function InstrumentsPage() {
           background:${C.roseAlpha}; border:1px solid ${C.roseBorder};
           border-radius:5px; padding:1.5px 6px; flex-shrink:0;
         }
-        .pop-param-detail { margin-top:7px; padding-top:7px; border-top:1px solid rgba(180,140,160,0.10); }
+        .pop-param-detail { margin-top:7px; padding-top:7px; border-top:1px solid rgba(30,58,95,0.10); }
         .pop-param-range { font-size:10.5px; color:${C.hint}; font-weight:600; margin-bottom:3px; }
         .pop-param-desc  { font-size:12px; color:${C.muted}; line-height:1.6; }
 
         /* ── 手機版卡片 ── */
         .mobile-section {
           background: rgba(255,255,255,0.90);
-          border: 1px solid rgba(212,86,122,0.08);
+          border: 1px solid rgba(72,149,236,0.08);
           border-radius: 14px;
           overflow: hidden;
           box-shadow: ${C.glassShadow};
@@ -963,7 +963,7 @@ export default function InstrumentsPage() {
         }
         .mobile-section-body {
           padding:0 16px 16px;
-          border-top:1px solid rgba(180,140,160,0.10);
+          border-top:1px solid rgba(30,58,95,0.10);
           padding-top:14px;
           animation: fade-in 0.2s ease;
         }

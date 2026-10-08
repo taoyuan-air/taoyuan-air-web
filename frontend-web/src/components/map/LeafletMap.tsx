@@ -125,12 +125,12 @@ const ensureTEDSMarkerStyles = () => {
       box-sizing: border-box;
     }
     .teds-pin.pin-chimney {
-      color: #d4567a;
-      background: #d4567a;
+      color: #4895EC;
+      background: #4895EC;
     }
     .teds-pin.pin-mercury {
-      color: #4f79d8;
-      background: #4f79d8;
+      color: #2d9a5e;
+      background: #2d9a5e;
     }
   `;
   document.head.appendChild(style);
@@ -213,7 +213,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
         //     const marker = targetL.circleMarker(pos, {
         //       radius: zoom <= 10 ? 2.5 : 3.5,
         //       stroke: false,
-        //       fillColor: "#d4567a",
+        //       fillColor: "#4895EC",
         //       fillOpacity: 0.85,
         //       interactive: false,
         //     });
@@ -597,10 +597,10 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           zIndex: 520,
           width: 214,
           background: 'rgba(255,255,255,0.97)',
-          border: '1px solid rgba(212, 86, 122, 0.28)',
+          border: '1px solid rgba(72, 149, 236, 0.28)',
           borderRadius: 14,
           padding: '10px 12px',
-          boxShadow: '0 10px 24px rgba(58,30,45,0.2)',
+          boxShadow: '0 10px 24px rgba(15,29,58,0.2)',
           backdropFilter: 'blur(10px)',
         }}
       >
@@ -634,7 +634,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
             step={1}
             value={zoomLevel}
             onChange={(e) => handleZoomRequest(Number(e.target.value))}
-            style={{ flex: 1, minWidth: 0, accentColor: '#d4567a', height: 24 }}
+            style={{ flex: 1, minWidth: 0, accentColor: '#4895EC', height: 24 }}
           />
           <button
             onClick={() => handleZoomRequest(zoomLevel + 1)}
@@ -655,7 +655,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
             +
           </button>
         </div>
-        <div style={{ marginTop: 6, fontSize: 10, color: '#9a8b95' }}>拖曳中間滑桿或使用 +/- 調整比例</div>
+        <div style={{ marginTop: 6, fontSize: 10, color: '#4A6080' }}>拖曳中間滑桿或使用 +/- 調整比例</div>
       </div>
     </div>
   );
