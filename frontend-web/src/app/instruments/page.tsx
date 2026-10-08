@@ -7,6 +7,7 @@ import {
   Radio, Gauge, Thermometer, Droplets, ArrowUpDown,
   FlaskConical, Cloud, Atom, X,
 } from 'lucide-react';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const C = {
@@ -564,6 +565,7 @@ export default function InstrumentsPage() {
   useEffect(() => () => { if (switchTimer.current) clearTimeout(switchTimer.current); }, []);
 
   return (
+    <AuthGuard>
     <div style={{ minHeight:'100vh', background:'var(--app-bg-gradient)', paddingBottom:80 }}>
 
       {/* Tab */}
@@ -1060,5 +1062,6 @@ export default function InstrumentsPage() {
         }
       `}</style>
     </div>
+    </AuthGuard>
   );
 }
