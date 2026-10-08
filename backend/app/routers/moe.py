@@ -18,6 +18,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from ..config import settings
+from ..core.ssl_utils import make_gov_ssl_context
 
 router = APIRouter(tags=["moe"])
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ async def fetch_moe_stations(key: Optional[str]) -> List[dict]:
         logger.warning("[MOE] API key 未設定，跳過請求")
         return []
 
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, verify=make_gov_ssl_context()) as client:
         results = await asyncio.gather(
             *(_fetch_station(client, s, key) for s in MOE_TARGET_STATIONS),
             return_exceptions=True,
