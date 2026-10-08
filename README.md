@@ -12,7 +12,7 @@
 taoyuan-air/
 ├─ frontend-web/       # Next.js + React，桌面版與網頁版儀表板
 ├─ frontend-mobile/    # Expo + React Native，手機 App
-├─ backend/            # FastAPI + SQLAlchemy，歷史資料查詢 API（port 8001）
+├─ backend/            # FastAPI + SQLAlchemy，歷史資料查詢與 MOE/CWA 即時資料 API（port 8001）
 ├─ shared/             # 共用 API、types、store、constants
 ├─ database/           # 資料庫 schema 與初始化相關檔案
 ├─ data/               # 原始資料與匯入資料（過濾後的桃園 2025+ 資料已 tracked）
@@ -66,16 +66,14 @@ POSTGRES_DB=taoyuan_air
 
 ```env
 # frontend-web/.env.local
-NEXT_PUBLIC_MOE_API_KEY=your_moe_api_key_here
-NEXT_PUBLIC_CWA_API_KEY=your_cwa_api_key_here
+NEXT_PUBLIC_API_BASE=your_api_key_here
 NEXT_PUBLIC_WINDY_API_KEY=your_windy_api_key_here
 NEXT_PUBLIC_TGOS_API_KEY=your_tgos_api_key_here
 ```
 
 ```env
 # frontend-mobile/.env
-EXPO_PUBLIC_MOE_API_KEY=your_api_key_here
-EXPO_PUBLIC_WINDY_API_KEY=your_windy_api_key_here
+NEXT_PUBLIC_API_BASE=your_api_key_here
 EXPO_PUBLIC_CWA_API_KEY=your_cwa_api_key_here
 EXPO_PUBLIC_TGOS_API_KEY=your_TGOS_api_key_here
 ```
@@ -108,7 +106,7 @@ scripts\check_db.bat
 
 #### 4. 啟動 FastAPI Backend
 
-Data Explorer 的歷史資料查詢需要 FastAPI backend（port 8001）。
+Data Explorer 的歷史資料查詢，以及 MOE、CWA 即時資料都需要 FastAPI backend（port 8001）。
 
 ```bash
 cd backend
@@ -125,6 +123,8 @@ uvicorn app.main:app --reload --port 8001
 
 ```env
 DATABASE_URL=postgresql+asyncpg://你的USER:你的PASSWORD@localhost:5432/taoyuan_air
+MOE_API_KEY=your_moe_api_key_here
+CWA_API_KEY=your_cwa_api_key_here
 ```
 
 #### 5. 啟動 Web 應用
