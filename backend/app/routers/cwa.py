@@ -19,6 +19,7 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 from ..config import settings
+from ..core.ssl_utils import make_gov_ssl_context
 
 router = APIRouter(tags=["cwa"])
 logger = logging.getLogger(__name__)
@@ -374,7 +375,7 @@ async def _fetch_past1hr_rainfall(
 # ─── 整合：一次拿齊現況／預報／雨量 ─────────────────────────────────
 
 async def fetch_cwa_weather(district: str, key: Optional[str]) -> dict:
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, verify=make_gov_ssl_context()) as client:
         (current, used_fallback), (forecast, today_pop), rain = await asyncio.gather(
             _fetch_current_weather(client, district, key),
             _fetch_weather_forecast(client, district, key),
