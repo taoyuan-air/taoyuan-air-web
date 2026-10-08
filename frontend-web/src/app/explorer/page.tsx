@@ -467,6 +467,13 @@ interface ExplorerHistoryResponse {
   latestAt?: Record<string, string>;
 }
 
+interface NaqoApiResponse {
+  data: StationData[];
+  count: number;
+  error?: string;
+  latestAt?: string | null;
+}
+
 const MICRO_SENSOR_MOCK_DATA: StationData[] = [
   { id: 9001, district: '蘆竹工業區', station: 'Micro-Sensor A04', time: '13:45', passed: false, parameter: 'PM2.5', value: 48, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '蘆竹區', trend: '上升中', aqi: 128, temperature: 28, humidity: 72 },
   { id: 9002, district: '桃園市區', station: 'Micro-Sensor B12', time: '11:15', passed: false, parameter: 'PM2.5', value: 35, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '桃園區', trend: '上升中', aqi: 112, temperature: 29, humidity: 62 },
@@ -476,16 +483,6 @@ const MICRO_SENSOR_MOCK_DATA: StationData[] = [
   { id: 9006, district: '大園住宅區', station: 'Micro-Sensor H09', time: '5天前 12:10', passed: true, parameter: 'PM2.5', value: 18, unit: 'μg/m³', source: '微感測器', version: '模擬資料', region: '大園區', trend: '下降中', aqi: 62, temperature: 26, humidity: 69 },
 ];
 
-// Temporary stand-in until NAQO schema/import/API are implemented.
-const NAQO_MOCK_DATA: StationData[] = [
-  { id: 'naqo-1', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'PM2.5', value: 16, unit: 'μg/m³', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 58, temperature: 27, humidity: 70 },
-  { id: 'naqo-2', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'O3', value: 42, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '下降中', aqi: 52, temperature: 27, humidity: 70 },
-  { id: 'naqo-3', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'CO', value: 0.4, unit: 'ppm', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
-  { id: 'naqo-4', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'PM10', value: 6, unit: 'μg/m³', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
-  { id: 'naqo-5', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'NO2', value: 20, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
-  { id: 'naqo-6', district: '中大空品站', station: 'NAQO 中大空品站', time: '目前觀測', passed: true, parameter: 'SO2', value: 10, unit: 'ppb', source: '中大空品站', version: '模擬資料', region: '中壢區', trend: '穩定中', aqi: 20, temperature: 27, humidity: 70 },
-];
-
 const TIME_TABS = ['近24小時', '近3天', '近7天'] as const;
 
 /* ─── Filter settings ───────────────────────────────────────── */
@@ -493,7 +490,7 @@ const DEFAULT_PARAMETER = '全部量測參數';
 const DEFAULT_SOURCE = '全部來源';
 const DEFAULT_REGION = '所有區域';
 
-const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', '氣溫', '風速', '1小時雨量'];
+const PARAMETER_OPTIONS = ['全部量測參數', 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO', 'CO2', '氣溫', '風速', '1小時雨量'];
 
 // 新增資料來源時，請同步補上該來源可查詢的量測參數。
 const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
@@ -502,7 +499,7 @@ const SOURCE_PARAMETER_OPTIONS: Record<string, string[]> = {
   桃園市環保局: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
   氣象署: [DEFAULT_PARAMETER, '氣溫', '風速', '1小時雨量'],
   微感測器: [DEFAULT_PARAMETER, 'PM2.5'],
-  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'PM10', 'O3', 'NO2', 'SO2', 'CO'],
+  中大空品站: [DEFAULT_PARAMETER, 'PM2.5', 'O3', 'CO', 'SO2', 'NO2', 'CO2'],
 };
 
 const REGIONS    = [DEFAULT_REGION, '桃園區', '中壢區', '平鎮區', '龍潭區', '大園區', '觀音區', '蘆竹區', '龜山區', '新屋區', '楊梅區','復興區', '八德區',];
@@ -969,13 +966,16 @@ export default function ExplorerPage() {
   const [isMobile, setIsMobile]               = useState(false);
   const [moeStations, setMoeStations]         = useState<MoeStationData[]>([]);
   const [cwaCards, setCwaCards]               = useState<StationData[]>([]);
+  const [naqoCards, setNaqoCards]             = useState<StationData[]>([]);
   const [historyData, setHistoryData]         = useState<StationData[]>([]);
   const [moeLoading, setMoeLoading]           = useState(true);
   const [cwaLoading, setCwaLoading]           = useState(true);
+  const [naqoLoading, setNaqoLoading]         = useState(true);
   const [historyLoading, setHistoryLoading]   = useState(false);
   const [historyLatestAt, setHistoryLatestAt] = useState<Record<string, string>>({});
   const [moeError, setMoeError]               = useState('');
   const [cwaError, setCwaError]               = useState('');
+  const [naqoError, setNaqoError]             = useState('');
   const [historyError, setHistoryError]       = useState('');
 
   const parameterOptions = SOURCE_PARAMETER_OPTIONS[selectedSource] ?? PARAMETER_OPTIONS;
@@ -1008,6 +1008,31 @@ export default function ExplorerPage() {
       })
       .finally(() => {
         if (!controller.signal.aborted) setMoeLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch('/api/naqo/latest?limit=20', { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<NaqoApiResponse>;
+      })
+      .then(response => {
+        if (controller.signal.aborted) return;
+        setNaqoCards(response.data);
+        setNaqoError(response.error ? '中大空品站 Supabase 尚未設定或目前無法讀取。' : '');
+      })
+      .catch(error => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setNaqoCards([]);
+        setNaqoError('中大空品站資料載入失敗，請確認後端 Supabase 設定。');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNaqoLoading(false);
       });
 
     return () => controller.abort();
@@ -1119,10 +1144,12 @@ export default function ExplorerPage() {
     const moeHistory = historyData.filter(d => d.source === '環境部');
     const cwaHistory = historyData.filter(d => d.source === '氣象署');
     const tydepSource = historyData.filter(d => d.source === '桃園市環保局');
-    const historySource = activeTime === '近24小時' ? [] : [...tydepSource, ...moeHistory, ...cwaHistory];
+    const naqoHistory = historyData.filter(d => d.source === '中大空品站');
 
-    return [...moeCards, ...cwaCards, ...historySource, ...NAQO_MOCK_DATA, ...MICRO_SENSOR_MOCK_DATA];
-  }, [activeTime, historyData, moeStations, cwaCards]);
+    const realtimeSource = [...moeCards, ...cwaCards, ...naqoCards, ...MICRO_SENSOR_MOCK_DATA];
+    const historySource = [...tydepSource, ...moeHistory, ...cwaHistory, ...naqoHistory];
+
+    return activeTime === '近24小時' ? realtimeSource : historySource;}, [activeTime, historyData, moeStations, cwaCards, naqoCards]);
 
   const filtered = useMemo(() => allMonitoringData.filter(item => {
     if (searchText) {
@@ -1155,6 +1182,7 @@ export default function ExplorerPage() {
     historyLoading ? '歷史資料庫' : '',
     moeLoading ? '環境部' : '',
     cwaLoading ? '氣象署' : '',
+    naqoLoading ? '中大空品站' : '',
   ].filter(Boolean).join('、');
 
   const hasTydepHistory = historyData.some(item => item.source === '桃園市環保局');
@@ -1169,8 +1197,8 @@ export default function ExplorerPage() {
     ? '桃園市環保局資料庫目前尚未匯入觀測資料，或後端尚未連上 PostgreSQL。'
     : selectedSource === '微感測器'
       ? '微感測器資料庫尚未建立，目前顯示的是介面測試用模擬資料。'
-      : selectedSource === '中大空品站'
-        ? '中大空品站資料庫尚未建立，目前顯示的是介面測試用模擬資料。'
+      : selectedSource === '中大空品站' && naqoError
+        ? naqoError
       : activeTime !== '近24小時' && historyError
         ? historyError
       : selectedSource === '環境部' && moeError
