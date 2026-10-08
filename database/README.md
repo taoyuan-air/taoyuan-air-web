@@ -109,7 +109,7 @@ COOKIE_PATH=/
 
 ```bash
 NEXT_PUBLIC_API_BASE=/api
-BACKEND_ORIGIN=http://127.0.0.1:8000
+BACKEND_ORIGIN=http://127.0.0.1:8001
 ```
 
 若後端改開 `8001`，`BACKEND_ORIGIN` 也要同步改成 `http://127.0.0.1:8001`。
@@ -128,7 +128,7 @@ Terminal 2：開後端。
 ```bash
 cd taoyuan-air/backend
 source .venv/bin/activate
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
 Terminal 3：開前端。
@@ -240,9 +240,9 @@ ORDER BY monitor_date DESC;
 後端需保持開啟：
 
 ```bash
-curl -i http://localhost:8000/api/naqo/status
-curl -i http://localhost:8000/api/naqo/latest?limit=5
-curl -i http://localhost:8000/api/explorer/history?days=7
+curl -i http://localhost:8001/api/naqo/status
+curl -i http://localhost:8001/api/naqo/latest?limit=5
+curl -i http://localhost:8001/api/explorer/history?days=7
 ```
 
 判讀方式：

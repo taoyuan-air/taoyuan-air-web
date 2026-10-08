@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     NAQO_DEFAULT_DATA_TYPE: str = "min60"
     NAQO_TZ_WORKAROUND: bool = True
 
+    CWA_API_KEY: Optional[str] = None
+    MOE_API_KEY: Optional[str] = None
+
     class Config:
         env_file = ".env"
 
