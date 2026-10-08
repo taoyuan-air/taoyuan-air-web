@@ -85,16 +85,26 @@ import { GridCell } from '@shared/types';
 建立 `frontend-web/.env.local`：
 
 ```env
-NEXT_PUBLIC_API_BASE=
+NEXT_PUBLIC_API_BASE=/api
+BACKEND_ORIGIN=http://127.0.0.1:8001
 NEXT_PUBLIC_WINDY_API_KEY=
 NEXT_PUBLIC_TGOS_API_KEY=
+```
+
+正式環境（虛擬機）額外設定：
+
+```env
+NEXT_PUBLIC_BASE_PATH=/tyair
+NEXT_PUBLIC_API_BASE=/tyair/api
 ```
 
 修改環境變數後必須重新啟動 Next.js，開發服務才會讀到新設定。`NEXT_PUBLIC_` 開頭的變數會在 build 時寫進程式，正式環境修改後必須重新 `npm run build`。
 
 用途：
 
-- `NEXT_PUBLIC_API_BASE`：前端呼叫 API 的基底路徑（`src/lib/apiBase.ts` 讀取）。正式環境為 `/tyair/api`；未設定時預設 `/api`。
+- `NEXT_PUBLIC_API_BASE`：前端呼叫 API 的基底路徑（`src/lib/apiBase.ts` 讀取）。未設定時預設 `/api`。
+- `NEXT_PUBLIC_BASE_PATH`：網站所在的路徑（`next.config.ts` 讀取）。本機不用設定；正式環境為 `/tyair`。
+- `BACKEND_ORIGIN`：Next.js 轉送 API 時的後端位址（`next.config.ts` 讀取）。
 - `NEXT_PUBLIC_WINDY_API_KEY`：Windy 地圖圖層
 - `NEXT_PUBLIC_TGOS_API_KEY`：TGOS 地圖
 
