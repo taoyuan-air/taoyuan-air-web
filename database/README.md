@@ -32,7 +32,7 @@
 
 | 資料源 | 分區策略 | 自動建立位置 | 補正或更新流程 |
 | --- | --- | --- | --- |
-| MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | `scripts/update_moe_monthly.py` 以 history 覆蓋 realtime |
+| MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | `scripts/update_moe_monthly.py` 以 history 覆蓋 realtime 以及  中壢區歷史資料使用 `scripts/convert_zhongli_wide_csv.py`匯入 |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
