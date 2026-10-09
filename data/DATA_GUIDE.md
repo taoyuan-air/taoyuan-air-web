@@ -24,12 +24,13 @@
 
 ```text
 data/raw/
-├── moe-stations/          # 環境部 5 站（桃園/大園/觀音/平鎮/龍潭）
+├── moe-stations/          # 環境部 6 站（桃園/大園/觀音/平鎮/龍潭/中壢）
 │   ├── AQX_P_205_Resource/
 │   ├── AQX_P_206_Resource/
 │   ├── AQX_P_207_Resource/
 │   ├── AQX_P_208_Resource/
-│   └── AQX_P_209_Resource/
+│   ├── AQX_P_209_Resource/
+│   └── AQX_P_255_Resource/
 │
 ├── cwa-stations/          # 氣象署（Package_24780/24781/24937）
 │   ├── Package_24780/
