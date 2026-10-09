@@ -279,36 +279,36 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aut
 
 ```bash
 # WindLidar
-python3 scripts/import_wind_lidar.py
+python scripts/import_wind_lidar.py
 
 # UAV
-python3 scripts/import_uav.py
+python scripts/import_uav.py
 
 # CWA
-python3 scripts/import_cwa_stations.py
+python scripts/import_cwa_stations.py
 
 # MOE（中壢站需先轉檔）
-python3 scripts/convert_zhongli_wide_csv.py
-python3 scripts/import_moe_stations.py
+python scripts/convert_zhongli_wide_csv.py
+python scripts/import_moe_stations.py
 
 # TYDEP（需先轉檔）
-python3 scripts/convert_tydep_xlsx.py
-python3 scripts/import_tydep_stations.py
+python scripts/convert_tydep_xlsx.py
+python scripts/import_tydep_stations.py
 
 # TEDS 點源（必須比 teds_grid 先跑）
-python3 scripts/import_teds_point.py --csv data/raw/teds-point/TEDS12_POINT_WGS84.csv
+python scripts/import_teds_point.py --csv data/raw/teds-point/TEDS12_POINT_WGS84.csv
 
 # TEDS 網格
-python3 scripts/import_teds_grid.py --csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv
+python scripts/import_teds_grid.py --csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv
 
 # Exam Point（固定污染源檢測，自動掃描 data/raw/exam-point/*.csv）
-python3 scripts/import_exam_point.py
+python scripts/import_exam_point.py
 
 # NAQO（第二階段：同步 Supabase min60 至本地 PostgreSQL）
-python3 scripts/sync_naqo.py
+python scripts/sync_naqo.py
 
 # NAQO 指定時間範圍回補
-python3 scripts/import_naqo_supabase.py --start "2026-08-01T00:00:00" --end "2026-08-08T00:00:00"
+python scripts/import_naqo_supabase.py --start "2026-08-01T00:00:00" --end "2026-08-08T00:00:00"
 ```
 
 ## 重新匯入（清空重來）
