@@ -45,7 +45,7 @@ data/raw/
 ├── teds-point/            # TEDS 點源（TEDS12_POINT_WGS84.csv）
 │   └── json/              # 轉檔後的 JSON 快取
 │
-├── teds-grid/             # TEDS 網格源（預留）
+├── teds-grid/             # TEDS 網格源（TEDS12.0_total_emission_WGS84.csv）
 │
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
