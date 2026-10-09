@@ -10,7 +10,7 @@
 | `cwa_stations_schema.sql` | CWA 氣象署測站 | 氣象測站與小時觀測資料 |
 | `tydep_stations_schema.sql` | TYDEP 桃園市環保局 | 桃園市環保局測站與小時值資料 |
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
-| `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料（預留） |
+| `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料 |
 | `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
@@ -38,7 +38,7 @@
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
 | TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 覆蓋匯入 |
-| TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` | 預留 |
+| TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` |  |
 | Exam Point | 不分區 | `scripts/import_exam_point.py` | 以 `(source_id, item_id, exam_date)` UPSERT |
 | NAQO | 第一版不分區 | `database/naqo_schema.sql` | 第一階段後端即時查 Supabase；第二階段 `scripts/sync_naqo.py` 以 `inserted_at` 浮標同步 |
 
