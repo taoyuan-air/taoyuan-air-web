@@ -35,22 +35,19 @@ data/raw/
 ├── cwa-stations/          # 氣象署（Package_24780/24781/24937）
 │   ├── Package_24780/
 │   ├── Package_24781/
-│   ├── Package_24937/
-│   └── json/              # 轉檔後的 JSON 快取
+│   └── Package_24937/
 │
 ├── tydep-stations/        # 桃園市環保局 Excel（108–115 年）
-│   ├── 桃園市空氣品質測站監測數據(108-115).xlsx
-│   └── json/              # 轉檔後的 JSON 快取
+│   └── 桃園市空氣品質測站監測數據(108-115).xlsx
 │
 ├── teds-point/            # TEDS 點源（TEDS12_POINT_WGS84.csv）
-│   └── json/              # 轉檔後的 JSON 快取
 │
 ├── teds-grid/             # TEDS 網格源（TEDS12.0_total_emission_WGS84.csv）
 │
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
 │
-├── uav/                   # 無人機垂直剖面 txt
+├── UAV/                   # 無人機垂直剖面 txt
 │                          # 檔名：UAV_V1_L3_gas_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
 │
 ├── WindLidar/             # 都卜勒風光達日檔
@@ -101,13 +98,13 @@ UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
 
 | 資料源 | 腳本 | 備註 |
 | --- | --- | --- |
-| MOE | `scripts/import_moe_stations.py` | 月更新：`update_moe_monthly.py` |
+| MOE | `scripts/convert_zhongli_wide_csv.py` → `scripts/import_moe_stations.py` | 中壢站需先轉檔；月更新：`update_moe_monthly.py` |
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
-| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header；資料夾 `raw/uav/` |
+| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header；資料夾 `raw/UAV/` |
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
-| TEDS 點源 | `scripts/import_teds_point.py` | `raw/teds-point/TEDS12_POINT_WGS84.csv` |
-| TEDS 網格 | `scripts/import_teds_grid.py` | `raw/teds-grid/`（預留） |
+| TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
+| TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
 
 ## 匯入前置作業
