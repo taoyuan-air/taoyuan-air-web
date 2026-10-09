@@ -24,22 +24,49 @@
 
 ```text
 data/raw/
-├── moe-stations/          # 環境部 6 站（桃園/大園/觀音/平鎮/龍潭/中壢）
+├── moe-stations/          # 環境部 5 站（桃園/大園/觀音/平鎮/龍潭）
 │   ├── AQX_P_205_Resource/
 │   ├── AQX_P_206_Resource/
 │   ├── AQX_P_207_Resource/
 │   ├── AQX_P_208_Resource/
-│   ├── AQX_P_209_Resource/
-│   └── AQX_P_255_Resource/
+│   └── AQX_P_209_Resource/
+│
 ├── cwa-stations/          # 氣象署（Package_24780/24781/24937）
+│   ├── Package_24780/
+│   ├── Package_24781/
+│   ├── Package_24937/
+│   └── json/              # 轉檔後的 JSON 快取
+│
 ├── tydep-stations/        # 桃園市環保局 Excel（108–115 年）
-├── UAV/                   # 無人機垂直剖面 txt
+│   ├── 桃園市空氣品質測站監測數據(108-115).xlsx
+│   └── json/              # 轉檔後的 JSON 快取
+│
+├── teds-point/            # TEDS 點源（TEDS12_POINT_WGS84.csv）
+│   └── json/              # 轉檔後的 JSON 快取
+│
+├── teds-grid/             # TEDS 網格源（預留）
+│
+├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
+│   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
+│
+├── uav/                   # 無人機垂直剖面 txt
 │                          # 檔名：UAV_V1_L3_gas_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
+│
 ├── WindLidar/             # 都卜勒風光達日檔
 │                          # 檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
-├── teds-point/            # TEDS 點源
+│
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
+```
+
+## Processed 資料結構
+
+```text
+data/processed/
+└── tydep-stations/
+    └── json/              # 各測站 JSON 檔（由 convert_tydep_xlsx.py 產生）
+        ├── <station_id>/
+        └── stations_meta.json
 ```
 
 ## 檔名格式說明
@@ -75,10 +102,12 @@ UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
 | --- | --- | --- |
 | MOE | `scripts/import_moe_stations.py` | 月更新：`update_moe_monthly.py` |
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
-| TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔 |
-| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header |
+| TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
+| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header；資料夾 `raw/uav/` |
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
-| TEDS | `scripts/import_teds_point.py` | — |
+| TEDS 點源 | `scripts/import_teds_point.py` | `raw/teds-point/TEDS12_POINT_WGS84.csv` |
+| TEDS 網格 | `scripts/import_teds_grid.py` | `raw/teds-grid/`（預留） |
+| Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
 
 ## 匯入前置作業
 

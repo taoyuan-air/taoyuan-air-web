@@ -10,6 +10,8 @@
 | `cwa_stations_schema.sql` | CWA 氣象署測站 | 氣象測站與小時觀測資料 |
 | `tydep_stations_schema.sql` | TYDEP 桃園市環保局 | 桃園市環保局測站與小時值資料 |
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
+| `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料（預留） |
+| `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
@@ -35,6 +37,9 @@
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+| TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 覆蓋匯入 |
+| TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` | 預留 |
+| Exam Point | 不分區 | `scripts/import_exam_point.py` | 以 `(source_id, item_id, exam_date)` UPSERT |
 | NAQO | 第一版不分區 | `database/naqo_schema.sql` | 第一階段後端即時查 Supabase；第二階段 `scripts/sync_naqo.py` 以 `inserted_at` 浮標同步 |
 
 ## NAQO 對接流程
@@ -263,6 +268,8 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/moe
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/cwa_stations_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/tydep_stations_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_point_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_grid_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exam_point_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
@@ -290,6 +297,12 @@ python scripts/import_moe_stations.py
 python scripts/convert_tydep_xlsx.py
 python scripts/import_tydep_stations.py
 
+# TEDS 點源
+python scripts/import_teds_point.py
+
+# Exam Point（固定污染源檢測，自動掃描 data/raw/exam-point/*.csv）
+python scripts/import_exam_point.py
+
 # NAQO（第二階段：同步 Supabase min60 至本地 PostgreSQL）
 python scripts/sync_naqo.py
 
@@ -316,6 +329,12 @@ DROP TABLE IF EXISTS uav_parameters CASCADE;
 DROP TABLE IF EXISTS naqo_hourly_data CASCADE;
 DROP TABLE IF EXISTS naqo_stations CASCADE;
 DROP TABLE IF EXISTS naqo_pollutants CASCADE;
+
+-- 範例：重建 Exam Point
+DROP VIEW  IF EXISTS latest_exam_summary CASCADE;
+DROP TABLE IF EXISTS exam_records CASCADE;
+DROP TABLE IF EXISTS exam_items CASCADE;
+DROP TABLE IF EXISTS exam_sources CASCADE;
 ```
 
 然後重新執行 schema SQL + import 腳本。
