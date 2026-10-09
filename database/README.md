@@ -10,6 +10,8 @@
 | `cwa_stations_schema.sql` | CWA 氣象署測站 | 氣象測站與小時觀測資料 |
 | `tydep_stations_schema.sql` | TYDEP 桃園市環保局 | 桃園市環保局測站與小時值資料 |
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
+| `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料 |
+| `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
@@ -30,11 +32,14 @@
 
 | 資料源 | 分區策略 | 自動建立位置 | 補正或更新流程 |
 | --- | --- | --- | --- |
-| MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | `scripts/update_moe_monthly.py` 以 history 覆蓋 realtime |
+| MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | 中壢站需先跑 `convert_zhongli_wide_csv.py`；月更新：`update_moe_monthly.py` 以 history 覆蓋 realtime |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+| TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 重複略過（ON CONFLICT DO NOTHING） |
+| TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` | 重複略過（ON CONFLICT DO NOTHING） |
+| Exam Point | 不分區 | `scripts/import_exam_point.py` | 以 `(source_id, item_id, exam_date)` UPSERT |
 | NAQO | 第一版不分區 | `database/naqo_schema.sql` | 第一階段後端即時查 Supabase；第二階段 `scripts/sync_naqo.py` 以 `inserted_at` 浮標同步 |
 
 ## NAQO 對接流程
@@ -112,8 +117,6 @@ NEXT_PUBLIC_API_BASE=/api
 BACKEND_ORIGIN=http://127.0.0.1:8001
 ```
 
-若後端改開 `8001`，`BACKEND_ORIGIN` 也要同步改成 `http://127.0.0.1:8001`。
-
 ### 開啟服務
 
 Terminal 1：開本機資料庫。
@@ -152,7 +155,6 @@ http://localhost:3000/explorer
 2. 資料來源可選擇「中大空品站」。
 3. 卡片不再顯示「模擬資料」。
 4. 時間顯示為台灣時間，不應差 8 小時。
-5. 參數選單不顯示 NAQO 不提供的 `PM10`、`NO2`。
 
 ## NAQO 歷史資料庫匯入與驗證
 
@@ -256,13 +258,15 @@ curl -i http://localhost:8001/api/explorer/history?days=7
 
 ## 建議建置順序
 
-依需要執行單一資料源 schema：
+依需要執行單一資料源 schema。**teds_point 必須在 teds_grid 之前建立**（兩者共用 teds_observations 表，順序相反會建表失敗）：
 
 ```bash
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/moe_stations_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/cwa_stations_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/tydep_stations_schema.sql
-docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_point_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_point_schema.sql   # ← 必須先於 teds_grid
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/teds_grid_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exam_point_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
@@ -283,12 +287,22 @@ python scripts/import_uav.py
 # CWA
 python scripts/import_cwa_stations.py
 
-# MOE
+# MOE（中壢站需先轉檔）
+python scripts/convert_zhongli_wide_csv.py
 python scripts/import_moe_stations.py
 
 # TYDEP（需先轉檔）
 python scripts/convert_tydep_xlsx.py
 python scripts/import_tydep_stations.py
+
+# TEDS 點源（必須比 teds_grid 先跑）
+python scripts/import_teds_point.py --csv data/raw/teds-point/TEDS12_POINT_WGS84.csv
+
+# TEDS 網格
+python scripts/import_teds_grid.py --csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv
+
+# Exam Point（固定污染源檢測，自動掃描 data/raw/exam-point/*.csv）
+python scripts/import_exam_point.py
 
 # NAQO（第二階段：同步 Supabase min60 至本地 PostgreSQL）
 python scripts/sync_naqo.py
@@ -316,6 +330,12 @@ DROP TABLE IF EXISTS uav_parameters CASCADE;
 DROP TABLE IF EXISTS naqo_hourly_data CASCADE;
 DROP TABLE IF EXISTS naqo_stations CASCADE;
 DROP TABLE IF EXISTS naqo_pollutants CASCADE;
+
+-- 範例：重建 Exam Point
+DROP VIEW  IF EXISTS latest_exam_summary CASCADE;
+DROP TABLE IF EXISTS exam_records CASCADE;
+DROP TABLE IF EXISTS exam_items CASCADE;
+DROP TABLE IF EXISTS exam_sources CASCADE;
 ```
 
 然後重新執行 schema SQL + import 腳本。
