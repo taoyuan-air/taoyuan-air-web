@@ -500,19 +500,22 @@ export default function MapPage() {
   const [showChimneyLayer, setShowChimneyLayer] = useState(true);
   const [showMercuryLayer, setShowMercuryLayer] = useState(true);
   const [showPm25GridLayer, setShowPm25GridLayer] = useState(false);
-  const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25'>('pm25');
+  const [showAdministrativeBoundaries, setShowAdministrativeBoundaries] = useState(false);
+  const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25' | 'administrative'>('pm25');
   const Z = 1100;
 
   const layerStates = {
     chimney: showChimneyLayer,
     mercury: showMercuryLayer,
     pm25: showPm25GridLayer,
+    administrative: showAdministrativeBoundaries,
   } as const;
 
-  const toggleLayer = (layer: 'chimney' | 'mercury' | 'pm25') => {
+  const toggleLayer = (layer: 'chimney' | 'mercury' | 'pm25' | 'administrative') => {
     if (layer === 'chimney') setShowChimneyLayer((prev) => !prev);
     if (layer === 'mercury') setShowMercuryLayer((prev) => !prev);
     if (layer === 'pm25') setShowPm25GridLayer((prev) => !prev);
+    if (layer === 'administrative') setShowAdministrativeBoundaries((prev) => !prev);
   };
 
   useEffect(() => {
@@ -668,7 +671,7 @@ export default function MapPage() {
           {(['NOW', 'FORECAST'] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)} style={{
               padding: '7px 20px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              backgroundColor: mode === m ? palette.primaryDeep : 'transparent',
+              backgroundColor: mode === m ? '#2d78b8' : 'transparent',
               color: mode === m ? '#fff' : palette.textSecondary,
               fontSize: 13, fontWeight: 700, transition: 'all 0.18s',
             }}>
@@ -772,6 +775,7 @@ export default function MapPage() {
             gridCells={showPm25GridLayer ? gridCells : []}
             tedsPoints={visibleEmissionPoints}
             mapMode={mapMode}
+            showAdministrativeBoundaries={showAdministrativeBoundaries}
             onGridPress={handleGridPress}
             focusGrid={focusedGrid}
           />
@@ -795,11 +799,12 @@ export default function MapPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
             {[
               { key: 'chimney' as const, label: '點煙囪' },
               { key: 'mercury' as const, label: '汞排放' },
               { key: 'pm25' as const, label: 'PM2.5' },
+              { key: 'administrative' as const, label: '行政區線' },
             ].map((tab) => {
               const on = activeLayerInfo === tab.key;
               const visible = layerStates[tab.key];
@@ -885,6 +890,14 @@ export default function MapPage() {
                 {selectedMeta.range.map((r) => <span key={r} style={{ fontSize: 10, color: palette.textSecondary }}>{r}</span>)}
               </div>
             </>
+          )}
+
+          {activeLayerInfo === 'administrative' && (
+            <div style={{ borderRadius: 10, background: 'rgba(224,229,234,0.3)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: palette.textMain }}>行政區線說明</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.6, color: palette.textSecondary }}>桃園市各行政區界線，以灰色虛線呈現。</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#69727a', fontWeight: 700 }}>{showAdministrativeBoundaries ? '目前顯示：已開啟' : '目前顯示：已關閉'}</p>
+            </div>
           )}
 
           {activeLayerInfo !== 'pm25' && (
