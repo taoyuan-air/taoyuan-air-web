@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExamPoint, GridCell, TEDSPoint } from '@shared/types';
-import taiwanCountiesData from '@/data/map-assets/taiwan-counties.json';
+import taoyuanBoundaryData from '@/data/map-assets/TOWN_MOI_1140318-taoyuan.json';
+import administrativeBoundaryData from '@/data/map-assets/TOWN_MOI_1140318-region.json';
 
 interface LeafletMapProps {
   gridCells: GridCell[];
   tedsPoints?: Array<TEDSPoint | ExamPoint>;
   mapMode: '2D' | 'Satellite';
+  showAdministrativeBoundaries?: boolean;
   onGridPress?: (grid: GridCell) => void;
   focusGrid?: GridCell | null;
 }
@@ -39,6 +41,11 @@ interface LeafletLayerGroup {
   addTo: (map: LeafletMapInstance) => LeafletLayerGroup;
 }
 
+interface LeafletGeoJsonLayer {
+  addTo: (map: LeafletMapInstance) => LeafletGeoJsonLayer;
+  remove: () => LeafletGeoJsonLayer;
+}
+
 interface LeafletPolygon {
   on: (event: 'click', handler: (event: LeafletClickEvent) => void) => void;
   addTo: (layerGroup: LeafletLayerGroup) => void;
@@ -61,6 +68,7 @@ interface LeafletApi {
   circleMarker?: (pos: LatLngTuple, options?: Record<string, unknown>) => LeafletMarkerInstance;
   divIcon?: (options?: Record<string, unknown>) => unknown;
   polygon: (positions: LatLngTuple[], options: Record<string, unknown>) => LeafletPolygon;
+  geoJSON: (data: unknown, options: Record<string, unknown>) => LeafletGeoJsonLayer;
 }
 
 interface WindyColors {
@@ -172,7 +180,7 @@ const getGridColor = (value: number) => {
   return `rgba(${r},${g},${b},0.4)`;
 };
 
-export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress, focusGrid }: LeafletMapProps) {
+export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdministrativeBoundaries = false, onGridPress, focusGrid }: LeafletMapProps) {
   const [isDetailMode, setIsDetailMode] = useState(false);
   const mapRef = useRef<LeafletMapInstance | null>(null);
   const windyLeafletRef = useRef<LeafletApi | null>(null);
@@ -180,6 +188,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
   const detailMapRef = useRef<LeafletMapInstance | null>(null);
   const detailPolygonLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
   const detailPointLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
+  const administrativeBoundaryLayerRef = useRef<LeafletGeoJsonLayer | null>(null);
   const satMapRef = useRef<LeafletMapInstance | null>(null);
   const satLayerGroupRef = useRef<LeafletLayerGroup | null>(null);
   const initStartedRef = useRef(false);
@@ -189,6 +198,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
   const gridCellsRef = useRef<GridCell[]>(gridCells);
   const onGridPressRef = useRef(onGridPress);
   const tedsPointsRef = useRef<EmissionPoint[]>(tedsPoints || []);
+  const showAdministrativeBoundariesRef = useRef(showAdministrativeBoundaries);
   const [zoomLevel, setZoomLevel] = useState(WINDY_DETAIL_ZOOM);
 
   const updateDetailMode = useCallback((next: boolean) => {
@@ -262,6 +272,15 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
   useEffect(() => {
     tedsPointsRef.current = tedsPoints || [];
   }, [tedsPoints]);
+
+  useEffect(() => {
+    showAdministrativeBoundariesRef.current = showAdministrativeBoundaries;
+    const layer = administrativeBoundaryLayerRef.current;
+    const map = detailMapRef.current;
+    if (!layer || !map) return;
+    if (showAdministrativeBoundaries) layer.addTo(map);
+    else layer.remove();
+  }, [showAdministrativeBoundaries]);
 
   useEffect(() => {
     mapModeRef.current = mapMode;
@@ -405,29 +424,18 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
           detailMapRef.current = detailMap;
           setZoomLevel(detailMap.getZoom());
 
+
           detailPolygonLayerGroupRef.current = L.layerGroup().addTo(detailMap);
           detailPointLayerGroupRef.current = L.layerGroup().addTo(detailMap);
 
           try {
-            if (taiwanCountiesData) {
-              // 從本地的全台資料中過濾出桃園
-              const taoyuanFeature = (taiwanCountiesData as any).features.find((f: any) => 
-                f.properties.COUNTYNAME === '桃園市' || f.properties.COUNTYNAME === '桃園縣'
-              );
-              
-              if (taoyuanFeature) {
-                const boundaryStyle = {
-                  color: '#d4567a', 
-                  weight: 3,        
-                  fillOpacity: 0.0, 
-                  interactive: false 
-                };
-                
-                (L as any).geoJSON(taoyuanFeature, {
-                  style: boundaryStyle
-                }).addTo(detailMap);
-              }
-            }
+            const boundaryStyle = { color: '#2d78b8', weight: 3, fillOpacity: 0, interactive: false };
+            const administrativeStyle = { color: '#475569', weight: 2.5, opacity: 0.9, dashArray: '6 5', fillOpacity: 0, interactive: false };
+
+            L.geoJSON(taoyuanBoundaryData, { style: boundaryStyle }).addTo(detailMap);
+            const administrativeLayer = L.geoJSON(administrativeBoundaryData, { style: administrativeStyle });
+            administrativeBoundaryLayerRef.current = administrativeLayer;
+            if (showAdministrativeBoundariesRef.current) administrativeLayer.addTo(detailMap);
           } catch (err) {
             console.error('桃園市邊界繪製失敗:', err);
           }
@@ -659,7 +667,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, onGridPress
             step={1}
             value={zoomLevel}
             onChange={(e) => handleZoomRequest(Number(e.target.value))}
-            style={{ flex: 1, minWidth: 0, accentColor: '#d4567a', height: 24 }}
+            style={{ flex: 1, minWidth: 0, accentColor: '#2d78b8', height: 24 }}
           />
           <button
             onClick={() => handleZoomRequest(zoomLevel + 1)}
