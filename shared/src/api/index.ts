@@ -105,9 +105,9 @@ export const getStations = async ({ pollutant, timestamp }: { pollutant: Polluta
   return mockStations;
 };
 
-export const getTEDSPoints = async (): Promise<TEDSPoint[]> => {
+export const getTEDSPoints = async (baseUrl = '/api'): Promise<TEDSPoint[]> => {
   try {
-    const response = await fetch('/api/teds-points');
+    const response = await fetch(`${baseUrl}/teds-points`);
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
@@ -235,9 +235,9 @@ export const getHealthAdvisory = async ({ pollutant, value, trend }: { pollutant
   return { aqi, level, outdoorActivity, maskRequired, sensitiveGroups, summary };
 };
 
-export const getExamPoints = async (): Promise<ExamPoint[]> => {
+export const getExamPoints = async (baseUrl = '/api'): Promise<ExamPoint[]> => {
   try {
-    const response = await fetch('/api/exam-points');
+    const response = await fetch(`${baseUrl}/exam-points`);
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
