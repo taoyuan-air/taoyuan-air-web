@@ -272,7 +272,7 @@ def process(csv_path: Path, json_dir: Path, batch_size: int):
 
 def main():
     parser = argparse.ArgumentParser(description="TEDS 全台匯入腳本")
-    parser.add_argument("--csv", type=Path, required=True)
+    parser.add_argument("--csv", type=Path, default=Path("data/raw/teds-point/TEDS12_POINT_WGS84.csv"))
     parser.add_argument("--json-dir", type=Path, default=Path("./data/raw/teds-point/json/"))
     parser.add_argument("--batch-size", type=int, default=5000)
     args = parser.parse_args()
