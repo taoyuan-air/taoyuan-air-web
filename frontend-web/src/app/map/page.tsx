@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useStore } from '@shared/store';
 import { getExamPoints, getGrid, setScenario, getTEDSPoints } from '@shared/api/index';
+import { API_BASE } from '@/lib/apiBase';
 import { palette } from '@shared/constants/theme';
 import { DISTRICT_COORDINATES, DISTRICTS, calculateDistance, findNearestDistrict } from '@shared/constants/districts';
 import { ExamPoint, GridCell, Pollutant, TEDSPoint } from '@shared/types';
@@ -523,7 +524,7 @@ export default function MapPage() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
 
-    getTEDSPoints()
+    getTEDSPoints(API_BASE)
       .then((points) => {
         if (points.length > 0) {
           setTedsPoints(points);
@@ -542,7 +543,7 @@ export default function MapPage() {
         setTedsPointsNotice(`TEDS 後端暫時離線，已切換展示資料。`);
       });
 
-    getExamPoints()
+    getExamPoints(API_BASE)
       .then((points) => {
         if (points.length > 0) {
           setExamPoints(points);
