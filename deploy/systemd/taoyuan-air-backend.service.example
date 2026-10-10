@@ -1,0 +1,17 @@
+# 範本檔案，僅在 VM 確認要用 systemd（而非 PM2）管理 app 時才使用。
+# 用實際值取代 __PLACEHOLDER__ 後，存成 /etc/systemd/system/taoyuan-air-backend.service。
+[Unit]
+Description=Taoyuan Air backend (FastAPI/Uvicorn)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=__DEPLOY_USER__
+WorkingDirectory=__PROJECT_DIR__/backend
+EnvironmentFile=__PROJECT_DIR__/backend/.env
+ExecStart=__PROJECT_DIR__/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port __BACKEND_PORT__
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
