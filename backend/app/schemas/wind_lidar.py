@@ -19,5 +19,5 @@ class PlotDataResponse(BaseModel):
     timezone: str
     heightsKm: list[float]   # 升冪，單位公里
     times: list[str]          # ISO-8601 本地時間字串，台灣時間
-    panels: dict[str, PanelData]
+    panels: dict[str, PanelData]   # keys: wind_direction, vertical_wind, wind_speed, turbulence, cnr
     warnings: list[str]
