@@ -1,4 +1,5 @@
 // UAV API client — uses the same /api proxy as the rest of the app
+import { API_BASE } from './apiBase';
 
 export interface FlightSummary {
   flight_id: string;
@@ -31,7 +32,7 @@ export interface ProfileRow {
   co2:   number | null;
 }
 
-const BASE = '/api/uav';
+const BASE = `${API_BASE}/uav`;
 
 export async function fetchFlights(): Promise<FlightSummary[]> {
   const res = await fetch(`${BASE}/flights`);

@@ -217,7 +217,7 @@ def process(csv_path: Path, json_dir: Path, batch_size: int):
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="TEDS 網格化資料匯入工具")
-    parser.add_argument("--csv", type=Path, default=Path("TEDS12.0_total_emission_WGS84.csv"))
+    parser.add_argument("--csv", type=Path, default=Path("data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv"))
     parser.add_argument("--json-dir", type=Path, default=Path("./data/raw/teds-stations/json/"))
     parser.add_argument("--batch-size", type=int, default=5000)
     args = parser.parse_args()

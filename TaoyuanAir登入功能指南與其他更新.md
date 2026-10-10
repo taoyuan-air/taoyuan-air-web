@@ -238,7 +238,7 @@ docker exec -i taoyuan-air-db psql -U <USER> -d taoyuan_air < database/auth_sche
 # 3. 啟動 FastAPI 後端
 cd backend
 source venv/bin/activate  # 或 Windows: venv\Scripts\activate
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+uvicorn app.main:app --reload --port 8001
 
 # 4. 啟動 Next.js（另開 terminal）
 npm run web

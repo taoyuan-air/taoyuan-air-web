@@ -20,9 +20,10 @@ import {
   findNearestDistrict,
 } from '@shared/constants/districts';
 import TaoyuanSVGMap from '@/components/map/TaoyuanSVGMap';
+import { API_BASE } from '@/lib/apiBase';
 
 const fetchMoeStations = (): Promise<MoeStationData[]> =>
-  fetch('/api/moe')
+  fetch(`${API_BASE}/moe`)
     .then(r => r.json())
     .then(response => response.data);
 
@@ -1499,7 +1500,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/cwa?district=${encodeURIComponent(district)}`)
+    fetch(`${API_BASE}/cwa?district=${encodeURIComponent(district)}`)
       .then(r => r.json())
       .then(({ data: { current, forecast, past1hrRain } }) => {
         setCurrentWeather(current);
