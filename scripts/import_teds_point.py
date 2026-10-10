@@ -15,6 +15,7 @@ import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
+from typing import Optional, Tuple
 
 # 載入環境變數
 load_dotenv()
@@ -80,7 +81,7 @@ log = logging.getLogger(__name__)
 # 3. 資料清洗工具函式
 # ===========================================================
 
-def safe_float(val, fill_zero: bool = True) -> tuple[float | None, str]:
+def safe_float(val, fill_zero: bool = True) -> Tuple[Optional[float], str]:
     """
     清洗排放量數值：
     - NaN / 空值 → 依 fill_zero 決定填 0.0 或 None
