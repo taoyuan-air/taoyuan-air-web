@@ -1,0 +1,22 @@
+# 範本檔案，僅在 VM 確認要用 systemd（而非 PM2）管理 app 時才使用。
+# 用實際值取代 __PLACEHOLDER__ 後，存成 /etc/systemd/system/taoyuan-air-frontend.service。
+# next start 只認得 PORT / HOSTNAME 這兩個環境變數，NEXT_PUBLIC_* 只在 build 階段生效，
+# 所以 build（scripts/deploy.sh 裡的 npm run build）跟這個 service 都要能讀到
+# frontend-web/.env.production。
+[Unit]
+Description=Taoyuan Air frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=__DEPLOY_USER__
+WorkingDirectory=__PROJECT_DIR__/frontend-web
+EnvironmentFile=__PROJECT_DIR__/frontend-web/.env.production
+Environment=PORT=__FRONTEND_PORT__
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/npm run start --prefix __PROJECT_DIR__/frontend-web
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

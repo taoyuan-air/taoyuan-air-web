@@ -109,3 +109,13 @@ venv/
 
 # Private documentation
 docs/
+
+# Backend logs
+backend/*.log
+backend/*.err.log
+
+# Local scratch
+vm/
+
+# VM 專屬部署設定（無密鑰，但值因 VM 而異，只保留 .example 範本）
+deploy/deploy.env

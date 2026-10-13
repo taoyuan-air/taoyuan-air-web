@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+import { API_BASE } from './apiBase';
 
 async function apiFetch(path: string, options: RequestInit = {}, isFormData = false): Promise<Response> {
   const res = await fetch(`${API_BASE}${path}`, {
