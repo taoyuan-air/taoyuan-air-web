@@ -23,7 +23,7 @@
 
 | 資料源 | 檔名範例 | 說明 |
 | --- | --- | --- |
-| WindLidar | `DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_版本_等級_參數_日期_序號_站點 |
+| WindLidar | 新（SFTP）：`DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt`；舊：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_級別_參數_日期_序號_站點_反演版本 |
 | UAV | 新（SFTP）：`UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt`＋`UAV_L2_met_…`；舊：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_級別_參數_日期_時間_儀器版本_站點_反演版本 |
 
 ## 查詢範例

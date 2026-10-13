@@ -50,8 +50,8 @@ data/raw/
 ├── UAV/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
 │                          # 檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │
-├── WindLidar/             # 都卜勒風光達日檔
-│                          # 檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
+├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
+│                          # 檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
 │
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
@@ -74,15 +74,16 @@ data/processed/
 
 ### WindLidar
 ```
-DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
- │   │  │  │      │        │        └─ 測站
- │   │  │  │      │        └─ 儀器序號
- │   │  │  │      └─ 觀測日期（YYYYMMDD）
- │   │  │  └─ 量測參數（水平垂直風）
- │   │  └─ 等級1資料
- │   └─ 版本1
+DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
+ │   │  │      │        │        │     └─ 反演版本
+ │   │  │      │        │        └─ 測站
+ │   │  │      │        └─ 儀器序號
+ │   │  │      └─ 觀測日期（YYYYMMDD，UTC）
+ │   │  └─ 量測參數（水平垂直風）
+ │   └─ 資料級別 L1
  └─ 都卜勒風光達
 ```
+舊檔名（Google 雲端，2026-04）：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt`。檔案內容格式相同（tab 分隔）。
 
 ### UAV
 ```
@@ -109,7 +110,7 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
 | UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV`（遞迴） |
-| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
+| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
