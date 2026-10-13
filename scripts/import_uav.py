@@ -1,32 +1,14 @@
 #!/usr/bin/env python3
 """
-UAV 資料匯入腳本
-讀取無人機垂直剖面 txt，批次匯入 PostgreSQL 的 uav_data 分區表
+UAV 資料匯入腳本：讀取無人機垂直剖面 txt，匯入 PostgreSQL 的 uav_data
 
-檔名格式（新舊皆支援）：
-  新（2026/09 起，SFTP）：UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt
-                          UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
-                          儀器_資料級別_量測主要參數_觀測起始年月日_小時分鐘_儀器版本_測站_反演版本
-                          → 同一趟飛行拆成 gas（氣體）與 met（氣象＋PM）兩個檔，匯入時合併
-  舊（Google 雲端）    ：UAV_V1_L3_gas_20260330_1647_Aeromount(V4)_Guanyin.txt
-                          儀器_反演版本_資料級別_量測主要參數_觀測起始年月日_小時分鐘_儀器版本_測站
-
-同一趟飛行若同時有新、舊格式檔案，只採用新格式；同格式有多個級別時採用最高級別。
-
-txt 格式：
-  metadata header（key: value 行，到 '==' 分隔線結束；key 大小寫不拘，數值可帶單位如 "17 m"）
-  分隔線之後：
-    第 1 行：單位（如 (m), (hPa), ...）
-    第 2 行：欄位名稱（agl, asl, P, T, ...）
-    第 3 行起：資料（NaN 存為 NULL），逗號分隔
-
-注意：
-  - agl 欄位作為層鍵（agl_m），不另外插入 uav_data 作為參數
-  - flight_id 一律由檔名組成（YYYYMMDD_HHMM），不使用檔頭的 Flight_id（新版含測站名，超過欄位長度）
-  - 重新匯入同一趟飛行時，會先刪除該飛行的舊資料再寫入
+支援檔名（格式說明見 data/DATA_GUIDE.md）：
+  新：UAV_L2_{gas|met}_20260330_1647_AMV4_Guanyin_V1.txt（gas、met 合併為同一趟飛行）
+  舊：UAV_V1_L3_gas_20260330_1647_Aeromount(V4)_Guanyin.txt
+同一趟飛行新舊並存時只用新格式；重匯時整趟飛行重寫。
 
 用法：
-  python scripts/import_uav.py                                    # 讀 data/raw/UAV
+  python scripts/import_uav.py                                      # 讀 data/raw/UAV
   python scripts/import_uav.py --raw-dir /data/sftp_root/uploads/UAV
 """
 
