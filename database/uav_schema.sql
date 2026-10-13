@@ -2,10 +2,10 @@
 -- 分支: feat/database-UAV
 -- 建立日期: 2026-05-26
 -- 更新日期：2026-08-06
--- 儀器: V6-850
+-- 機型: V6-850（aircraft）；儀器: Aeromount V4（新版檔名寫作 AMV4）
 -- 資料範圍: 2026-03-30，共 6 次飛行任務
 -- 量測參數: 23 個主要欄位（高度 2 種、氣象 11 種、氣膠 3 種、氣體 7 種）；CO2 為預留欄位
--- 資料流程: txt → 直接匯入 DB
+-- 資料流程: txt → 直接匯入 DB（scripts/import_uav.py，新版 L2 gas＋met 與舊版 L3 皆支援）
 -- 注意: agl 欄位作為 agl_m 層鍵，不另存為參數資料
 
 -- 0. 啟用必要擴充功能
@@ -51,7 +51,8 @@ ALTER TABLE IF EXISTS uav_flights
     ALTER COLUMN longitude SET DEFAULT 121.1288,
     ALTER COLUMN altitude_m SET DEFAULT 17.0;
 
--- 插入 6 次飛行任務
+-- 插入 6 次飛行任務（僅作初始值；實際內容以 import_uav.py 讀取檔頭為準，
+-- 因此使用 DO NOTHING，重跑本檔不會覆蓋已匯入的 data_level、instrument、max_agl_m）
 INSERT INTO uav_flights
     (flight_id, takeoff_time, flight_direction, data_level, data_release_date,
      site_name, latitude, longitude, altitude_m, instrument, max_agl_m)
@@ -62,18 +63,7 @@ VALUES
     ('20260330_1517', '2026-03-30 15:17:00', 'ascending', 'L3', '2026-03-30', 'Guanyin', 25.0605, 121.1288, 17.0, 'Aeromount(V4)', NULL),
     ('20260330_1601', '2026-03-30 16:01:00', 'ascending', 'L3', '2026-03-30', 'Guanyin', 25.0605, 121.1288, 17.0, 'Aeromount(V4)', NULL),
     ('20260330_1647', '2026-03-30 16:47:00', 'ascending', 'L3', '2026-03-30', 'Guanyin', 25.0605, 121.1288, 17.0, 'Aeromount(V4)', NULL)
-ON CONFLICT (flight_id) DO UPDATE SET
-    takeoff_time      = EXCLUDED.takeoff_time,
-    data_release_date = EXCLUDED.data_release_date,
-    flight_direction  = EXCLUDED.flight_direction,
-    data_level        = EXCLUDED.data_level,
-    instrument        = EXCLUDED.instrument,
-    site_name         = EXCLUDED.site_name,
-    latitude          = EXCLUDED.latitude,
-    longitude         = EXCLUDED.longitude,
-    altitude_m        = EXCLUDED.altitude_m,
-    max_agl_m         = EXCLUDED.max_agl_m,
-    updated_at        = NOW();
+ON CONFLICT (flight_id) DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. 量測參數定義表
