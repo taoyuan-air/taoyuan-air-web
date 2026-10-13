@@ -1,0 +1,12 @@
+# 範本檔案。VM 安裝時複製到 /etc/systemd/system/。
+[Unit]
+Description=Run Taoyuan Air deployment periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
