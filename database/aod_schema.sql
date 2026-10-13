@@ -1,7 +1,6 @@
 -- ============================================================
 -- AOD 衛星氣膠資料庫架構（MAIAC MCD19A2.061）
 -- 系統：桃園 3D Geo-AI 大氣品質預測系統
--- 設計文檔：database/AOD_DATABASE_DESIGN.md
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -26,8 +25,8 @@ INSERT INTO aod_satellites (satellite_id, satellite_name, product, collection, r
 ON CONFLICT (satellite_id) DO NOTHING;
 
 -- ============================================================
--- 2. 0.01° 網格（桃園、新北、台北、新竹，共 12,726 格）
---    由 scripts/init_aod_grid.py 建立，縣市由內政部縣市界線補上
+-- 2. 0.01° 網格（桃園、新北、臺北、新竹，共 12,726 格）
+--    由 scripts/import_maiac_aod.py 步驟 1 建立，縣市由內政部縣市界線補上
 -- ============================================================
 CREATE TABLE IF NOT EXISTS aod_grids (
     grid_id          VARCHAR(20)  PRIMARY KEY,             -- N2477E12105 = 北緯 24.77、東經 121.05
@@ -46,8 +45,8 @@ CREATE TABLE IF NOT EXISTS aod_grids (
 -- ============================================================
 -- 3. 每日 AOD 與模型特徵（分區表）
 --    只存通過 QA 的格點：沒有 row = 當天該格沒有有效值
---    aod ~ known_issue 由 import_maiac_aod.py 寫入
---    daod ~ aod_valid  由 build_aod_features.py 計算後補上
+--    aod ~ known_issue 由 import_maiac_aod.py 步驟 2 寫入
+--    daod ~ aod_valid  由 import_maiac_aod.py 步驟 3 計算後補上
 -- ============================================================
 CREATE TABLE IF NOT EXISTS aod_daily_data (
     id              BIGSERIAL,
