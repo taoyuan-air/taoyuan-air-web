@@ -53,6 +53,12 @@ data/raw/
 ├── WindLidar/             # 都卜勒風光達日檔
 │                          # 檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
 │
+├── satellite/maiac_crop/  # MAIAC AOD 裁切檔（download_maiac.py 產生，或從雲端取得，約 300 MB）
+│   └── <年>/MCD19A2.AYYYYDDD.h28v06|h29v06.061.*.npz
+│
+├── boundaries/            # 內政部縣市界線（補 aod_grids.county 用）
+│   └── COUNTY_MOI_1140318.gml
+│
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
 ```
@@ -103,6 +109,7 @@ UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
 | UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header；資料夾 `raw/UAV/` |
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
+| AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
