@@ -1016,7 +1016,7 @@ export default function ExplorerPage() {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch('/api/naqo/latest?limit=20', { signal: controller.signal })
+    fetch(`${API_BASE}/naqo/latest?limit=20`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json() as Promise<NaqoApiResponse>;
