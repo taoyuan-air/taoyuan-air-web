@@ -47,11 +47,11 @@ data/raw/
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
 │
-├── UAV/                   # 無人機垂直剖面 txt
-│                          # 檔名：UAV_V1_L3_gas_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
+├── UAV/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
+│                          # 檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │
-├── WindLidar/             # 都卜勒風光達日檔
-│                          # 檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
+├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
+│                          # 檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
 │
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
@@ -69,30 +69,38 @@ data/processed/
 
 ## 檔名格式說明
 
+統一規則（2026-10）：`儀器_資料級別_量測主要參數_觀測起始年月日_儀器版本_測站_反演版本`
+大氣系資料經 SFTP（`/data/sftp_root/uploads/<儀器>/<測站>/<級別>/<年>/`）上傳。匯入程式新舊檔名皆支援。
+
 ### WindLidar
 ```
-DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
- │   │  │  │      │        │        └─ 測站
- │   │  │  │      │        └─ 儀器序號
- │   │  │  │      └─ 觀測日期（YYYYMMDD）
- │   │  │  └─ 量測參數（水平垂直風）
- │   │  └─ 等級1資料
- │   └─ 版本1
+DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
+ │   │  │      │        │        │     └─ 反演版本
+ │   │  │      │        │        └─ 測站
+ │   │  │      │        └─ 儀器序號
+ │   │  │      └─ 觀測日期（YYYYMMDD，UTC）
+ │   │  └─ 量測參數（水平垂直風）
+ │   └─ 資料級別 L1
  └─ 都卜勒風光達
 ```
+舊檔名（Google 雲端，2026-04）：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt`。檔案內容格式相同（tab 分隔）。
 
 ### UAV
 ```
-UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
- │   │  │   │     │      │       │            └─ 測站
- │   │  │   │     │      │       └─ 儀器版本
- │   │  │   │     │      └─ 起飛時間（HHMM）
- │   │  │   │     └─ 觀測日期（YYYYMMDD）
- │   │  │   └─ 量測主要參數
- │   │  └─ 資料級別 L3
- │   └─ 反演版本1
+UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt
+UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
+ │   │   │      │      │    │     │     └─ 反演版本
+ │   │   │      │      │    │     └─ 測站
+ │   │   │      │      │    └─ 儀器版本（Aeromount V4）
+ │   │   │      │      └─ 起飛時間（HHMM）
+ │   │   │      └─ 觀測日期（YYYYMMDD）
+ │   │   └─ 量測主要參數：gas（O3/CO/CO2/SO2/NO2/NH3/H2S/TVOC）、met（P/T/RH/PM/風/位溫等）
+ │   └─ 資料級別 L2
  └─ 儀器
 ```
+- 同一趟飛行拆成 gas、met 兩檔，`import_uav.py` 依檔名的 `YYYYMMDD_HHMM` 合併為同一個 `flight_id`
+- 檔頭 key 首字大寫（`Max_agl: 300 m`、`Elevation: 17 m`），程式不分大小寫並去除單位
+- 舊檔名（Google 雲端，L3 單檔）：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt`；同一趟若新舊並存，只採用新格式
 
 ## 匯入腳本對照
 
@@ -101,8 +109,8 @@ UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
 | MOE | `scripts/convert_zhongli_wide_csv.py` → `scripts/import_moe_stations.py` | 中壢站需先轉檔；月更新：`update_moe_monthly.py` |
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
-| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header；資料夾 `raw/UAV/` |
-| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
+| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV`（遞迴） |
+| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
