@@ -6,75 +6,6 @@ import {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const TAOYUAN_BOUNDS = {
-  north: 25.2,
-  south: 24.8,
-  east: 121.5,
-  west: 121.0
-};
-
-const generateGrid = (scenario: Scenario = 'normal'): GridCell[] => {
-  const grids: GridCell[] = [];
-  const latStep = 0.027;
-  const lngStep = 0.027;
-
-  let gridId = 1;
-  for (let lat = TAOYUAN_BOUNDS.south; lat < TAOYUAN_BOUNDS.north; lat += latStep) {
-    for (let lng = TAOYUAN_BOUNDS.west; lng < TAOYUAN_BOUNDS.east; lng += lngStep) {
-      const centerLat = lat + latStep / 2;
-      const centerLng = lng + lngStep / 2;
-
-      let pm25Value = 30 + Math.random() * 90;
-
-      if (scenario === 'industrial') {
-        if (centerLat > 25.0 && centerLng < 121.3) {
-          pm25Value = 80 + Math.random() * 40;
-        }
-      } else if (scenario === 'event') {
-        pm25Value = 100 + Math.random() * 60;
-      }
-
-      const aqi = Math.round(pm25Value * 2);
-      let healthLevel: any = '良好';
-      if (aqi > 100) healthLevel = '對敏感族群不健康';
-      if (aqi > 150) healthLevel = '對所有族群不健康';
-
-      grids.push({
-        gridId: `G${gridId.toString().padStart(3, '0')}`,
-        polygonCoords: [
-          { latitude: lat, longitude: lng },
-          { latitude: lat + latStep, longitude: lng },
-          { latitude: lat + latStep, longitude: lng + lngStep },
-          { latitude: lat, longitude: lng + lngStep }
-        ],
-        centerLatLng: { latitude: centerLat, longitude: centerLng },
-        values: {
-          pollutant: 'PM25',
-          value: Math.round(pm25Value),
-          unit: 'µg/m³'
-        },
-        meteo: {
-          temp: 22 + Math.random() * 8,
-          humidity: 60 + Math.random() * 30,
-          windSpeed: 2 + Math.random() * 5,
-          windDir: Math.random() * 360
-        },
-        updatedAt: new Date().toISOString(),
-        health: {
-          aqi,
-          level: healthLevel,
-          outdoorActivity: aqi > 100 ? '謹慎' : '建議',
-          maskRequired: aqi > 100,
-          sensitiveGroups: aqi > 100 ? ['兒童', '老人', '心肺疾病患者'] : [],
-          summary: aqi > 100 ? '空氣品質對敏感族群不健康' : '空氣品質良好'
-        }
-      });
-      gridId++;
-    }
-  }
-  return grids;
-};
-
 const mockStations: Station[] = [
   { id: 'TY01', name: '桃園站', type: 'MOENV', latLng: { latitude: 24.9937, longitude: 121.3010 }, values: { pollutant: 'PM25', value: 52, unit: 'µg/m³' }, updatedAt: new Date().toISOString() },
   { id: 'TY02', name: '大園站', type: 'LOCAL', latLng: { latitude: 25.0608, longitude: 121.2006 }, values: { pollutant: 'PM25', value: 48, unit: 'µg/m³' }, updatedAt: new Date().toISOString() },
@@ -111,16 +42,32 @@ export const getTEDSPoints = async (baseUrl = '/api'): Promise<TEDSPoint[]> => {
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
-    return await response.json();
+    const points = await response.json();
+    if (!Array.isArray(points)) {
+      throw new Error('TEDS Points API 回傳格式錯誤');
+    }
+    return points;
   } catch (error) {
     console.error('TEDS Points API 連線失敗:', error);
-    throw error;
+    return [];
   }
 };
 
 export const getGrid = async ({ pollutant, timestamp }: { pollutant: Pollutant; timestamp?: string }): Promise<GridCell[]> => {
-  await delay(800);
-  return generateGrid(currentScenario);
+  try {
+    const response = await fetch('/api/grid');
+    if (!response.ok) {
+      throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
+    }
+    const grid = await response.json();
+    if (!Array.isArray(grid)) {
+      throw new Error('Grid API 回傳格式錯誤');
+    }
+    return grid;
+  } catch (error) {
+    console.warn('Grid API 連線失敗，不顯示網格資料:', error);
+    return [];
+  }
 };
 
 export const getVerticalProfile = async ({ gridId, timestamp }: { gridId: string; timestamp: string }): Promise<VerticalProfile> => {
@@ -241,9 +188,13 @@ export const getExamPoints = async (baseUrl = '/api'): Promise<ExamPoint[]> => {
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
-    return await response.json();
+    const points = await response.json();
+    if (!Array.isArray(points)) {
+      throw new Error('Exam Points API 回傳格式錯誤');
+    }
+    return points;
   } catch (error) {
     console.error('Exam Points API 連線失敗:', error);
-    throw error;
+    return [];
   }
 };
