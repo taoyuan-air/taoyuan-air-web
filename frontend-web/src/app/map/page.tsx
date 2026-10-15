@@ -387,65 +387,6 @@ const getNearestGridToPoint = (grids: GridCell[], latitude: number, longitude: n
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const seededNoise = (seed: number) => {
-  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-  return raw - Math.floor(raw);
-};
-
-const TAOYUAN_DEMO_BOUNDS = {
-  south: 24.82,
-  north: 25.19,
-  west: 121.02,
-  east: 121.49,
-};
-
-const generateDemoTEDSPoints = (count = 420): TEDSPoint[] => {
-  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
-
-  const points: TEDSPoint[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
-    const angle = seededNoise(i + 7) * Math.PI * 2;
-    const distance = 0.0018 + seededNoise(i + 97) * 0.0105;
-    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
-    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
-    const heightM = 18 + Math.round(seededNoise(i + 163) * 178);
-
-    points.push({
-      id: `demo-stack-${String(i + 1).padStart(4, '0')}`,
-      name: `${center.district}${center.village}排放點`,
-      latLng: { latitude, longitude },
-      heightM,
-      source: 'demo-fallback',
-    });
-  }
-
-  return points;
-};
-
-const generateDemoExamPoints = (count = 19): ExamPoint[] => {
-  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
-
-  const points: ExamPoint[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
-    const angle = seededNoise(i + 401) * Math.PI * 2;
-    const distance = 0.0015 + seededNoise(i + 557) * 0.005;
-    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
-    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
-
-    points.push({
-      id: `demo-mercury-${String(i + 1).padStart(3, '0')}`,
-      name: `${center.district}${center.village}汞排放點`,
-      latLng: { latitude, longitude },
-      source: '汞',
-      note: 'demo-fallback',
-    });
-  }
-
-  return points;
-};
-
 const IconTemp = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -500,20 +441,23 @@ export default function MapPage() {
   const [examPointsNotice, setExamPointsNotice] = useState('');
   const [showChimneyLayer, setShowChimneyLayer] = useState(true);
   const [showMercuryLayer, setShowMercuryLayer] = useState(true);
-  const [showPm25GridLayer, setShowPm25GridLayer] = useState(false);
-  const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25'>('pm25');
+  const [showPm25GridLayer, setShowPm25GridLayer] = useState(true);
+  const [showAdministrativeBoundaries, setShowAdministrativeBoundaries] = useState(false);
+  const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25' | 'administrative'>('pm25');
   const Z = 1100;
 
   const layerStates = {
     chimney: showChimneyLayer,
     mercury: showMercuryLayer,
     pm25: showPm25GridLayer,
+    administrative: showAdministrativeBoundaries,
   } as const;
 
-  const toggleLayer = (layer: 'chimney' | 'mercury' | 'pm25') => {
+  const toggleLayer = (layer: 'chimney' | 'mercury' | 'pm25' | 'administrative') => {
     if (layer === 'chimney') setShowChimneyLayer((prev) => !prev);
     if (layer === 'mercury') setShowMercuryLayer((prev) => !prev);
     if (layer === 'pm25') setShowPm25GridLayer((prev) => !prev);
+    if (layer === 'administrative') setShowAdministrativeBoundaries((prev) => !prev);
   };
 
   useEffect(() => {
@@ -526,40 +470,32 @@ export default function MapPage() {
 
     getTEDSPoints(API_BASE)
       .then((points) => {
-        if (points.length > 0) {
-          setTedsPoints(points);
+        setTedsPoints(points);
+        if (points.length === 0) {
+          setTedsPointsNotice('目前沒有可用的 TEDS 點位，請確認後端服務與資料。');
+        } else {
           setTedsPointsNotice('');
-          return;
         }
-
-        const demoPoints = generateDemoTEDSPoints();
-        setTedsPoints(demoPoints);
-        setTedsPointsNotice(`TEDS 後端目前沒有回傳點位，已自動切換展示資料。`);
       })
       .catch((error) => {
         console.error(error);
-        const demoPoints = generateDemoTEDSPoints();
-        setTedsPoints(demoPoints);
-        setTedsPointsNotice(`TEDS 後端暫時離線，已切換展示資料。`);
+        setTedsPoints([]);
+        setTedsPointsNotice('TEDS 資料載入失敗，請確認 FastAPI 服務。');
       });
 
     getExamPoints(API_BASE)
       .then((points) => {
-        if (points.length > 0) {
-          setExamPoints(points);
+        setExamPoints(points);
+        if (points.length === 0) {
+          setExamPointsNotice('目前沒有可用的汞排放點，請確認後端服務與資料。');
+        } else {
           setExamPointsNotice('');
-          return;
         }
-
-        const demoPoints = generateDemoExamPoints(19);
-        setExamPoints(demoPoints);
-        setExamPointsNotice('汞排放點後端目前沒有回傳點位，已自動切換展示資料（19 筆）。');
       })
       .catch((error) => {
         console.error(error);
-        const demoPoints = generateDemoExamPoints(19);
-        setExamPoints(demoPoints);
-        setExamPointsNotice('汞排放點後端暫時離線，已切換展示資料。');
+        setExamPoints([]);
+        setExamPointsNotice('汞排放點資料載入失敗，請確認 FastAPI 服務。');
       });
   }, [selectedScenario, setGridCells, setIsLoading]);
 
@@ -669,7 +605,7 @@ export default function MapPage() {
           {(['NOW', 'FORECAST'] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)} style={{
               padding: '7px 20px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              backgroundColor: mode === m ? palette.primaryDeep : 'transparent',
+              backgroundColor: mode === m ? '#2d78b8' : 'transparent',
               color: mode === m ? '#fff' : palette.textSecondary,
               fontSize: 13, fontWeight: 700, transition: 'all 0.18s',
             }}>
@@ -773,6 +709,7 @@ export default function MapPage() {
             gridCells={showPm25GridLayer ? gridCells : []}
             tedsPoints={visibleEmissionPoints}
             mapMode={mapMode}
+            showAdministrativeBoundaries={showAdministrativeBoundaries}
             onGridPress={handleGridPress}
             focusGrid={focusedGrid}
           />
@@ -796,11 +733,12 @@ export default function MapPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
             {[
               { key: 'chimney' as const, label: '點煙囪' },
               { key: 'mercury' as const, label: '汞排放' },
               { key: 'pm25' as const, label: 'PM2.5' },
+              { key: 'administrative' as const, label: '行政區線' },
             ].map((tab) => {
               const on = activeLayerInfo === tab.key;
               const visible = layerStates[tab.key];
@@ -886,6 +824,14 @@ export default function MapPage() {
                 {selectedMeta.range.map((r) => <span key={r} style={{ fontSize: 10, color: palette.textSecondary }}>{r}</span>)}
               </div>
             </>
+          )}
+
+          {activeLayerInfo === 'administrative' && (
+            <div style={{ borderRadius: 10, background: 'rgba(224,229,234,0.3)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: palette.textMain }}>行政區線說明</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.6, color: palette.textSecondary }}>桃園市各行政區界線，以灰色虛線呈現。</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#69727a', fontWeight: 700 }}>{showAdministrativeBoundaries ? '目前顯示：已開啟' : '目前顯示：已關閉'}</p>
+            </div>
           )}
 
           {activeLayerInfo !== 'pm25' && (

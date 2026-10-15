@@ -1,63 +1,57 @@
 import {
   GridCell, Station, VerticalProfile, ForecastSeries,
   EventItem, Alert, Meta, HealthAdvisory, Pollutant,
-  TargetType, Scenario, TEDSPoint, ExamPoint 
+  TargetType, Scenario, TEDSPoint, ExamPoint, HealthLevel
 } from '../types';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const ENABLE_PM25_DEMO_DATA = process.env.NEXT_PUBLIC_ENABLE_DEMO_DATA !== 'false';
 
-const TAOYUAN_BOUNDS = {
+const PM25_DEMO_BOUNDS = {
   north: 25.2,
   south: 24.8,
   east: 121.5,
-  west: 121.0
+  west: 121.0,
 };
 
-const generateGrid = (scenario: Scenario = 'normal'): GridCell[] => {
+const generateDemoGrid = (scenario: Scenario): GridCell[] => {
   const grids: GridCell[] = [];
   const latStep = 0.027;
   const lngStep = 0.027;
-
   let gridId = 1;
-  for (let lat = TAOYUAN_BOUNDS.south; lat < TAOYUAN_BOUNDS.north; lat += latStep) {
-    for (let lng = TAOYUAN_BOUNDS.west; lng < TAOYUAN_BOUNDS.east; lng += lngStep) {
-      const centerLat = lat + latStep / 2;
-      const centerLng = lng + lngStep / 2;
 
+  for (let latitude = PM25_DEMO_BOUNDS.south; latitude < PM25_DEMO_BOUNDS.north; latitude += latStep) {
+    for (let longitude = PM25_DEMO_BOUNDS.west; longitude < PM25_DEMO_BOUNDS.east; longitude += lngStep) {
+      const centerLat = latitude + latStep / 2;
+      const centerLng = longitude + lngStep / 2;
       let pm25Value = 30 + Math.random() * 90;
 
-      if (scenario === 'industrial') {
-        if (centerLat > 25.0 && centerLng < 121.3) {
-          pm25Value = 80 + Math.random() * 40;
-        }
+      if (scenario === 'industrial' && centerLat > 25.0 && centerLng < 121.3) {
+        pm25Value = 80 + Math.random() * 40;
       } else if (scenario === 'event') {
         pm25Value = 100 + Math.random() * 60;
       }
 
       const aqi = Math.round(pm25Value * 2);
-      let healthLevel: any = '良好';
+      let healthLevel: HealthLevel = '良好';
       if (aqi > 100) healthLevel = '對敏感族群不健康';
       if (aqi > 150) healthLevel = '對所有族群不健康';
 
       grids.push({
         gridId: `G${gridId.toString().padStart(3, '0')}`,
         polygonCoords: [
-          { latitude: lat, longitude: lng },
-          { latitude: lat + latStep, longitude: lng },
-          { latitude: lat + latStep, longitude: lng + lngStep },
-          { latitude: lat, longitude: lng + lngStep }
+          { latitude, longitude },
+          { latitude: latitude + latStep, longitude },
+          { latitude: latitude + latStep, longitude: longitude + lngStep },
+          { latitude, longitude: longitude + lngStep },
         ],
         centerLatLng: { latitude: centerLat, longitude: centerLng },
-        values: {
-          pollutant: 'PM25',
-          value: Math.round(pm25Value),
-          unit: 'µg/m³'
-        },
+        values: { pollutant: 'PM25', value: Math.round(pm25Value), unit: 'µg/m³' },
         meteo: {
           temp: 22 + Math.random() * 8,
           humidity: 60 + Math.random() * 30,
           windSpeed: 2 + Math.random() * 5,
-          windDir: Math.random() * 360
+          windDir: Math.random() * 360,
         },
         updatedAt: new Date().toISOString(),
         health: {
@@ -66,12 +60,13 @@ const generateGrid = (scenario: Scenario = 'normal'): GridCell[] => {
           outdoorActivity: aqi > 100 ? '謹慎' : '建議',
           maskRequired: aqi > 100,
           sensitiveGroups: aqi > 100 ? ['兒童', '老人', '心肺疾病患者'] : [],
-          summary: aqi > 100 ? '空氣品質對敏感族群不健康' : '空氣品質良好'
-        }
+          summary: aqi > 100 ? '空氣品質對敏感族群不健康' : '空氣品質良好',
+        },
       });
-      gridId++;
+      gridId += 1;
     }
   }
+
   return grids;
 };
 
@@ -111,16 +106,38 @@ export const getTEDSPoints = async (baseUrl = '/api'): Promise<TEDSPoint[]> => {
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
-    return await response.json();
+    const points = await response.json();
+    if (!Array.isArray(points)) {
+      throw new Error('TEDS Points API 回傳格式錯誤');
+    }
+    return points;
   } catch (error) {
     console.error('TEDS Points API 連線失敗:', error);
-    throw error;
+    return [];
   }
 };
 
 export const getGrid = async ({ pollutant, timestamp }: { pollutant: Pollutant; timestamp?: string }): Promise<GridCell[]> => {
-  await delay(800);
-  return generateGrid(currentScenario);
+  try {
+    const response = await fetch('/api/grid');
+    if (!response.ok) {
+      throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
+    }
+    const grid = await response.json();
+    if (!Array.isArray(grid)) {
+      throw new Error('Grid API 回傳格式錯誤');
+    }
+    if (grid.length === 0 && pollutant === 'PM25' && ENABLE_PM25_DEMO_DATA) {
+      return generateDemoGrid(currentScenario);
+    }
+    return grid;
+  } catch (error) {
+    console.warn('Grid API 連線失敗，PM2.5 使用展示資料:', error);
+    if (pollutant === 'PM25' && ENABLE_PM25_DEMO_DATA) {
+      return generateDemoGrid(currentScenario);
+    }
+    return [];
+  }
 };
 
 export const getVerticalProfile = async ({ gridId, timestamp }: { gridId: string; timestamp: string }): Promise<VerticalProfile> => {
@@ -241,9 +258,13 @@ export const getExamPoints = async (baseUrl = '/api'): Promise<ExamPoint[]> => {
     if (!response.ok) {
       throw new Error(`後端回應錯誤 (HTTP ${response.status})`);
     }
-    return await response.json();
+    const points = await response.json();
+    if (!Array.isArray(points)) {
+      throw new Error('Exam Points API 回傳格式錯誤');
+    }
+    return points;
   } catch (error) {
     console.error('Exam Points API 連線失敗:', error);
-    throw error;
+    return [];
   }
 };
