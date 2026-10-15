@@ -12,10 +12,7 @@ import { useAuth } from '@/lib/auth-context';
  * - 載入中：顯示 loading 佔位
  */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  //const { user, loading } = useAuth();
-  const { loading } = useAuth();
-
-  const user = { name: 'Dev User' };
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
