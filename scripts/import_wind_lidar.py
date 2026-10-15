@@ -12,14 +12,15 @@ WindLidar 資料匯入腳本
   python scripts/import_wind_lidar.py
   python scripts/import_wind_lidar.py --raw-dir /data/sftp_root/uploads/WindLidar --skip-existing
 
-資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
-資料品質：各參數逐欄解析，無法轉為數值時標記為 'invalid'，value=NULL
+資料規模：每天 109,440 列（760 層 × 144 時間點），7 個參數各一欄
+資料品質：無法轉為數值的參數存 NULL；水平風速有值才算有效列
 時區說明：原始 txt 為 UTC，以 TIMESTAMP 存入 DB（UTC）
           查詢時透過 wind_lidar_latest View 的 measure_time_tw 欄位取得台灣時間
 """
 
 import argparse
 import csv
+import math
 import os
 import re
 import sys
@@ -137,12 +138,13 @@ PARAM_MAP = {
 
 INTEGER_PARAMS = {'n_samples'}
 
-INSERT_SQL = """
+PARAM_COLUMNS = list(PARAM_MAP.values())
+
+INSERT_SQL = f"""
     INSERT INTO wind_lidar_data
-        (station_id, measure_time, height_m, parameter_id,
-         value, raw_value, data_quality, period_start, period_end, source)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ON CONFLICT (station_id, measure_time, height_m, parameter_id) DO NOTHING
+        (station_id, measure_time, height_m, {', '.join(PARAM_COLUMNS)})
+    VALUES (%s, %s, %s, {', '.join(['%s'] * len(PARAM_COLUMNS))})
+    ON CONFLICT (station_id, measure_time, height_m) DO NOTHING
 """
 
 
@@ -158,11 +160,14 @@ def connect_db():
 
 def parse_value(raw: str, param_id: str) -> Optional[float]:
     try:
-        if param_id in INTEGER_PARAMS:
-            return float(int(float(raw)))
-        return round(float(raw), 3)
+        value = float(raw)
     except (ValueError, TypeError):
         return None
+    if not math.isfinite(value):   # NaN / inf 視為無效
+        return None
+    if param_id in INTEGER_PARAMS:
+        return int(value)
+    return round(value, 3)
 
 
 def day_bounds(dt: datetime) -> tuple[datetime, datetime]:
@@ -228,23 +233,16 @@ def parse_txt_file(filepath: Path, station_id: str):
             except ValueError:
                 continue
 
-            period_end   = measure_time
-            period_start = measure_time - timedelta(minutes=10)
-
             try:
                 height_m = float(row['Height'])
             except (ValueError, KeyError):
                 continue
 
-            for field_name, param_id in PARAM_MAP.items():
-                raw_val = row.get(field_name, '').strip()
-                value   = parse_value(raw_val, param_id)
-                quality = 'good' if value is not None else 'invalid'
-                yield (
-                    station_id, measure_time, height_m, param_id,
-                    value, raw_val, quality,
-                    period_start, period_end, 'history',
-                )
+            values = [
+                parse_value((row.get(field_name) or '').strip(), param_id)
+                for field_name, param_id in PARAM_MAP.items()
+            ]
+            yield (station_id, measure_time, height_m, *values)
 
 
 def import_txt_file(conn, filepath: Path) -> tuple:
@@ -262,7 +260,7 @@ def import_txt_file(conn, filepath: Path) -> tuple:
 
     for row in parse_txt_file(filepath, station_id):
         rows.append(row)
-        if row[6] == 'good':
+        if row[3] is not None:   # hsp 有值
             valid += 1
         else:
             invalid += 1
