@@ -14,6 +14,7 @@
 | `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
+| `aod_schema.sql` | AOD 衛星氣膠 | MAIAC MCD19A2 每日 AOD 與 PM2.5 補值模型特徵（0.01° 網格） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
@@ -39,10 +40,12 @@
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區；重匯時整趟飛行重寫 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+| AOD | 依 `obs_date` 月分區 | `scripts/import_maiac_aod.py` | 以「日」為單位整天替換；`--force` 重做；只存通過 QA 的格點 |
 | TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 重複略過（ON CONFLICT DO NOTHING） |
 | TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` | 重複略過（ON CONFLICT DO NOTHING） |
 | Exam Point | 不分區 | `scripts/import_exam_point.py` | 以 `(source_id, item_id, exam_date)` UPSERT |
 | NAQO | 第一版不分區 | `database/naqo_schema.sql` | 第一階段後端即時查 Supabase；第二階段 `scripts/sync_naqo.py` 以 `inserted_at` 浮標同步 |
+
 
 ## NAQO 對接流程
 
@@ -271,6 +274,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/ted
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exam_point_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aod_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
@@ -285,6 +289,9 @@ python scripts/import_wind_lidar.py
 
 # UAV
 python scripts/import_uav.py
+
+# AOD（需先放好 data/raw/aod/maiac_crop/ 與 data/raw/aod/boundaries/；全部約 2–3 小時）
+python scripts/import_maiac_aod.py
 
 # CWA
 python scripts/import_cwa_stations.py
