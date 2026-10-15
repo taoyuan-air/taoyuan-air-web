@@ -104,9 +104,9 @@ export function TopNav() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 99,
-                  border: '1px solid rgba(231,101,149,0.4)',
-                  background: 'rgba(231,101,149,0.08)',
-                  color: '#E76595', fontSize: 13, fontWeight: 700,
+                  border: '1px solid rgba(72,149,236,0.4)',
+                  background: 'rgba(72,149,236,0.08)',
+                  color: '#4895EC', fontSize: 13, fontWeight: 700,
                   textDecoration: 'none', transition: 'all 0.18s',
                 }}
               >
