@@ -203,6 +203,13 @@ async def get_plot_data(
         "day_end":      day_end,
         "height_max_m": height_max_m,
     })
+    raw_rows = result.mappings().all()
+
+    if not raw_rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"找不到 {station} 在 {date} 的資料",
+        )
 
     # ── 有效性篩選：n_samples > 10 AND hsp > 0 ───────────────────────────
     # 篩選後的有效格點才填入值，其他格點保持 None（heatmap 透明）
