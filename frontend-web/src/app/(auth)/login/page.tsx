@@ -7,12 +7,12 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 const C = {
-  primary: '#D4567A',
-  primaryAlpha: 'rgba(212,86,122,0.12)',
-  primaryBorder: 'rgba(212,86,122,0.30)',
-  text: '#1a1220',
-  muted: '#7a6880',
-  hint: '#b0a0b8',
+  primary: '#4895EC',
+  primaryAlpha: 'rgba(72,149,236,0.12)',
+  primaryBorder: 'rgba(72,149,236,0.30)',
+  text: '#0F1D3A',
+  muted: '#4A6080',
+  hint: '#7A9AC0',
   glass: 'rgba(255,255,255,0.80)',
   glassBorder: 'rgba(255,255,255,0.90)',
 };
@@ -63,7 +63,7 @@ export default function LoginPage() {
         width: '100%', maxWidth: 440,
         backgroundColor: C.glass, border: `1px solid ${C.glassBorder}`,
         borderRadius: 24, padding: '40px 36px',
-        boxShadow: '0 8px 32px rgba(180,140,160,0.14)',
+        boxShadow: '0 8px 32px rgba(30,58,95,0.14)',
       }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6 }}>登入帳號</h1>
         <p style={{ fontSize: 13, color: C.hint, marginBottom: 28 }}>歡迎回來，請輸入您的帳號資訊</p>

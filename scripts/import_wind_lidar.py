@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
 WindLidar 資料匯入腳本
-直接讀取 data/raw/WindLidar/DWL_V1_L1_UVW_*.txt 並批次匯入 PostgreSQL
+讀取風光達 txt 並批次匯入 PostgreSQL
 
-檔名格式： DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
-           (都卜勒風光達英文簡寫_版本1_等級1資料_水平垂直風_年月日_儀器序號_站點)
+檔名格式（新舊皆支援）：
+  新（2026/08 起，SFTP）：DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
+                          儀器_資料級別_量測主要參數_觀測起始年月日_儀器版本_測站_反演版本
+  舊（Google 雲端）    ：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+
+資料來源資料夾（預設 data/raw/WindLidar，會遞迴搜尋子資料夾）：
+  python scripts/import_wind_lidar.py
+  python scripts/import_wind_lidar.py --raw-dir /data/sftp_root/uploads/WindLidar --skip-existing
 
 資料規模：每天 766,080 筆（760 層 × 144 時間點 × 7 參數）
 資料品質：各參數逐欄解析，無法轉為數值時標記為 'invalid'，value=NULL
@@ -12,6 +18,7 @@ WindLidar 資料匯入腳本
           查詢時透過 wind_lidar_latest View 的 measure_time_tw 欄位取得台灣時間
 """
 
+import argparse
 import csv
 import os
 import re
@@ -51,10 +58,13 @@ if not DB_CONFIG['password']:
 ROOT_DIR = Path(__file__).parent.parent
 RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'WindLidar'
 
-# 新檔名格式：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
-# 群組：(product)_(version)_(level)_(params)_(date)_(serial)_(site).txt
+# 新：DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt（反演版本在最後）
+# 舊：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt（反演版本在第二段）
 FILENAME_PATTERN = re.compile(
-    r'^DWL_V(\d+)_L(\d+)_([A-Za-z]+)_(\d{8})_([A-Za-z0-9]+)_([A-Za-z]+)\.txt$'
+    r'^DWL_(?:V(?P<old_version>\d+)_)?L(?P<level>\d+)_(?P<params>[A-Za-z]+)_'
+    r'(?P<date>\d{8})_(?P<serial>[A-Za-z0-9]+)_(?P<site>[A-Za-z]+)'
+    r'(?:_V(?P<new_version>\d+))?\.txt$',
+    re.IGNORECASE,
 )
 
 
@@ -62,7 +72,8 @@ def parse_filename(filename: str) -> Optional[dict]:
     """
     解析風光達檔名，回傳 metadata dict 或 None。
 
-    範例：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+    範例：DWL_L1_UVW_20260330_L02240328_Guanyin_V1.txt
+         或 DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
     → {
         'version': '1',
         'level': '1',
@@ -76,15 +87,42 @@ def parse_filename(filename: str) -> Optional[dict]:
     m = FILENAME_PATTERN.match(filename)
     if not m:
         return None
+    # 反演版本必須出現在新位置或舊位置其中之一
+    version = m.group('new_version') or m.group('old_version')
+    if not version:
+        return None
     return {
-        'version': m.group(1),
-        'level':   m.group(2),
-        'params':  m.group(3),
-        'date':    m.group(4),
-        'serial':  m.group(5),
-        'site':    m.group(6),
-        'station_id': f"{m.group(5)}_{m.group(6)}",
+        'version': version,
+        'level':   m.group('level'),
+        'params':  m.group('params'),
+        'date':    m.group('date'),
+        'serial':  m.group('serial'),
+        'site':    m.group('site'),
+        'station_id': f"{m.group('serial')}_{m.group('site')}",
     }
+
+
+def find_txt_files(raw_dir: Path) -> list[Path]:
+    """遞迴找出所有符合檔名格式的風光達檔案（SFTP 依 測站/級別/年份 分資料夾）。"""
+    return sorted(
+        (p for p in raw_dir.rglob('*') if p.is_file() and parse_filename(p.name)),
+        key=lambda p: p.name,
+    )
+
+
+def already_imported(conn, station_id: str, date_str: str) -> bool:
+    """該測站在檔名日期（UTC）是否已有資料。"""
+    day = datetime.strptime(date_str, '%Y%m%d')
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1 FROM wind_lidar_data
+            WHERE station_id = %s AND measure_time >= %s AND measure_time < %s
+            LIMIT 1
+            """,
+            (station_id, day, day + timedelta(days=1)),
+        )
+        return cur.fetchone() is not None
 
 # ── 參數對照（txt 欄位名 → parameter_id）────────────────────────────────────
 PARAM_MAP = {
@@ -254,22 +292,42 @@ def main():
     print('WindLidar 資料匯入工具（直接 txt → DB）')
     print('=' * 60)
 
-    if len(sys.argv) > 1:
-        txt_files = [RAW_DIR / filename for filename in sys.argv[1:]]
+    parser = argparse.ArgumentParser(description='WindLidar txt → PostgreSQL')
+    parser.add_argument('files', nargs='*', help='指定檔名（相對於 --raw-dir）；不填則匯入整個資料夾')
+    parser.add_argument('--raw-dir', type=Path,
+                        default=Path(os.getenv('WIND_LIDAR_RAW_DIR', str(RAW_DIR))),
+                        help='資料夾（預設 data/raw/WindLidar，可設環境變數 WIND_LIDAR_RAW_DIR）')
+    parser.add_argument('--skip-existing', action='store_true',
+                        help='資料庫已有該日期資料的檔案直接跳過（排程用，避免每次重匯全部）')
+    args = parser.parse_args()
+    raw_dir = args.raw_dir
+
+    if args.files:
+        txt_files = [raw_dir / filename for filename in args.files]
         missing_files = [path.name for path in txt_files if not path.is_file()]
         if missing_files:
             print(f'[ERROR] 找不到指定檔案：{", ".join(missing_files)}')
             sys.exit(1)
     else:
-        txt_files = sorted(RAW_DIR.glob('DWL_V*_L*_*_*.txt'))
+        txt_files = find_txt_files(raw_dir)
 
     if not txt_files:
-        print(f'[ERROR] 找不到 txt 檔案：{RAW_DIR}')
-        sys.exit(1)
+        print(f'[INFO] 沒有可匯入的 txt 檔案：{raw_dir}')
+        return
 
     conn = connect_db()
     if not conn:
         sys.exit(1)
+
+    if args.skip_existing:
+        remaining = []
+        for path in txt_files:
+            meta = parse_filename(path.name)
+            if meta and already_imported(conn, meta['station_id'], meta['date']):
+                continue
+            remaining.append(path)
+        print(f'[INFO] 已匯入過 {len(txt_files) - len(remaining)} 個檔案，略過')
+        txt_files = remaining
 
     print(f'\n找到 {len(txt_files)} 個 txt 檔案')
     print('-' * 60)
