@@ -10,7 +10,7 @@ Wind Lidar FastAPI 路由器
 
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -115,7 +115,6 @@ async def list_stations(db: AsyncSession = Depends(get_db)):
                 station_id,
                 TO_CHAR(DATE(measure_time), 'YYYY-MM-DD') AS date_str
             FROM wind_lidar_data
-            WHERE data_quality = 'good'
             GROUP BY station_id, DATE(measure_time)
             ORDER BY station_id ASC, DATE(measure_time) DESC
         """)
@@ -171,7 +170,8 @@ async def get_plot_data(
     if cached and now - cached[0] < _PLOT_DATA_TTL:
         return JSONResponse(cached[1], headers={"X-Cache": "HIT"})
 
-    parsed_date = datetime.strptime(date, "%Y-%m-%d").date()  # str → date 物件，asyncpg 需要真正的 date 型別
+    day_start = datetime.strptime(date, "%Y-%m-%d")  # asyncpg 需要 datetime 型別
+    day_end   = day_start + timedelta(days=1)
 
     height_max_m = heightMax * 1000.0  # 公里 → 公尺
 
@@ -183,41 +183,26 @@ async def get_plot_data(
     if not station_check.scalar_one_or_none():
         raise HTTPException(status_code=404, detail=f"找不到測站：{station}")
 
-    # ── 核心查詢：pivot 7 個參數為寬表，同時套用有效性篩選 ────────────────
-    # 使用條件式 MAX 進行 pivot，在同一 pass 中完成
-    # 有效性篩選在 HAVING 中做：n_samples > 10 AND hsp > 0
+    # ── 核心查詢：寬表一列即一個時間 × 高度，7 個參數各一欄 ────────────────
+    # 用時間範圍（而非 DATE()）篩選，才能只掃當天的分區
     query = text("""
         SELECT
-            TO_CHAR(d.measure_time, 'YYYY-MM-DD HH24:MI')  AS time_str,
-            d.height_m,
-            MAX(CASE WHEN d.parameter_id = 'hsp'       THEN d.value END) AS hsp,
-            MAX(CASE WHEN d.parameter_id = 'vsp'       THEN d.value END) AS vsp,
-            MAX(CASE WHEN d.parameter_id = 'wdir'      THEN d.value END) AS wdir,
-            MAX(CASE WHEN d.parameter_id = 'turb'      THEN d.value END) AS turb,
-            MAX(CASE WHEN d.parameter_id = 'min_int'   THEN d.value END) AS min_int,
-            MAX(CASE WHEN d.parameter_id = 'mean_int'  THEN d.value END) AS mean_int,
-            MAX(CASE WHEN d.parameter_id = 'n_samples' THEN d.value END) AS n_samples
-        FROM wind_lidar_data d
-        WHERE d.station_id   = :station
-          AND DATE(d.measure_time) = CAST(:date AS date)
-          AND d.height_m     <= :height_max_m
-          AND d.data_quality = 'good'
-        GROUP BY d.measure_time, d.height_m
-        ORDER BY d.measure_time ASC, d.height_m ASC
+            TO_CHAR(measure_time, 'YYYY-MM-DD HH24:MI') AS time_str,
+            height_m, hsp, vsp, wdir, turb, min_int, mean_int, n_samples
+        FROM wind_lidar_data
+        WHERE station_id   = :station
+          AND measure_time >= :day_start
+          AND measure_time <  :day_end
+          AND height_m     <= :height_max_m
+        ORDER BY measure_time ASC, height_m ASC
     """)
 
     result = await db.execute(query, {
         "station":      station,
-        "date":         parsed_date,
+        "day_start":    day_start,
+        "day_end":      day_end,
         "height_max_m": height_max_m,
     })
-    raw_rows = result.mappings().all()
-
-    if not raw_rows:
-        raise HTTPException(
-            status_code=404,
-            detail=f"找不到 {station} 在 {date} 的資料",
-        )
 
     # ── 有效性篩選：n_samples > 10 AND hsp > 0 ───────────────────────────
     # 篩選後的有效格點才填入值，其他格點保持 None（heatmap 透明）
