@@ -8,8 +8,8 @@ MAIAC AOD 匯入腳本：建網格 → 匯入 AOD → 計算特徵，一次完�
     python scripts/import_maiac_aod.py 2024 --force # 2024 年全部重做
 
 需要的資料：
-    data/raw/satellite/maiac_crop/<年>/*.npz        # download_maiac.py 產生，或從雲端取得
-    data/raw/boundaries/COUNTY_MOI_*.gml            # 內政部縣市界線，用來補 aod_grids.county（可省略）
+    data/raw/aod/maiac_crop/<年>/*.npz              # download_maiac.py 產生，或從雲端取得
+    data/raw/aod/boundaries/COUNTY_MOI_*.gml        # 內政部縣市界線，用來補 aod_grids.county（可省略）
 
 步驟：
     1. 建立 12,726 個 0.01° 網格（aod_grids），並用縣市界線補上縣市
@@ -41,8 +41,8 @@ except ImportError:
 # ============================================================
 # 設定
 # ============================================================
-CROP_DIR = Path("data/raw/satellite/maiac_crop")
-BOUNDARY_GLOB = "data/raw/boundaries/COUNTY_MOI_*.gml"
+CROP_DIR = Path("data/raw/aod/maiac_crop")
+BOUNDARY_GLOB = "data/raw/aod/boundaries/COUNTY_MOI_*.gml"
 
 # 0.01° 網格範圍（要與 download_maiac.py 的 BBOX 一致）
 LON_MIN, LON_MAX = 120.80, 122.05

@@ -10,7 +10,7 @@
     pip install earthaccess pyhdf numpy
     export EARTHDATA_TOKEN='...'
 
-輸出：data/raw/satellite/maiac_crop/<年>/<原檔名>.npz（每個約數十 KB）
+輸出：data/raw/aod/maiac_crop/<年>/<原檔名>.npz（每個約數十 KB）
 每個 npz 內含：
     aod_055   int16  (過境次數, 列, 行)  原始值，乘 0.001 才是 AOD，-28672 = 無值
     aod_qa    uint16 (過境次數, 列, 行)  原始 QA 位元，0 = 無值
@@ -30,7 +30,7 @@ import numpy as np
 # 要與 import_maiac_aod.py 的 LON_MIN ~ LAT_MAX 一致
 BBOX = (120.80, 24.35, 122.05, 25.35)
 END_DATE = "2026-05-31"   # 與 PM2.5 補值資料期間對齊
-OUT = Path("data/raw/satellite/maiac_crop")
+OUT = Path("data/raw/aod/maiac_crop")
 
 # MODIS 正弦投影常數
 R = 6371007.181

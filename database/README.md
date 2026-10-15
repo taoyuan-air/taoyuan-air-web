@@ -290,7 +290,7 @@ python scripts/import_wind_lidar.py
 # UAV
 python scripts/import_uav.py
 
-# AOD（需先放好 data/raw/satellite/maiac_crop/ 與縣市界線 GML；全部約 2–3 小時）
+# AOD（需先放好 data/raw/aod/maiac_crop/ 與 data/raw/aod/boundaries/；全部約 2–3 小時）
 python scripts/import_maiac_aod.py
 
 # CWA
