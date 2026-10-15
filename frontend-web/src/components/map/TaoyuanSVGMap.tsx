@@ -453,18 +453,18 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
     >
       <defs>
         <filter id="taoyuan-selected-glow" x="-12%" y="-12%" width="124%" height="124%">
-          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#d4567a" floodOpacity="0.16" />
+          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#4895EC" floodOpacity="0.16" />
         </filter>
         <filter id="taoyuan-marker-shadow" x="-60%" y="-50%" width="220%" height="220%">
-          <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#9f3e60" floodOpacity="0.20" />
+          <feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#2871CC" floodOpacity="0.20" />
         </filter>
       </defs>
 
       <style>{`
         .taoyuan-district {
           cursor: pointer;
-          fill: #f7e9ec;
-          stroke: rgba(255,250,252,0.96);
+          fill: #EBF3FE;
+          stroke: rgba(240,246,255,0.96);
           stroke-width: 4;
 		  paint-order: stroke;
           stroke-linejoin: round;
@@ -479,12 +479,12 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
             filter 0.28s ease;
         }
         .taoyuan-district:hover {
-          fill: #f8d0da;
+          fill: #BFDBFE;
 		  paint-order: normal;
         }
         .taoyuan-district.selected {
-          fill: #f8d0da;
-          stroke: #d4567a;
+          fill: #BFDBFE;
+          stroke: #4895EC;
           stroke-width: 3;
 		  paint-order: normal;
           filter: url(#taoyuan-selected-glow);
@@ -496,7 +496,7 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
           text-anchor: middle;
           dominant-baseline: middle;
           font: 800 36px "Noto Sans TC", "Noto Sans", system-ui, sans-serif;
-          fill: #7f5a6a;
+          fill: #4A6080;
           letter-spacing: 0;
           paint-order: stroke;
           stroke: rgba(255,255,255,0.4);
@@ -509,7 +509,7 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
             stroke-width 0.18s ease;
         }
         .taoyuan-label.selected {
-          fill: #d4567a;
+          fill: #4895EC;
           stroke-width: 2.6;
           transform: scale(1.18);
         }
@@ -572,16 +572,16 @@ export default function TaoyuanSVGMap({ selectedDistrict, onSelectDistrict }: Pr
               cy="33"
               rx="20"
               ry="8"
-              fill="#d4567a"
+              fill="#4895EC"
             />
             <path
               d="M0 -29C-17 -29 -30 -16 -30 1c0 23 30 49 30 49S30 24 30 1C30 -16 17 -29 0 -29Z"
               fill="#ffffff"
-              stroke="#d4567a"
+              stroke="#4895EC"
               strokeWidth="6"
               strokeLinejoin="round"
             />
-            <circle cx="0" cy="0" r="10" fill="#d4567a" />
+            <circle cx="0" cy="0" r="10" fill="#4895EC" />
           </g>
         </g>
       )}

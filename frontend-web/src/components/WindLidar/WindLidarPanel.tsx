@@ -198,10 +198,10 @@ export interface WindLidarPanelProps {
 const CHART_HEIGHT = 260;
 
 const C = {
-  rose:      '#D4567A',
-  hint:      '#b0a0b8',
+  rose:      '#4895EC',
+  hint:      '#7A9AC0',
   glass:     'rgba(255,255,255,0.90)',
-  glassShadow: '0 4px 20px rgba(180,140,160,0.12)',
+  glassShadow: '0 4px 20px rgba(30,58,95,0.12)',
 };
 
 // ── 元件 ──────────────────────────────────────────────────────────────────────
@@ -306,7 +306,7 @@ export default function WindLidarPanel({
       modebar: {
         orientation: 'h',
         bgcolor: 'rgba(255,255,255,0.75)',
-        color: C.hint ?? '#b0a0b8',
+        color: C.hint ?? '#7A9AC0',
         activecolor: C.rose,
       },
     };
@@ -377,7 +377,7 @@ export default function WindLidarPanel({
     <div
       style={{
         background: C.glass,
-        border: '1px solid rgba(212,86,122,0.08)',
+        border: '1px solid rgba(72,149,236,0.08)',
         borderRadius: 16,
         boxShadow: C.glassShadow,
         padding: '4px 8px 8px',
@@ -399,10 +399,10 @@ export default function WindLidarPanel({
         }
         .plotly-notifier .notifier-note {
           background: rgba(255, 255, 255, 0.95) !important;
-          border: 1.5px solid rgba(212, 86, 122, 0.5) !important;
-          color: #D4567A !important;
+          border: 1.5px solid rgba(72, 149, 236, 0.5) !important;
+          color: #4895EC !important;
           border-radius: 12px !important;
-          box-shadow: 0 4px 20px rgba(180,140,160,0.25) !important;
+          box-shadow: 0 4px 20px rgba(30,58,95,0.25) !important;
           padding: 10px 14px !important;
           font-family: system-ui, sans-serif !important;
           font-weight: 900;
@@ -411,7 +411,7 @@ export default function WindLidarPanel({
           margin-bottom: 12px !important;
         }
         .plotly-notifier .notifier-close {
-          color: #D4567A !important;
+          color: #4895EC !important;
         }
       `}</style>
       <div ref={divRef} style={{ width: '100%', minHeight: CHART_HEIGHT }} />

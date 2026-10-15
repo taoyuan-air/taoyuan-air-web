@@ -18,12 +18,14 @@
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
-## 資料源檔名格式（2026-08 更新）
+## 資料源檔名格式（2026-10 更新）
+
+統一規則：`儀器_資料級別_量測主要參數_觀測起始年月日_儀器版本_測站_反演版本`。匯入程式新舊皆支援，詳見 `data/DATA_GUIDE.md`。
 
 | 資料源 | 檔名範例 | 說明 |
 | --- | --- | --- |
-| WindLidar | `DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_版本_等級_參數_日期_序號_站點 |
-| UAV | `UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_版本_等級_參數_日期_時間_儀器版本_站點 |
+| WindLidar | 新（SFTP）：`DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt`；舊：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_級別_參數_日期_序號_站點_反演版本 |
+| UAV | 新（SFTP）：`UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt`＋`UAV_L2_met_…`；舊：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_級別_參數_日期_時間_儀器版本_站點_反演版本 |
 
 ## 查詢範例
 
@@ -36,7 +38,7 @@
 | MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | 中壢站需先跑 `convert_zhongli_wide_csv.py`；月更新：`update_moe_monthly.py` 以 history 覆蓋 realtime |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
-| UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區 |
+| UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區；重匯時整趟飛行重寫 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
 | AOD | 依 `obs_date` 月分區 | `scripts/import_maiac_aod.py` | 以「日」為單位整天替換；`--force` 重做；只存通過 QA 的格點 |
 | TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 重複略過（ON CONFLICT DO NOTHING） |
