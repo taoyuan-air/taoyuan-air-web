@@ -13,7 +13,8 @@
 | `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料 |
 | `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
 | `uav_schema.sql` | UAV 無人機 | 無人機垂直剖面資料 |
-| `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料 |
+| `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料（寬表：一個時間 × 高度一列） |
+| `wind_lidar_migrate_wide.sql` | WindLidar 風光達 | 舊版（一個參數一列）轉寬表，舊資料庫只需執行一次 |
 | `aod_schema.sql` | AOD 衛星氣膠 | MAIAC MCD19A2 每日 AOD 與 PM2.5 補值模型特徵（0.01° 網格） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
