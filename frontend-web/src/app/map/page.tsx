@@ -441,7 +441,7 @@ export default function MapPage() {
   const [examPointsNotice, setExamPointsNotice] = useState('');
   const [showChimneyLayer, setShowChimneyLayer] = useState(true);
   const [showMercuryLayer, setShowMercuryLayer] = useState(true);
-  const [showPm25GridLayer, setShowPm25GridLayer] = useState(false);
+  const [showPm25GridLayer, setShowPm25GridLayer] = useState(true);
   const [showAdministrativeBoundaries, setShowAdministrativeBoundaries] = useState(false);
   const [activeLayerInfo, setActiveLayerInfo] = useState<'chimney' | 'mercury' | 'pm25' | 'administrative'>('pm25');
   const Z = 1100;
