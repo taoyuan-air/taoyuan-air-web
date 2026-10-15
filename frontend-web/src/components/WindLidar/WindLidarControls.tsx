@@ -6,14 +6,14 @@ import type { PanelKey, StationInfo } from '@/lib/windLidarApi';
 
 // ── Design tokens（與 events/page.tsx 一致） ──────────────────────────────────
 const C = {
-  rose:       '#D4567A',
-  roseAlpha:  'rgba(212,86,122,0.10)',
-  roseBorder: 'rgba(212,86,122,0.28)',
+  rose:       '#4895EC',
+  roseAlpha:  'rgba(72,149,236,0.10)',
+  roseBorder: 'rgba(72,149,236,0.28)',
   glass:      'rgba(255,255,255,0.90)',
-  glassShadow:'0 4px 20px rgba(180,140,160,0.12)',
-  text:       '#1a1220',
-  muted:      '#7a6880',
-  hint:       '#b0a0b8',
+  glassShadow:'0 4px 20px rgba(30,58,95,0.12)',
+  text:       '#0F1D3A',
+  muted:      '#4A6080',
+  hint:       '#7A9AC0',
 };
 
 // ── 面板中文標籤 ──────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ function StationDropdown({
             position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 400,
             background: '#fff',
             border: `1px solid ${C.roseBorder}`,
-            borderRadius: 12, boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            borderRadius: 12, boxShadow: '0 8px 32px rgba(30,58,95,0.18)',
             minWidth: 180, overflow: 'hidden',
           }}
         >
@@ -104,7 +104,7 @@ function StationDropdown({
                 fontSize: 13, fontWeight: selected === s.station ? 700 : 500,
                 color: selected === s.station ? C.rose : C.text,
                 background: selected === s.station ? C.roseAlpha : 'transparent',
-                borderBottom: i < stations.length - 1 ? '1px solid rgba(180,140,160,0.08)' : 'none',
+                borderBottom: i < stations.length - 1 ? '1px solid rgba(30,58,95,0.08)' : 'none',
               }}
             >
               {s.station}
@@ -230,7 +230,7 @@ function DateCalendar({
             background: '#fff',
             border: `1px solid ${C.roseBorder}`,
             borderRadius: 14,
-            boxShadow: '0 8px 32px rgba(180,140,160,0.18)',
+            boxShadow: '0 8px 32px rgba(30,58,95,0.18)',
             padding: '14px 16px 16px',
             width: 252,
           }}
@@ -245,7 +245,7 @@ function DateCalendar({
               disabled={!canPrev}
               style={{
                 width: 28, height: 28, borderRadius: 8,
-                border: `1px solid ${canPrev ? C.roseBorder : 'rgba(180,140,160,0.12)'}`,
+                border: `1px solid ${canPrev ? C.roseBorder : 'rgba(30,58,95,0.12)'}`,
                 background: 'transparent',
                 color: canPrev ? C.rose : C.hint,
                 cursor: canPrev ? 'pointer' : 'default',
@@ -266,7 +266,7 @@ function DateCalendar({
               disabled={!canNext}
               style={{
                 width: 28, height: 28, borderRadius: 8,
-                border: `1px solid ${canNext ? C.roseBorder : 'rgba(180,140,160,0.12)'}`,
+                border: `1px solid ${canNext ? C.roseBorder : 'rgba(30,58,95,0.12)'}`,
                 background: 'transparent',
                 color: canNext ? C.rose : C.hint,
                 cursor: canNext ? 'pointer' : 'default',
@@ -390,7 +390,7 @@ export default function WindLidarControls({
       style={{
         margin: '0 0 0',
         background: C.glass,
-        border: '1px solid rgba(212,86,122,0.08)',
+        border: '1px solid rgba(72,149,236,0.08)',
         borderRadius: 16,
         boxShadow: C.glassShadow,
         padding: '16px 24px',
@@ -419,7 +419,7 @@ export default function WindLidarControls({
       </div>
 
       {/* 分隔線 */}
-      <div style={{ height: 1, background: 'rgba(180,140,160,0.10)' }} />
+      <div style={{ height: 1, background: 'rgba(30,58,95,0.10)' }} />
 
       {/* 第二列：高度上限 + 面板顯示 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -451,7 +451,7 @@ export default function WindLidarControls({
         </div>
 
         {/* 小分隔 */}
-        <div style={{ width: 1, height: 24, background: 'rgba(180,140,160,0.20)', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 24, background: 'rgba(30,58,95,0.20)', margin: '0 4px' }} />
 
         {/* 面板顯示勾選 */}
         <span style={{ fontSize: 12, fontWeight: 800, color: C.muted, whiteSpace: 'nowrap' }}>
@@ -480,7 +480,7 @@ export default function WindLidarControls({
                 {/* 小圓點指示 */}
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: active ? C.rose : 'rgba(180,140,160,0.4)',
+                  background: active ? C.rose : 'rgba(30,58,95,0.4)',
                 }} />
                 {PANEL_LABELS[key]}
               </button>

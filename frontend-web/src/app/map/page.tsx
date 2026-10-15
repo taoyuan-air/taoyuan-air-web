@@ -103,7 +103,7 @@ function CardAQIGauge({ aqi }: { aqi: number }) {
         </circle>
       </svg>
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', width: G.SIZE - 38, height: G.SIZE - 38, borderRadius: '50%', background: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(58,30,45,0.08)' }}>
-        <span style={{ fontSize: 8, color: '#b0a0b8', letterSpacing: '1.5px', fontFamily: 'monospace' }}>AQI</span>
+        <span style={{ fontSize: 8, color: '#7A9AC0', letterSpacing: '1.5px', fontFamily: 'monospace' }}>AQI</span>
         <strong style={{ fontSize: 26, lineHeight: 1.1, fontWeight: 900, color }}>{aqi}</strong>
         <span style={{ marginTop: 3, padding: '1px 6px', borderRadius: 999, background: `${color}22`, border: `1px solid ${color}44`, fontSize: 8, fontWeight: 800, color }}>{getAQIStatus(aqi)}</span>
       </div>
@@ -387,65 +387,6 @@ const getNearestGridToPoint = (grids: GridCell[], latitude: number, longitude: n
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const seededNoise = (seed: number) => {
-  const raw = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-  return raw - Math.floor(raw);
-};
-
-const TAOYUAN_DEMO_BOUNDS = {
-  south: 24.82,
-  north: 25.19,
-  west: 121.02,
-  east: 121.49,
-};
-
-const generateDemoTEDSPoints = (count = 420): TEDSPoint[] => {
-  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
-
-  const points: TEDSPoint[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
-    const angle = seededNoise(i + 7) * Math.PI * 2;
-    const distance = 0.0018 + seededNoise(i + 97) * 0.0105;
-    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
-    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
-    const heightM = 18 + Math.round(seededNoise(i + 163) * 178);
-
-    points.push({
-      id: `demo-stack-${String(i + 1).padStart(4, '0')}`,
-      name: `${center.district}${center.village}排放點`,
-      latLng: { latitude, longitude },
-      heightM,
-      source: 'demo-fallback',
-    });
-  }
-
-  return points;
-};
-
-const generateDemoExamPoints = (count = 19): ExamPoint[] => {
-  if (TAOYUAN_VILLAGE_CENTERS.length === 0) return [];
-
-  const points: ExamPoint[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const center = TAOYUAN_VILLAGE_CENTERS[i % TAOYUAN_VILLAGE_CENTERS.length];
-    const angle = seededNoise(i + 401) * Math.PI * 2;
-    const distance = 0.0015 + seededNoise(i + 557) * 0.005;
-    const latitude = clamp(center.latitude + Math.cos(angle) * distance, TAOYUAN_DEMO_BOUNDS.south, TAOYUAN_DEMO_BOUNDS.north);
-    const longitude = clamp(center.longitude + Math.sin(angle) * distance, TAOYUAN_DEMO_BOUNDS.west, TAOYUAN_DEMO_BOUNDS.east);
-
-    points.push({
-      id: `demo-mercury-${String(i + 1).padStart(3, '0')}`,
-      name: `${center.district}${center.village}汞排放點`,
-      latLng: { latitude, longitude },
-      source: '汞',
-      note: 'demo-fallback',
-    });
-  }
-
-  return points;
-};
-
 const IconTemp = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
@@ -529,40 +470,32 @@ export default function MapPage() {
 
     getTEDSPoints(API_BASE)
       .then((points) => {
-        if (points.length > 0) {
-          setTedsPoints(points);
+        setTedsPoints(points);
+        if (points.length === 0) {
+          setTedsPointsNotice('目前沒有可用的 TEDS 點位，請確認後端服務與資料。');
+        } else {
           setTedsPointsNotice('');
-          return;
         }
-
-        const demoPoints = generateDemoTEDSPoints();
-        setTedsPoints(demoPoints);
-        setTedsPointsNotice(`TEDS 後端目前沒有回傳點位，已自動切換展示資料。`);
       })
       .catch((error) => {
         console.error(error);
-        const demoPoints = generateDemoTEDSPoints();
-        setTedsPoints(demoPoints);
-        setTedsPointsNotice(`TEDS 後端暫時離線，已切換展示資料。`);
+        setTedsPoints([]);
+        setTedsPointsNotice('TEDS 資料載入失敗，請確認 FastAPI 服務。');
       });
 
     getExamPoints(API_BASE)
       .then((points) => {
-        if (points.length > 0) {
-          setExamPoints(points);
+        setExamPoints(points);
+        if (points.length === 0) {
+          setExamPointsNotice('目前沒有可用的汞排放點，請確認後端服務與資料。');
+        } else {
           setExamPointsNotice('');
-          return;
         }
-
-        const demoPoints = generateDemoExamPoints(19);
-        setExamPoints(demoPoints);
-        setExamPointsNotice('汞排放點後端目前沒有回傳點位，已自動切換展示資料（19 筆）。');
       })
       .catch((error) => {
         console.error(error);
-        const demoPoints = generateDemoExamPoints(19);
-        setExamPoints(demoPoints);
-        setExamPointsNotice('汞排放點後端暫時離線，已切換展示資料。');
+        setExamPoints([]);
+        setExamPointsNotice('汞排放點資料載入失敗，請確認 FastAPI 服務。');
       });
   }, [selectedScenario, setGridCells, setIsLoading]);
 
@@ -795,7 +728,7 @@ export default function MapPage() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <SecLabel title="圖層控制" />
-            <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(231,101,149,0.10)', color: palette.primaryDeep, fontSize: 11, fontWeight: 700 }}>
+            <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(72,149,236,0.10)', color: palette.primaryDeep, fontSize: 11, fontWeight: 700 }}>
               {mode === 'NOW' ? '即時' : '預報'}
             </span>
           </div>
@@ -816,7 +749,7 @@ export default function MapPage() {
                   onClick={() => setActiveLayerInfo(tab.key)}
                   style={{
                     border: `1px solid ${on ? palette.primaryDeep : palette.borderSoft}`,
-                    background: on ? 'rgba(231,101,149,0.12)' : 'rgba(248,249,250,0.78)',
+                    background: on ? 'rgba(72,149,236,0.12)' : 'rgba(248,249,250,0.78)',
                     color: on ? palette.primaryDeep : palette.textSecondary,
                     borderRadius: 9,
                     cursor: 'pointer',
@@ -831,10 +764,10 @@ export default function MapPage() {
                     }}
                     style={{
                       width: '100%',
-                      border: `1px solid ${visible ? '#d4567a66' : palette.borderSoft}`,
+                      border: `1px solid ${visible ? '#4895EC66' : palette.borderSoft}`,
                       borderRadius: 7,
-                      background: visible ? 'rgba(212,86,122,0.12)' : '#fff',
-                      color: visible ? '#b2476b' : '#8e7f89',
+                      background: visible ? 'rgba(72,149,236,0.12)' : '#fff',
+                      color: visible ? '#2871CC' : '#8e7f89',
                       padding: '3px 0',
                       fontSize: 10,
                       fontWeight: 700,
@@ -849,12 +782,12 @@ export default function MapPage() {
           </div>
 
           {activeLayerInfo === 'chimney' && (
-            <div style={{ borderRadius: 10, background: 'rgba(248,208,218,0.18)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
+            <div style={{ borderRadius: 10, background: 'rgba(72,149,236,0.07)', border: `1px solid ${palette.borderSoft}`, padding: '10px 11px', marginBottom: 8 }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: palette.textMain }}>點源煙囪說明</p>
               <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.6, color: palette.textSecondary }}>
                 來源：2021年TEDS點源工廠排放資料。顯示工業排放點位置與煙囪資訊。
               </p>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#7c6070', fontWeight: 700 }}>目前顯示：{showChimneyLayer ? `${tedsPoints.length} 筆` : '已關閉'}</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#4A6080', fontWeight: 700 }}>目前顯示：{showChimneyLayer ? `${tedsPoints.length} 筆` : '已關閉'}</p>
             </div>
           )}
 
@@ -875,7 +808,7 @@ export default function MapPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                 {[{ label: '桃園平均', value: gridAverage }, { label: '最高網格', value: gridMaximum }].map(({ label, value }) => (
-                  <div key={label} style={{ borderRadius: 10, background: 'rgba(248,208,218,0.26)', padding: '9px 12px' }}>
+                  <div key={label} style={{ borderRadius: 10, background: 'rgba(72,149,236,0.08)', padding: '9px 12px' }}>
                     <p style={{ margin: 0, fontSize: 11, color: palette.textSecondary }}>{label}</p>
                     <p style={{ margin: '3px 0 0', fontSize: 20, fontWeight: 800, color: palette.textMain, lineHeight: 1 }}>
                       {value}<span style={{ fontSize: 10, fontWeight: 500, color: palette.textSecondary, marginLeft: 3 }}>{selectedMeta.unit}</span>
@@ -902,7 +835,7 @@ export default function MapPage() {
           )}
 
           {activeLayerInfo !== 'pm25' && (
-            <div style={{ marginTop: 2, fontSize: 10.5, color: '#9a8b95' }}>
+            <div style={{ marginTop: 2, fontSize: 10.5, color: '#4A6080' }}>
               提示：此分頁為資料說明。
             </div>
           )}
@@ -930,7 +863,7 @@ export default function MapPage() {
             return (
               <button key={m} onClick={() => setMapMode(m)} style={{
                 width: 58, height: 50, borderRadius: 9, border: `1.5px solid ${on ? palette.primaryDeep : 'transparent'}`,
-                cursor: 'pointer', background: on ? 'rgba(231,101,149,0.08)' : 'rgba(248,249,250,0.8)',
+                cursor: 'pointer', background: on ? 'rgba(72,149,236,0.08)' : 'rgba(248,249,250,0.8)',
                 color: on ? palette.primaryDeep : palette.textSecondary,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                 transition: 'all 0.18s',
@@ -1014,7 +947,7 @@ export default function MapPage() {
               <div style={{ marginBottom: 8 }}><SecLabel title="健康建議" /></div>
               <p style={{ margin: '0 0 10px', color: palette.textSecondary, fontSize: 12, lineHeight: 1.65 }}>{selectedGrid.health.summary}</p>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: 'rgba(248,208,218,0.35)', fontSize: 12, color: palette.textMain }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: 'rgba(72,149,236,0.10)', fontSize: 12, color: palette.textMain }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={palette.primaryDeep} strokeWidth="2.5" strokeLinecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                   戶外活動：{selectedGrid.health.outdoorActivity}
                 </div>
@@ -1098,7 +1031,7 @@ export default function MapPage() {
       <style jsx>{`
         .map-spinner {
           width: 38px; height: 38px; border-radius: 50%;
-          border: 3.5px solid rgba(248,208,218,0.8);
+          border: 3.5px solid rgba(72,149,236,0.35);
           border-top-color: ${palette.primaryDeep};
           animation: spin 0.8s linear infinite;
         }
@@ -1110,7 +1043,7 @@ export default function MapPage() {
           margin: 10px 0;
         }
         .card-body::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #FBA7BC, ${palette.primaryDeep});
+          background: linear-gradient(to bottom, #93C5FD, ${palette.primaryDeep});
           border-radius: 999px;
         }
         .card-body::-webkit-scrollbar-thumb:hover {
@@ -1123,12 +1056,12 @@ export default function MapPage() {
           text-align: center;
           cursor: pointer;
           border: 1.5px solid transparent;
-          background-color: rgba(248,208,218,0.22);
+          background-color: rgba(72,149,236,0.08);
           transition: all 0.18s;
         }
         .pollutant-btn.selected {
           border-color: ${palette.primaryDeep};
-          background-color: rgba(231,101,149,0.09);
+          background-color: rgba(72,149,236,0.09);
         }
         .pollutant-btn-name {
           font-size: 12px;
