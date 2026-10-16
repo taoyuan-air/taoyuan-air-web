@@ -47,19 +47,19 @@ data/raw/
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
 │
-├── tydep-stations/realtime/  # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
-│
-│
 ├── UAV/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
 │                          # 檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │
 ├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
-│ 
+│                          # 檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+│
 ├── aod/                   # MAIAC 衛星 AOD
 │   ├── maiac_crop/        # 裁切檔（download_maiac.py 產生，或從雲端取得，約 300 MB）
 │   │   └── <年>/MCD19A2.AYYYYDDD.h28v06|h29v06.061.*.npz
 │   └── boundaries/        # 內政部縣市界線（補 aod_grids.county 用）
 │       └── COUNTY_MOI_1140318.gml
+│
+├── tydep-stations/realtime/  # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
 │
 │
 ├── MPL/                   # 預留
@@ -125,6 +125,8 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
+
+每小時排程：`scripts/run_data_imports.sh`（`deploy/systemd/taoyuan-air-data-import.{service,timer}`）依序執行 WindLidar、UAV（觀音）、TYDEP 即時匯入。
 
 ## 匯入前置作業
 
