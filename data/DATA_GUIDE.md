@@ -47,11 +47,20 @@ data/raw/
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
 │
+├── tydep-stations/realtime/  # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
+│
+│
 ├── UAV/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
 │                          # 檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │
 ├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
-│                          # 檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+│ 
+├── aod/                   # MAIAC 衛星 AOD
+│   ├── maiac_crop/        # 裁切檔（download_maiac.py 產生，或從雲端取得，約 300 MB）
+│   │   └── <年>/MCD19A2.AYYYYDDD.h28v06|h29v06.061.*.npz
+│   └── boundaries/        # 內政部縣市界線（補 aod_grids.county 用）
+│       └── COUNTY_MOI_1140318.gml
+│
 │
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
@@ -109,7 +118,8 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | MOE | `scripts/convert_zhongli_wide_csv.py` → `scripts/import_moe_stations.py` | 中壢站需先轉檔；月更新：`update_moe_monthly.py` |
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
-| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV`（遞迴） |
+| TYDEP 即時 | `scripts/update_tydep_realtime.py` | 讀 `raw/tydep-stations/realtime/*.csv`，`source=realtime`，不覆蓋 history |
+| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV/Guanyin`（遞迴） |
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
