@@ -44,6 +44,7 @@ data/exports/**/*
 !data/processed/.gitkeep
 !data/exports/.gitkeep
 !data/README.md
+data/logs/
 
 # WindLidar - keep folder structure, ignore data files
 data/raw/WindLidar/*

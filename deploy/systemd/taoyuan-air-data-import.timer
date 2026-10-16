@@ -1,0 +1,11 @@
+# 範本檔案。VM 安裝時複製到 /etc/systemd/system/。
+# 每小時 :15 執行一次（環保局在整點後 10 分鐘內上傳上一小時資料）。
+[Unit]
+Description=Run Taoyuan Air data import hourly
+
+[Timer]
+OnCalendar=*-*-* *:15:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
