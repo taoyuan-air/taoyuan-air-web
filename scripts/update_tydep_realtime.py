@@ -26,6 +26,7 @@ CSV 格式（暫定，沿用環保局提供之 Excel 欄位；實際格式確認
 import argparse
 import csv
 import io
+import math
 import os
 import shutil
 import sys
@@ -137,13 +138,14 @@ def parse_time(value: Optional[str]) -> Optional[datetime]:
 
 
 def parse_number(value: Optional[str]) -> Optional[float]:
-    """只有純數字才算有效；'6.4*'、'無資料'、'(空白)' 等一律為 None。"""
+    """只有純數字才算有效；'6.4*'、'無資料'、'(空白)'、NaN 等一律為 None。"""
     if value is None:
         return None
     try:
-        return float(str(value).strip())
+        number = float(str(value).strip())
     except ValueError:
         return None
+    return number if math.isfinite(number) else None
 
 
 def parse_file(path: Path) -> tuple[list, list]:
