@@ -10,5 +10,6 @@ After=network-online.target docker.service
 Type=oneshot
 User=__DEPLOY_USER__
 WorkingDirectory=__PROJECT_DIR__
-ExecStart=__PROJECT_DIR__/scripts/run_data_imports.sh
+# 用 bash 啟動：SELinux 不允許 systemd 直接執行家目錄裡的腳本（203/EXEC）
+ExecStart=/usr/bin/bash __PROJECT_DIR__/scripts/run_data_imports.sh
 TimeoutStartSec=50min
