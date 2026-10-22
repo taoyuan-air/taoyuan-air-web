@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Plane, Wind } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, Plane, Wind, BookOpen } from 'lucide-react';
 import { UAVProfileChart, type ParamStats } from '@/components/UAV/UAVProfileChart';
 import { UAVParameterSelector } from '@/components/UAV/UAVParameterSelector';
 import { fetchFlights, fetchProfile, type FlightSummary } from '@/lib/uavApi';
@@ -256,6 +257,8 @@ export default function EventsPage() {
     [],
   );
 
+  const router = useRouter();
+
   const selectedFlight = flights.find((f) => f.flight_id === selectedId);
 
   // ── 根據 activeView 決定頁面標題 ─────────────────────────
@@ -290,6 +293,18 @@ export default function EventsPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.rose }}>
             {pageTitle}
           </h1>
+          {/* ── 儀器介紹按鈕 ── */}
+          <button
+            className="instrument-info-btn"
+            onClick={() => router.push(`/instruments?tab=${activeView}`)}
+            title={`前往${activeView === 'uav' ? 'UAV 無人機' : '風光達'}儀器介紹`}
+          >
+            <BookOpen size={13} strokeWidth={2.2} />
+            <span className="instrument-info-btn-label">
+              {activeView === 'uav' ? 'UAV 是什麼？' : '風光達是什麼？'}
+            </span>
+            <span className="instrument-info-btn-hover-text">移動到儀器介紹 →</span>
+          </button>
         </div>
         <p style={{ margin: '4px 0 16px 52px', fontSize: 13, color: C.hint }}>
           {pageSubtitle}
@@ -508,6 +523,59 @@ export default function EventsPage() {
         }
         @media (max-width: 600px) {
           .uav-chart-wrapper { margin: 12px 12px 0; }
+        }
+
+        /* ── Instrument info button ──────────────────────────── */
+        .instrument-info-btn {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1.5px solid ${C.roseBorder};
+          background: rgba(255,255,255,0.80);
+          color: ${C.muted};
+          font-size: 12px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          overflow: hidden;
+          transition: color 0.22s, border-color 0.22s, background 0.22s, box-shadow 0.22s, padding 0.22s;
+          box-shadow: 0 1px 6px rgba(72,149,236,0.10);
+        }
+        .instrument-info-btn-label {
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .instrument-info-btn-hover-text {
+          position: absolute;
+          left: 50%; top: 50%;
+          transform: translate(-50%, -50%) translateY(6px);
+          opacity: 0;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          pointer-events: none;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .instrument-info-btn:hover {
+          background: ${C.rose};
+          border-color: ${C.rose};
+          color: #fff;
+          box-shadow: 0 3px 14px rgba(72,149,236,0.35);
+        }
+        .instrument-info-btn:hover .instrument-info-btn-label {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        .instrument-info-btn:hover .instrument-info-btn-hover-text {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0);
+        }
+        .instrument-info-btn:active {
+          transform: scale(0.96);
         }
       `}</style>
     </div>

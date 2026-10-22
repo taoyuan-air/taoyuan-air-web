@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Plane, Wind, ChevronDown, ChevronUp,
   MapPin, Hash, Layers, Activity, Cpu, Ruler, Zap, Info,
@@ -504,7 +505,17 @@ function TabBar({ active, onChange }: { active: 'uav' | 'wind-lidar'; onChange: 
    主頁面
 ───────────────────────────────────────────────────────────── */
 export default function InstrumentsPage() {
-  const [tab, setTab]         = useState<'uav' | 'wind-lidar'>('uav');
+  return (
+    <Suspense fallback={null}>
+      <InstrumentsPageInner />
+    </Suspense>
+  );
+}
+
+function InstrumentsPageInner() {
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get('tab') === 'wind-lidar' ? 'wind-lidar' : 'uav') as 'uav' | 'wind-lidar';
+  const [tab, setTab]         = useState<'uav' | 'wind-lidar'>(initialTab);
   // openId  = 實際顯示中的節點（面板可見）
   // visId   = 右側面板渲染的節點（切換時短暫保留舊內容）
   const [openId, setOpenId]   = useState<NodeId | null>(null);
