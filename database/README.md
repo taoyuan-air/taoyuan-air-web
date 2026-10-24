@@ -16,6 +16,7 @@
 | `wind_lidar_schema.sql` | WindLidar 風光達 | 風光達垂直風場資料（寬表：一個時間 × 高度一列） |
 | `wind_lidar_migrate_wide.sql` | WindLidar 風光達 | 舊版（一個參數一列）轉寬表，舊資料庫只需執行一次 |
 | `aod_schema.sql` | AOD 衛星氣膠 | MAIAC MCD19A2 每日 AOD 與 PM2.5 補值模型特徵（0.01° 網格） |
+| `iop_schema.sql` | IOP 密集觀測 | IOP 清單與 VOCs 採樣（觸發採樣、無人機採樣） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
@@ -38,7 +39,7 @@
 | --- | --- | --- | --- |
 | MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | 中壢站需先跑 `convert_zhongli_wide_csv.py`；月更新：`update_moe_monthly.py` 以 history 覆蓋 realtime |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
-| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入 |
+| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入；即時：`update_tydep_realtime.py` 寫入 realtime，不覆蓋 history |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區；重匯時整趟飛行重寫 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
 | AOD | 依 `obs_date` 月分區 | `scripts/import_maiac_aod.py` | 以「日」為單位整天替換；`--force` 重做；只存通過 QA 的格點 |
@@ -276,6 +277,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exa
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aod_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
@@ -293,6 +295,9 @@ python scripts/import_uav.py
 
 # AOD（需先放好 data/raw/aod/maiac_crop/ 與 data/raw/aod/boundaries/；全部約 2–3 小時）
 python scripts/import_maiac_aod.py
+
+# IOP VOCs（需先放好 data/raw/IOP/VOCs/*.xlsx）
+python scripts/import_iop_vocs.py
 
 # CWA
 python scripts/import_cwa_stations.py
