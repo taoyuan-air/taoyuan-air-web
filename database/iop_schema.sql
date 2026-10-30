@@ -2,9 +2,9 @@
 -- 建立日期: 2026-10-24
 -- 內容:
 --   iop_events   IOP 清單（名稱與起訖日期）
---   vocs_variables VOCs 變數（物種，59 種，GC-FID 分析）
---   vocs_samples VOCs 採樣罐（觸發採樣 / 無人機採樣，一罐一列）
---   vocs_data    VOCs 濃度（一罐 × 一物種一列）
+--   iop_vocs_variables VOCs 變數（物種，59 種，GC-FID 分析）
+--   iop_vocs_samples VOCs 採樣罐（觸發採樣 / 無人機採樣，一罐一列）
+--   iop_vocs_data    VOCs 濃度（一罐 × 一物種一列）
 -- 風光達、無人機、空品站等既有資料不複製，網頁依 iop_events 的日期到原本的資料表篩選
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -33,13 +33,13 @@ ON CONFLICT (iop_id) DO UPDATE SET
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. VOCs 變數（物種，順序同原始檔欄位）
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS vocs_variables (
+CREATE TABLE IF NOT EXISTS iop_vocs_variables (
     variables_id   SMALLINT     PRIMARY KEY,        -- 原始檔欄位順序 1–59
     variables_name VARCHAR(50)  NOT NULL UNIQUE,    -- 'Ethane'
     unit           VARCHAR(10)  NOT NULL            -- 'ppbv'（CFC 類為 'pptv'）
 );
 
-INSERT INTO vocs_variables (variables_id, variables_name, unit)
+INSERT INTO iop_vocs_variables (variables_id, variables_name, unit)
 VALUES
     ( 1, 'Ethane',                  'ppbv'),
     ( 2, 'Ethylene',                'ppbv'),
@@ -107,7 +107,7 @@ ON CONFLICT (variables_id) DO UPDATE SET
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. VOCs 採樣罐（一罐一列）
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS vocs_samples (
+CREATE TABLE IF NOT EXISTS iop_vocs_samples (
     sample_id     SERIAL        PRIMARY KEY,
     iop_id        VARCHAR(10)   REFERENCES iop_events(iop_id),  -- 不在任何 IOP 期間內為 NULL
     site          VARCHAR(30)   NOT NULL,          -- 'Guanyin' / 'Dayuan'
@@ -121,15 +121,15 @@ CREATE TABLE IF NOT EXISTS vocs_samples (
     UNIQUE (site, sampling_type, sample_time, canister_no)
 );
 
-CREATE INDEX IF NOT EXISTS idx_vocs_samples_iop  ON vocs_samples(iop_id);
-CREATE INDEX IF NOT EXISTS idx_vocs_samples_time ON vocs_samples(sample_time);
+CREATE INDEX IF NOT EXISTS idx_iop_vocs_samples_iop  ON iop_vocs_samples(iop_id);
+CREATE INDEX IF NOT EXISTS idx_iop_vocs_samples_time ON iop_vocs_samples(sample_time);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. VOCs 濃度（一罐 × 一物種一列）
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS vocs_data (
-    sample_id    INTEGER        NOT NULL REFERENCES vocs_samples(sample_id) ON DELETE CASCADE,
-    variables_id SMALLINT       NOT NULL REFERENCES vocs_variables(variables_id),
+CREATE TABLE IF NOT EXISTS iop_vocs_data (
+    sample_id    INTEGER        NOT NULL REFERENCES iop_vocs_samples(sample_id) ON DELETE CASCADE,
+    variables_id SMALLINT       NOT NULL REFERENCES iop_vocs_variables(variables_id),
     value        NUMERIC(12, 4),                   -- 濃度；未檢出為 NULL
     flag         VARCHAR(10),                      -- 原始標記，如 'N.D.'（有數值時為 NULL）
     PRIMARY KEY (sample_id, variables_id)
@@ -139,6 +139,6 @@ CREATE TABLE IF NOT EXISTS vocs_data (
 -- 註解
 -- ─────────────────────────────────────────────────────────────────────────────
 COMMENT ON TABLE iop_events   IS 'IOP 密集觀測清單';
-COMMENT ON TABLE vocs_variables IS 'VOCs 變數（物種，GC-FID，59 種）';
-COMMENT ON TABLE vocs_samples IS 'VOCs 採樣罐（觸發採樣 / 無人機採樣）';
-COMMENT ON TABLE vocs_data    IS 'VOCs 濃度（未檢出 value 為 NULL、flag 為 N.D.）';
+COMMENT ON TABLE iop_vocs_variables IS 'VOCs 變數（物種，GC-FID，59 種）';
+COMMENT ON TABLE iop_vocs_samples IS 'VOCs 採樣罐（觸發採樣 / 無人機採樣）';
+COMMENT ON TABLE iop_vocs_data    IS 'VOCs 濃度（未檢出 value 為 NULL、flag 為 N.D.）';

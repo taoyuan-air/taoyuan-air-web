@@ -45,7 +45,7 @@ async def _ensure_iop(db: AsyncSession, iop_id: str) -> None:
 
 
 async def _load_variables(db: AsyncSession, ids: Optional[list[int]]) -> list[VOCsVariable]:
-    sql = "SELECT variables_id, variables_name, unit FROM vocs_variables"
+    sql = "SELECT variables_id, variables_name, unit FROM iop_vocs_variables"
     params = {}
     if ids:
         sql += " WHERE variables_id IN :ids"
@@ -82,7 +82,7 @@ async def _load_table(
             "SELECT sample_id, site, sampling_type, "
             "TO_CHAR(sample_time, 'YYYY-MM-DD HH24:MI') AS sample_time, "
             "batch, height_m, canister_no "
-            f"FROM vocs_samples WHERE {' AND '.join(where)} "
+            f"FROM iop_vocs_samples WHERE {' AND '.join(where)} "
             "ORDER BY sampling_type, site, DATE(sample_time), batch NULLS FIRST, height_m NULLS FIRST, sample_time, canister_no"
         ),
         params,
@@ -93,7 +93,7 @@ async def _load_table(
 
     data_result = await db.execute(
         text(
-            "SELECT sample_id, variables_id, value, flag FROM vocs_data "
+            "SELECT sample_id, variables_id, value, flag FROM iop_vocs_data "
             "WHERE sample_id IN :sids AND variables_id IN :vids"
         ).bindparams(bindparam("sids", expanding=True), bindparam("vids", expanding=True)),
         {"sids": [r["sample_id"] for r in sample_rows], "vids": var_ids},
@@ -128,7 +128,7 @@ async def list_iops(db: AsyncSession = Depends(get_db)):
                COUNT(s.sample_id) FILTER (WHERE s.sampling_type = 'trigger') AS trigger_samples,
                COUNT(s.sample_id) FILTER (WHERE s.sampling_type = 'uav')     AS uav_samples
         FROM iop_events e
-        LEFT JOIN vocs_samples s ON s.iop_id = e.iop_id
+        LEFT JOIN iop_vocs_samples s ON s.iop_id = e.iop_id
         GROUP BY e.iop_id
         ORDER BY e.start_date
     """))
@@ -136,7 +136,7 @@ async def list_iops(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/vocs/variables", response_model=list[VOCsVariable])
-async def list_vocs_variables(db: AsyncSession = Depends(get_db)):
+async def list_iop_vocs_variables(db: AsyncSession = Depends(get_db)):
     """VOCs 變數（物種）清單，依原始檔欄位順序。"""
     return await _load_variables(db, None)
 
