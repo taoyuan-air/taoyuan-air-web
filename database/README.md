@@ -17,6 +17,7 @@
 | `wind_lidar_migrate_wide.sql` | WindLidar 風光達 | 舊版（一個參數一列）轉寬表，舊資料庫只需執行一次 |
 | `aod_schema.sql` | AOD 衛星氣膠 | MAIAC MCD19A2 每日 AOD 與 PM2.5 補值模型特徵（0.01° 網格） |
 | `iop_schema.sql` | IOP 密集觀測 | IOP 清單與 VOCs 採樣（觸發採樣、無人機採樣） |
+| `iop_aerosol_schema.sql` | IOP 密集觀測 | 氣膠化學濾紙採樣（PM2.5、PM1） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
@@ -277,6 +278,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exa
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aod_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_aerosol_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
@@ -298,6 +300,9 @@ python scripts/import_maiac_aod.py
 
 # IOP VOCs（需先放好 data/raw/IOP/VOCs/*.xlsx）
 python scripts/import_iop_vocs.py
+
+# IOP 氣膠化學（需先放好 data/raw/IOP/Aerosol/*.xlsx）
+python scripts/import_iop_aerosol.py
 
 # CWA
 python scripts/import_cwa_stations.py

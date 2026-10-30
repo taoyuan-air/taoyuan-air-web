@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IOP VOCs 採樣資料匯入：讀取 GC-FID 分析結果 xlsx，匯入 vocs_samples / vocs_data。
+IOP VOCs 採樣資料匯入：讀取 GC-FID 分析結果 xlsx，匯入 iop_vocs_samples / iop_vocs_data。
 
 檔名：VOCs_ {Trigger|UAV}CanisterSampling_GC-FID_{測站}_{年}IOP{n}_*.xlsx（VOCs 後的底線與空白數量不限）
   Trigger → 觸發採樣（trigger），UAV → 無人機採樣（uav，多 Batch、Height 兩欄）
@@ -50,7 +50,7 @@ FILENAME_PATTERN = re.compile(
 )
 
 SAMPLE_UPSERT_SQL = """
-    INSERT INTO vocs_samples
+    INSERT INTO iop_vocs_samples
         (iop_id, site, sampling_type, sample_time, batch, height_m, canister_no, source_file)
     VALUES (
         COALESCE(%(iop)s, (SELECT iop_id FROM iop_events
@@ -161,7 +161,7 @@ def import_file(conn, path: Path, variable_ids: dict, variable_units: dict, iop_
 
     unknown = [s for s in info['units'] if s not in variable_ids]
     if unknown:
-        print(f'\n    [WARN] vocs_variables 沒有這些物種，略過：{", ".join(unknown)}')
+        print(f'\n    [WARN] iop_vocs_variables 沒有這些物種，略過：{", ".join(unknown)}')
     for name, unit in info['units'].items():
         if name in variable_units and unit and unit != variable_units[name]:
             print(f'\n    [WARN] {name} 單位為 {unit}，與資料表的 {variable_units[name]} 不同')
@@ -175,11 +175,11 @@ def import_file(conn, path: Path, variable_ids: dict, variable_units: dict, iop_
                 'canister': s['canister'], 'file': path.name,
             })
             sample_id, iop_id = cur.fetchone()
-            cur.execute('DELETE FROM vocs_data WHERE sample_id = %s', (sample_id,))
+            cur.execute('DELETE FROM iop_vocs_data WHERE sample_id = %s', (sample_id,))
             rows = [(sample_id, variable_ids[name], value, flag)
                     for name, (value, flag) in s['values'].items() if name in variable_ids]
             cur.executemany(
-                'INSERT INTO vocs_data (sample_id, variables_id, value, flag) VALUES (%s, %s, %s, %s)', rows)
+                'INSERT INTO iop_vocs_data (sample_id, variables_id, value, flag) VALUES (%s, %s, %s, %s)', rows)
             stats['samples'] += 1
             stats['values'] += sum(1 for r in rows if r[2] is not None)
             stats['flags'] += sum(1 for r in rows if r[2] is None)
@@ -189,7 +189,7 @@ def import_file(conn, path: Path, variable_ids: dict, variable_units: dict, iop_
 
 
 def main():
-    ap = argparse.ArgumentParser(description='IOP VOCs xlsx → vocs_samples / vocs_data')
+    ap = argparse.ArgumentParser(description='IOP VOCs xlsx → iop_vocs_samples / iop_vocs_data')
     ap.add_argument('--raw-dir', type=Path, default=RAW_DIR, help='xlsx 資料夾（預設 data/raw/IOP/VOCs，會搜尋子資料夾）')
     ap.add_argument('--dry-run', action='store_true', help='只解析檔案，不寫入資料庫')
     args = ap.parse_args()
@@ -213,7 +213,7 @@ def main():
 
     conn = connect_db()
     with conn.cursor() as cur:
-        cur.execute('SELECT variables_name, variables_id, unit FROM vocs_variables')
+        cur.execute('SELECT variables_name, variables_id, unit FROM iop_vocs_variables')
         rows = cur.fetchall()
     variable_ids = {name: sid for name, sid, _ in rows}
     variable_units = {name: unit for name, _, unit in rows}
