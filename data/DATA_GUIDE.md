@@ -123,6 +123,7 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | IOP VOCs | `scripts/import_iop_vocs.py` | 讀 `raw/IOP/VOCs/*.xlsx`（觸發採樣、無人機採樣）；IOP 以檔名為準 |
+| IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 讀 `raw/IOP/Aerosol/*.xlsx`（PM2.5、PM1 濾紙）；IOP 以檔名為準 |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
