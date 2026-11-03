@@ -551,6 +551,7 @@ export default function IOPView() {
             stationInfo ? (
               <IOPWindLidar
                 stationInfo={stationInfo}
+                iopId={selectedIop.iop_id}
                 iopStart={selectedIop.start_date}
                 iopEnd={selectedIop.end_date}
               />
