@@ -35,23 +35,49 @@ data/raw/
 ├── cwa-stations/          # 氣象署（Package_24780/24781/24937）
 │   ├── Package_24780/
 │   ├── Package_24781/
-│   └── Package_24937/
+│   ├── Package_24937/
+│   └── json/              # 轉檔後暫存（*.agr_hr.json / *.auto_hr.json / *.cwa_hr.json）
+│       ├── Package_24780/
+│       ├── Package_24781/
+│       └── Package_24937/
 │
 ├── tydep-stations/        # 桃園市環保局 Excel（108–115 年）
-│   └── 桃園市空氣品質測站監測數據(108-115).xlsx
+│   ├── 桃園市空氣品質測站監測數據(108-115).xlsx
+│   ├── json/              # 轉檔後暫存（convert_tydep_xlsx.py 產生）
+│   └── realtime/          # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
 │
-├── teds-point/            # TEDS 點源（TEDS12_POINT_WGS84.csv）
+├── teds-point/            # TEDS 點源
+│   ├── TEDS12_POINT_WGS84.csv
+│   └── json/              # 轉檔後暫存（TEDS12_POINT_WGS84.json）
 │
-├── teds-grid/             # TEDS 網格源（TEDS12.0_total_emission_WGS84.csv）
+├── teds-grid/             # TEDS 網格源
+│   └── TEDS12.0_total_emission_WGS84.csv
+│
+├── teds-stations/         # TEDS 測站暫存
+│   └── json/              # grid_temp_TEDS12.0_total_emission_WGS84.json
 │
 ├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
 │   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
 │
-├── UAV/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
-│                          # 檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
+├── uav/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
+│                          # 舊版檔名：UAV_V1_L3_{gas|met}_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
+│                          # 新版檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │
 ├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
-│                          # 檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+│                          # 舊版檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
+│                          # 新版檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+│
+├── IOP/                   # 外場觀測強化期（IOP1 觀音/IOP2 大園）
+│   ├── Aerosol/           # 氣膠化學濾紙（PM1/PM2.5；Guanyin/NCU/Xinwu）
+│   │   ├── AersolChemistry_PM1FilterSample_Guanyin_2026IOP1_TYDEPproject.xlsx
+│   │   ├── AersolChemistry_PM2p5FilterSample_Guanyin_2026IOP1_TYDEPproject.xlsx
+│   │   ├── AersolChemistry_PM2p5FilterSample_NCU_2026IOP1_TYDEPproject.xlsx
+│   │   └── AersolChemistry_PM2p5FilterSample_Xinwu_2026IOP1_TYDEPproject.xlsx
+│   └── VOCs/              # VOCs 採罐樣品（觸發/無人機；Guanyin IOP1、Dayuan IOP2）
+│       ├── VOCs_TriggerCanisterSampling_GC-FID_Guanyin_2026IOP1_TYDEPproject.xlsx
+│       ├── VOCs_UAVCanisterSampling_GC-FID_Guanyin_2026IOP1_TYDEPproject.xlsx
+│       ├── VOCs_TriggerCanisterSampling_GC-FID_Dayuan_2026IOP2_TYDEPproject.xlsx
+│       └── VOCs_UAVCanisterSampling_GC-FID_Dayuan_2026IOP2_TYDEPproject.xlsx
 │
 ├── aod/                   # MAIAC 衛星 AOD
 │   ├── maiac_crop/        # 裁切檔（download_maiac.py 產生，或從雲端取得，約 300 MB）
