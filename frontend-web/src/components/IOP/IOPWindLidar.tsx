@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from 'react';
 import IOPDateSlider from './IOPDateSlider';
 import { fetchPlotData, type PanelKey, type PlotData, type StationInfo } from '@/lib/windLidarApi';
+import { fetchVOCs } from '@/lib/iopApi';
 
 const WindLidarPanel = dynamic(() => import('@/components/WindLidar/WindLidarPanel'), { ssr: false });
 
@@ -71,27 +72,60 @@ class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 // ── 主元件 ───────────────────────────────────────────────────────────────────
 interface IOPWindLidarProps {
   stationInfo: StationInfo;
+  iopId: string;       // 用來查詢 VOCs 最晚日期，作為滑桿右邊界
   iopStart: string;
   iopEnd: string;
 }
 
-export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindLidarProps) {
-  // 篩選出屬於此 IOP 期間的日期（iopStart 前後 30 天內，避免混入其他 IOP 資料）
+export default function IOPWindLidar({ stationInfo, iopId, iopStart, iopEnd }: IOPWindLidarProps) {
+  // maxObsDate：IOP 內所有觀測資料（目前為 VOCs）的最晚日期
+  // 決定風光達滑桿的右邊界；初始先用 iopEnd，fetch 完後更新
+  const [maxObsDate, setMaxObsDate] = useState<string>(iopEnd);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // 查詢 VOCs 全部採樣，取最晚日期
+  useEffect(() => {
+    fetchVOCs(iopId)
+      .then((data) => {
+        if (!mountedRef.current) return;
+        const dates = data.samples
+          .map((s) => s.sample_time.slice(0, 10))
+          .filter(Boolean);
+        if (dates.length === 0) return;
+        const latest = dates.reduce((a, b) => (a > b ? a : b));
+        // 只有比 iopEnd 更晚才更新，否則保持 iopEnd
+        if (latest > iopEnd) setMaxObsDate(latest);
+      })
+      .catch(() => {
+        // fetch 失敗就用 iopEnd，不影響主流程
+      });
+  }, [iopId, iopEnd]);
+
+  // 篩選風光達日期：iopStart ～ maxObsDate 之間有資料的日期，升冪排序
   const filteredDates = [...stationInfo.dates]
-    .filter((d) => {
-      const diff = (new Date(d).getTime() - new Date(iopStart).getTime()) / 86400000;
-      return diff >= -5 && diff <= 60;
-    })
+    .filter((d) => d >= iopStart && d <= maxObsDate)
     .sort();
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    filteredDates.find((d) => d >= iopStart) ?? filteredDates[0] ?? '',
-  );
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [plotData, setPlotData]         = useState<PlotData | null>(null);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [sharedXRange, setSharedXRange] = useState<[string, string] | null>(null);
-  const mountedRef = useRef(true);
+
+  // maxObsDate 確定後，若 selectedDate 還沒設或已超出新範圍，就設成第一個 IOP 期間內的日期
+  useEffect(() => {
+    const firstInRange = filteredDates.find((d) => d >= iopStart) ?? filteredDates[0] ?? '';
+    setSelectedDate((prev) => {
+      if (!prev || prev < iopStart || prev > maxObsDate) return firstInRange;
+      return prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxObsDate]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -139,7 +173,12 @@ export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindL
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 測站標籤 */}
       <div style={{ fontSize: 12, color: C.hint, fontWeight: 600 }}>
-        測站：{stationInfo.station}　共 {filteredDates.length} 天有效資料
+        測站：{stationInfo.station}　IOP 期間共 {filteredDates.filter((d) => d <= iopEnd).length} 天有資料
+        {filteredDates.some((d) => d > iopEnd) && (
+          <span style={{ marginLeft: 8, color: '#B0BECF' }}>
+            （含延伸 {filteredDates.filter((d) => d > iopEnd).length} 天）
+          </span>
+        )}
       </div>
 
       {/* 日期滑桿 */}
