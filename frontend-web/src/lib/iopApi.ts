@@ -11,6 +11,7 @@ export interface IOPSummary {
   description: string | null;
   trigger_samples: number;
   uav_samples: number;
+  aerosol_samples: number;
 }
 
 export interface VOCsVariable {
@@ -66,4 +67,52 @@ export function getVocsCSVUrl(
   if (site) params.set('site', site);
   const qs = params.toString();
   return `${BASE}/${encodeURIComponent(iopId)}/vocs.csv${qs ? `?${qs}` : ''}`;
+}
+
+// ── 氣膠化學 ──────────────────────────────────────────────────────────────────
+
+export interface AerosolVariable {
+  variables_id: number;
+  variables_name: string;
+  unit: string;
+}
+
+export interface AerosolSample {
+  sample_id: number;
+  site: string;
+  pm_size: string;           // 'PM2.5' | 'PM1'
+  sample_date: string;       // 'YYYY-MM-DD'
+  values: Record<string, number | string | null>;
+}
+
+export interface AerosolTable {
+  iop_id: string;
+  variables: AerosolVariable[];
+  samples: AerosolSample[];
+}
+
+export async function fetchAerosol(
+  iopId: string,
+  pmSize?: 'PM2.5' | 'PM1',
+  site?: string,
+): Promise<AerosolTable> {
+  const params = new URLSearchParams();
+  if (pmSize) params.set('pm_size', pmSize);
+  if (site) params.set('site', site);
+  const qs = params.toString();
+  const res = await fetch(`${BASE}/${encodeURIComponent(iopId)}/aerosol${qs ? `?${qs}` : ''}`);
+  if (!res.ok) throw new Error(`無法取得氣膠化學資料（HTTP ${res.status}）`);
+  return res.json();
+}
+
+export function getAerosolCSVUrl(
+  iopId: string,
+  pmSize?: 'PM2.5' | 'PM1',
+  site?: string,
+): string {
+  const params = new URLSearchParams();
+  if (pmSize) params.set('pm_size', pmSize);
+  if (site) params.set('site', site);
+  const qs = params.toString();
+  return `${BASE}/${encodeURIComponent(iopId)}/aerosol.csv${qs ? `?${qs}` : ''}`;
 }
