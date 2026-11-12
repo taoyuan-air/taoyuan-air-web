@@ -81,6 +81,9 @@ data/raw/UAV/*
 !data/raw/UAV/*/
 !data/raw/UAV/.gitkeep
 
+# IOP spatial pictures - large image files, do not commit
+data/raw/iop/spatial-pictures/
+
 # Database
 *.sql.backup
 *.dump

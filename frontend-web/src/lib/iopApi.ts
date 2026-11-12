@@ -116,3 +116,26 @@ export function getAerosolCSVUrl(
   const qs = params.toString();
   return `${BASE}/${encodeURIComponent(iopId)}/aerosol.csv${qs ? `?${qs}` : ''}`;
 }
+
+// ── 空間推估圖 ────────────────────────────────────────────────────────────────
+
+export interface SpatialImageList {
+  iop_id: string;
+  hourly: string[];        // e.g. ["PM25_XGB_2026-03-27_00.jpg", ...]
+  daily_rf: string[];      // e.g. ["RF_2026-03-27.jpg", ...]
+  daily_xgboost: string[]; // e.g. ["XGBoost_2026-03-27.jpg", ...]
+}
+
+export async function fetchSpatialImages(iopId: string): Promise<SpatialImageList> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(iopId)}/spatial-images`);
+  if (!res.ok) throw new Error(`無法取得空間推估圖清單（HTTP ${res.status}）`);
+  return res.json();
+}
+
+export function getSpatialImageUrl(
+  iopId: string,
+  imgType: 'hourly' | 'daily_rf' | 'daily_xgboost',
+  filename: string,
+): string {
+  return `${BASE}/${encodeURIComponent(iopId)}/spatial-images/${imgType}/${encodeURIComponent(filename)}`;
+}

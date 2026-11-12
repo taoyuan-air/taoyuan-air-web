@@ -9,12 +9,13 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom } from 'lucide-react';
+import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map } from 'lucide-react';
 import { fetchIOPs, type IOPSummary } from '@/lib/iopApi';
 import { fetchStations, type StationInfo } from '@/lib/windLidarApi';
 import IOPWindLidar from './IOPWindLidar';
 import IOPVocsTable from './IOPVocsTable';
 import IOPAerosolTable from './IOPAerosolTable';
+import IOPSpatialPM25 from './IOPSpatialPM25';
 
 const C = {
   rose:        '#4895EC',
@@ -53,7 +54,7 @@ function calcWindDays(dates: string[], iopStart: string): number {
   }).length;
 }
 
-type IOPSubTab = 'wind-lidar' | 'vocs' | 'aerosol';
+type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol';
 
 // ── IOP 選擇卡片（橫向） ─────────────────────────────────────────────────────
 function IOPCard({
@@ -303,10 +304,11 @@ function IOPSubTabBar({
   active: IOPSubTab;
   onChange: (t: IOPSubTab) => void;
 }) {
-  const tabs: { id: IOPSubTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'wind-lidar', label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
-    { id: 'vocs',       label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
-    { id: 'aerosol',    label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
+  const tabs: { id: IOPSubTab; label: React.ReactNode; icon: React.ReactNode }[] = [
+    { id: 'spatial-pm25', label: <>PM<sub style={{ fontSize: '0.72em' }}>2.5</sub> 空間推估</>, icon: <Map size={14} strokeWidth={2} /> },
+    { id: 'wind-lidar',   label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
+    { id: 'vocs',         label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
+    { id: 'aerosol',      label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
   ];
 
   return (
@@ -407,7 +409,7 @@ export default function IOPView() {
 
   const handleSelectIop = (iop: IOPSummary) => {
     setSelectedIop(iop);
-    setSubTab('wind-lidar');
+    setSubTab('spatial-pm25');
   };
 
   const handleBack = () => {
@@ -557,6 +559,9 @@ export default function IOPView() {
 
         {/* Sub-tab 內容 */}
         <div>
+          {subTab === 'spatial-pm25' && (
+            <IOPSpatialPM25 iopId={selectedIop.iop_id} />
+          )}
           {subTab === 'wind-lidar' && (
             stationInfo ? (
               <IOPWindLidar

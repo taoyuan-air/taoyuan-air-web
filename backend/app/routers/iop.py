@@ -1,13 +1,15 @@
 """
 IOP 密集觀測 API（資料表見 database/iop_schema.sql）
 
-  GET /api/iop                         IOP 清單與各類採樣罐數
-  GET /api/iop/vocs/variables          VOCs 變數（59 種物種與單位）
-  GET /api/iop/{iop_id}/vocs           VOCs 採樣資料表（一罐一列，變數各一欄）
-  GET /api/iop/{iop_id}/vocs.csv       同上，下載 CSV
-  GET /api/iop/aerosol/variables       氣膠化學變數（6 項與單位）
-  GET /api/iop/{iop_id}/aerosol        氣膠化學資料表（一張濾紙一列，變數各一欄）
-  GET /api/iop/{iop_id}/aerosol.csv    同上，下載 CSV
+  GET /api/iop                                   IOP 清單與各類採樣罐數
+  GET /api/iop/vocs/variables                    VOCs 變數（59 種物種與單位）
+  GET /api/iop/{iop_id}/vocs                     VOCs 採樣資料表（一罐一列，變數各一欄）
+  GET /api/iop/{iop_id}/vocs.csv                 同上，下載 CSV
+  GET /api/iop/aerosol/variables                 氣膠化學變數（6 項與單位）
+  GET /api/iop/{iop_id}/aerosol                  氣膠化學資料表（一張濾紙一列，變數各一欄）
+  GET /api/iop/{iop_id}/aerosol.csv              同上，下載 CSV
+  GET /api/iop/{iop_id}/spatial-images           空間推估圖可用日期清單
+  GET /api/iop/{iop_id}/spatial-images/{type}/{filename}  serve 單張圖片
 
 /vocs 與 /vocs.csv 可帶篩選：
   sampling_type=trigger|uav   site=Guanyin|Dayuan   variables=1,2,25（variables_id，逗號分隔）
@@ -17,11 +19,13 @@ IOP 密集觀測 API（資料表見 database/iop_schema.sql）
 
 import csv
 import io
+import re
 from collections import defaultdict
+from pathlib import Path
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,9 +34,24 @@ from ..schemas.iop import (
     AerosolSample, AerosolTable, IOPSummary, IOPVariable, VOCsSample, VOCsTable, VOCsVariable,
 )
 
+# ── 空間推估圖根目錄（相對於 backend/ 目錄往上兩層到 repo root）─────────────────
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+SPATIAL_ROOT = _REPO_ROOT / "data" / "raw" / "iop" / "spatial-pictures"
+
+# IOP ID → 資料夾名稱的對應（全小寫）
+_IOP_DIR: dict[str, str] = {
+    "IOP1": "iop1",
+    "IOP2": "iop2",
+}
+
 router = APIRouter(prefix="/iop", tags=["iop"])
 
 SAMPLING_TYPE_LABELS = {"trigger": "觸發採樣", "uav": "無人機採樣"}
+
+# 允許的圖片類型（對應 spatial-pictures 子目錄）
+_ALLOWED_IMAGE_TYPES = {"hourly", "daily_rf", "daily_xgboost"}
+# 安全性：只允許合法檔名格式
+_SAFE_FILENAME_RE = re.compile(r'^[\w\-\.]+\.jpg$')
 
 
 def _parse_variable_ids(variables: Optional[str]) -> Optional[list[int]]:
@@ -300,4 +319,76 @@ async def download_aerosol_csv(
         content="\ufeff" + buf.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ─── 空間推估圖 ──────────────────────────────────────────────────────────────
+
+@router.get("/{iop_id}/spatial-images")
+async def list_spatial_images(
+    iop_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    回傳該 IOP 空間推估圖的可用日期與檔名清單。
+
+    回應格式：
+    {
+      "iop_id": "IOP1",
+      "hourly": ["PM25_XGB_2026-03-27_00.jpg", ...],   // 192 張，依字母順序
+      "daily_rf": ["RF_2026-03-27.jpg", ...],           //   8 張
+      "daily_xgboost": ["XGBoost_2026-03-27.jpg", ...]  //   8 張
+    }
+    """
+    await _ensure_iop(db, iop_id)
+    iop_dir_name = _IOP_DIR.get(iop_id)
+    if not iop_dir_name:
+        raise HTTPException(status_code=404, detail=f"找不到 IOP 空間圖目錄：{iop_id}")
+
+    base = SPATIAL_ROOT / iop_dir_name
+    result: dict[str, list[str]] = {}
+
+    for img_type in ("hourly", "daily_rf", "daily_xgboost"):
+        folder = base / img_type
+        if folder.is_dir():
+            files = sorted(f.name for f in folder.iterdir() if f.suffix.lower() == ".jpg")
+        else:
+            files = []
+        result[img_type] = files
+
+    return {"iop_id": iop_id, **result}
+
+
+@router.get("/{iop_id}/spatial-images/{img_type}/{filename}")
+async def get_spatial_image(
+    iop_id: str,
+    img_type: str,
+    filename: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Serve 單張空間推估圖 JPEG。
+
+    - img_type：hourly | daily_rf | daily_xgboost
+    - filename：例如 PM25_XGB_2026-03-27_12.jpg
+    """
+    # 安全性驗證
+    if img_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"不支援的圖片類型：{img_type}")
+    if not _SAFE_FILENAME_RE.match(filename):
+        raise HTTPException(status_code=400, detail="不合法的檔名")
+
+    await _ensure_iop(db, iop_id)
+    iop_dir_name = _IOP_DIR.get(iop_id)
+    if not iop_dir_name:
+        raise HTTPException(status_code=404, detail=f"找不到 IOP 空間圖目錄：{iop_id}")
+
+    img_path = SPATIAL_ROOT / iop_dir_name / img_type / filename
+    if not img_path.is_file():
+        raise HTTPException(status_code=404, detail=f"找不到圖片：{filename}")
+
+    return FileResponse(
+        path=str(img_path),
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},  # 快取 1 天
     )
