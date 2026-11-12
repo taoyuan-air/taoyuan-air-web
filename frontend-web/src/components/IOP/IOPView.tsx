@@ -9,12 +9,13 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom } from 'lucide-react';
+import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map } from 'lucide-react';
 import { fetchIOPs, type IOPSummary } from '@/lib/iopApi';
 import { fetchStations, type StationInfo } from '@/lib/windLidarApi';
 import IOPWindLidar from './IOPWindLidar';
 import IOPVocsTable from './IOPVocsTable';
 import IOPAerosolTable from './IOPAerosolTable';
+import IOPSpatialPM25 from './IOPSpatialPM25';
 
 const C = {
   rose:        '#4895EC',
@@ -45,15 +46,12 @@ function calcDays(start: string, end: string): number {
   ) + 1;
 }
 
-/** 從風光達 dates 計算屬於此 IOP 的天數（含延伸） */
-function calcWindDays(dates: string[], iopStart: string): number {
-  return dates.filter((d) => {
-    const diff = (new Date(d).getTime() - new Date(iopStart).getTime()) / 86400000;
-    return diff >= -5 && diff <= 60;
-  }).length;
+/** 從風光達 dates 計算屬於此 IOP 官方期間內的天數 */
+function calcWindDays(dates: string[], iopStart: string, iopEnd: string): number {
+  return dates.filter((d) => d >= iopStart && d <= iopEnd).length;
 }
 
-type IOPSubTab = 'wind-lidar' | 'vocs' | 'aerosol';
+type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol';
 
 // ── IOP 選擇卡片（橫向） ─────────────────────────────────────────────────────
 function IOPCard({
@@ -303,10 +301,11 @@ function IOPSubTabBar({
   active: IOPSubTab;
   onChange: (t: IOPSubTab) => void;
 }) {
-  const tabs: { id: IOPSubTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'wind-lidar', label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
-    { id: 'vocs',       label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
-    { id: 'aerosol',    label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
+  const tabs: { id: IOPSubTab; label: React.ReactNode; icon: React.ReactNode }[] = [
+    { id: 'spatial-pm25', label: <>PM<sub style={{ fontSize: '0.72em' }}>2.5</sub> 空間推估</>, icon: <Map size={14} strokeWidth={2} /> },
+    { id: 'wind-lidar',   label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
+    { id: 'vocs',         label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
+    { id: 'aerosol',      label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
   ];
 
   return (
@@ -407,7 +406,7 @@ export default function IOPView() {
 
   const handleSelectIop = (iop: IOPSummary) => {
     setSelectedIop(iop);
-    setSubTab('wind-lidar');
+    setSubTab('spatial-pm25');
   };
 
   const handleBack = () => {
@@ -466,7 +465,7 @@ export default function IOPView() {
             <IOPCard
               key={iop.iop_id}
               iop={iop}
-              windDays={stationInfo ? calcWindDays(stationInfo.dates, iop.start_date) : 0}
+              windDays={stationInfo ? calcWindDays(stationInfo.dates, iop.start_date, iop.end_date) : 0}
               onClick={() => handleSelectIop(iop)}
             />
           ))}
@@ -557,11 +556,13 @@ export default function IOPView() {
 
         {/* Sub-tab 內容 */}
         <div>
+          {subTab === 'spatial-pm25' && (
+            <IOPSpatialPM25 iopId={selectedIop.iop_id} />
+          )}
           {subTab === 'wind-lidar' && (
             stationInfo ? (
               <IOPWindLidar
                 stationInfo={stationInfo}
-                iopId={selectedIop.iop_id}
                 iopStart={selectedIop.start_date}
                 iopEnd={selectedIop.end_date}
               />

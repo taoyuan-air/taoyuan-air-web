@@ -81,6 +81,18 @@ data/raw/UAV/*
 !data/raw/UAV/*/
 !data/raw/UAV/.gitkeep
 
+# IOP - keep folder structure, ignore data files
+data/raw/IOP/*
+!data/raw/IOP/
+!data/raw/IOP/**/
+!data/raw/IOP/**/.gitkeep
+
+# TEDS stations - keep folder structure, ignore data files
+data/raw/teds-stations/*
+!data/raw/teds-stations/
+!data/raw/teds-stations/*/
+!data/raw/teds-stations/**/.gitkeep
+
 # Database
 *.sql.backup
 *.dump
