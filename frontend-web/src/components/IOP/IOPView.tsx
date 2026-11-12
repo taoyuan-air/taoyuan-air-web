@@ -46,12 +46,9 @@ function calcDays(start: string, end: string): number {
   ) + 1;
 }
 
-/** 從風光達 dates 計算屬於此 IOP 的天數（含延伸） */
-function calcWindDays(dates: string[], iopStart: string): number {
-  return dates.filter((d) => {
-    const diff = (new Date(d).getTime() - new Date(iopStart).getTime()) / 86400000;
-    return diff >= -5 && diff <= 60;
-  }).length;
+/** 從風光達 dates 計算屬於此 IOP 官方期間內的天數 */
+function calcWindDays(dates: string[], iopStart: string, iopEnd: string): number {
+  return dates.filter((d) => d >= iopStart && d <= iopEnd).length;
 }
 
 type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol';
@@ -468,7 +465,7 @@ export default function IOPView() {
             <IOPCard
               key={iop.iop_id}
               iop={iop}
-              windDays={stationInfo ? calcWindDays(stationInfo.dates, iop.start_date) : 0}
+              windDays={stationInfo ? calcWindDays(stationInfo.dates, iop.start_date, iop.end_date) : 0}
               onClick={() => handleSelectIop(iop)}
             />
           ))}
@@ -566,7 +563,6 @@ export default function IOPView() {
             stationInfo ? (
               <IOPWindLidar
                 stationInfo={stationInfo}
-                iopId={selectedIop.iop_id}
                 iopStart={selectedIop.start_date}
                 iopEnd={selectedIop.end_date}
               />
