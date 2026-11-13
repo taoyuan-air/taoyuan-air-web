@@ -1,9 +1,9 @@
 -- WindLidar 風光達資料庫架構
 -- 分支: feat/database-WindLidar
 -- 建立日期: 2026-05-25
--- 更新日期: 2026-08-07
+-- 更新日期: 2026-10-15（改為寬表：一個時間 × 高度一列，空間約為舊版 1/15）
 -- 儀器: L02240328_Guanyin（可擴充）
--- 資料範圍: 2026-03-27 至 2026-04-15，共 20 天
+-- 資料範圍: 2026-03-27 起，每天一個分區（匯入時自動建立）
 -- 量測間隔: 每 10 分鐘，760 高度層（9.1m～984.6m）
 -- 時間欄位: 原始 Date/time 以 UTC TIMESTAMP 儲存；View 另提供 UTC+8 台灣時間欄位
 -- 資料流程: txt → 直接匯入 DB（資料量過大，不產生 JSON 中間層）
@@ -75,60 +75,37 @@ ON CONFLICT (parameter_id) DO UPDATE SET
     description    = EXCLUDED.description;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 3. 量測資料表（分區表，按天分區）
+-- 3. 量測資料表（寬表，按天分區）
+--    一列 = 一個測站 × 一個時間 × 一個高度，7 個參數各一欄
+--    舊版（一個參數一列）請先執行 wind_lidar_migrate_wide.sql 轉換
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS wind_lidar_data (
-    id           BIGSERIAL,
-    station_id   VARCHAR(20)    NOT NULL,
-    measure_time TIMESTAMP      NOT NULL,           -- 分區鍵，10分鐘均值的區間終點（UTC）
-    height_m     NUMERIC(7, 1)  NOT NULL,           -- 量測高度（公尺）
-    parameter_id VARCHAR(10)    NOT NULL,
-    value        NUMERIC(10, 3),                    -- 量測數值（無效值為 NULL）
-    raw_value    VARCHAR(30),                       -- 原始字串值
-    data_quality VARCHAR(10)    DEFAULT 'good',     -- 'good' 或 'invalid'
-    period_start TIMESTAMP,                         -- measure_time - 10 分鐘（UTC）
-    period_end   TIMESTAMP,                         -- 等同 measure_time（UTC）
-    source       VARCHAR(20)    DEFAULT 'history',
-    created_at   TIMESTAMP      DEFAULT NOW(),
-    PRIMARY KEY (id, measure_time),
-    FOREIGN KEY (station_id)   REFERENCES wind_lidar_stations(station_id),
-    FOREIGN KEY (parameter_id) REFERENCES wind_lidar_parameters(parameter_id),
-    UNIQUE (station_id, measure_time, height_m, parameter_id)
-) PARTITION BY RANGE (measure_time);
-
--- 將舊版 YYYYMMDD 分區名稱正規化為 YYYY_MM_DD，避免相同範圍重複建表。
 DO $$
-DECLARE
-    old_partition RECORD;
-    normalized_name TEXT;
 BEGIN
-    FOR old_partition IN
-        SELECT child.relname
-        FROM pg_inherits inheritance
-        JOIN pg_class parent ON parent.oid = inheritance.inhparent
-        JOIN pg_class child ON child.oid = inheritance.inhrelid
-        WHERE parent.oid = 'wind_lidar_data'::regclass
-          AND child.relname ~ '^wind_lidar_data_[0-9]{8}$'
-    LOOP
-        normalized_name :=
-            'wind_lidar_data_' ||
-            SUBSTRING(old_partition.relname FROM 17 FOR 4) || '_' ||
-            SUBSTRING(old_partition.relname FROM 21 FOR 2) || '_' ||
-            SUBSTRING(old_partition.relname FROM 23 FOR 2);
-
-        IF to_regclass(normalized_name) IS NULL THEN
-            EXECUTE format(
-                'ALTER TABLE %I RENAME TO %I',
-                old_partition.relname,
-                normalized_name
-            );
-        END IF;
-    END LOOP;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'wind_lidar_data' AND column_name = 'parameter_id'
+    ) THEN
+        RAISE EXCEPTION 'wind_lidar_data 還是舊版格式，請先執行 database/wind_lidar_migrate_wide.sql';
+    END IF;
 END
 $$;
 
+CREATE TABLE IF NOT EXISTS wind_lidar_data (
+    station_id   VARCHAR(20)    NOT NULL REFERENCES wind_lidar_stations(station_id),
+    measure_time TIMESTAMP      NOT NULL,           -- 分區鍵，10 分鐘均值的區間終點（UTC）
+    height_m     NUMERIC(7, 1)  NOT NULL,           -- 量測高度（公尺）
+    hsp          REAL,                              -- 水平風速 m/s
+    vsp          REAL,                              -- 垂直風速 m/s
+    wdir         REAL,                              -- 風向 degree
+    turb         REAL,                              -- 亂流強度
+    min_int      REAL,                              -- 最小訊號強度
+    mean_int     REAL,                              -- 平均訊號強度
+    n_samples    INTEGER,                           -- 樣本數
+    PRIMARY KEY (station_id, measure_time, height_m)
+) PARTITION BY RANGE (measure_time);
+
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. 分區表（按天，2026-03-27 至 2026-04-15）
+-- 4. 分區表（按天；之後的日期由 import_wind_lidar.py 自動建立）
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- 2026 年 3 月
@@ -157,46 +134,31 @@ CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_15 PARTITION OF wind_lidar_da
 CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_16 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-16 00:00:00+00') TO ('2026-04-17 00:00:00+00');
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5. 索引
+-- 5. 索引：主鍵 (station_id, measure_time, height_m) 已涵蓋常用查詢，不另建
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_wl_station   ON wind_lidar_data(station_id);
-CREATE INDEX IF NOT EXISTS idx_wl_time      ON wind_lidar_data(measure_time);
-CREATE INDEX IF NOT EXISTS idx_wl_height    ON wind_lidar_data(height_m);
-CREATE INDEX IF NOT EXISTS idx_wl_parameter ON wind_lidar_data(parameter_id);
-CREATE INDEX IF NOT EXISTS idx_wl_quality   ON wind_lidar_data(data_quality);
--- 垂直剖面複合索引（最常用查詢）
-CREATE INDEX IF NOT EXISTS idx_wl_station_time_height
-    ON wind_lidar_data(station_id, measure_time, height_m);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 6. 彙總視圖（最近 1 小時，pivot 回寬表格式）
+-- 6. 最近 1 小時視圖（含台灣時間）
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP VIEW IF EXISTS wind_lidar_latest;
 
 CREATE VIEW wind_lidar_latest AS
 SELECT
-    s.station_id,
-    d.measure_time,
-    d.measure_time + INTERVAL '8 hours' AS measure_time_tw,
-    d.height_m,
-    MAX(CASE WHEN d.parameter_id = 'hsp'      THEN d.value END) AS hsp,
-    MAX(CASE WHEN d.parameter_id = 'vsp'      THEN d.value END) AS vsp,
-    MAX(CASE WHEN d.parameter_id = 'wdir'     THEN d.value END) AS wdir,
-    MAX(CASE WHEN d.parameter_id = 'turb'     THEN d.value END) AS turb,
-    MAX(CASE WHEN d.parameter_id = 'min_int'  THEN d.value END) AS min_int,
-    MAX(CASE WHEN d.parameter_id = 'mean_int' THEN d.value END) AS mean_int,
-    MAX(CASE WHEN d.parameter_id = 'n_samples' THEN d.value END) AS n_samples
-FROM wind_lidar_stations s
-JOIN wind_lidar_data d ON s.station_id = d.station_id
-WHERE d.measure_time >= (SELECT MAX(measure_time) FROM wind_lidar_data) - INTERVAL '1 hour'
-    AND d.data_quality = 'good'
-GROUP BY s.station_id, d.measure_time, d.height_m
-ORDER BY d.measure_time DESC, d.height_m ASC;
+    station_id,
+    measure_time,
+    measure_time + INTERVAL '8 hours' AS measure_time_tw,
+    height_m,
+    hsp, vsp, wdir, turb, min_int, mean_int, n_samples
+FROM wind_lidar_data
+WHERE measure_time >= (SELECT MAX(measure_time) FROM wind_lidar_data) - INTERVAL '1 hour'
+ORDER BY measure_time DESC, height_m ASC;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 7. 資料品質檢查函數
+-- 7. 資料品質檢查函數（有效 = 水平風速有值）
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION check_wind_lidar_quality()
+DROP FUNCTION IF EXISTS check_wind_lidar_quality();
+
+CREATE FUNCTION check_wind_lidar_quality()
 RETURNS TABLE(
     station_id         VARCHAR(20),
     total_records      BIGINT,
@@ -208,16 +170,11 @@ BEGIN
     RETURN QUERY
     SELECT
         s.station_id,
-        COUNT(d.station_id)                                         AS total_records,
-        COUNT(CASE WHEN d.data_quality = 'good'    THEN 1 END)     AS valid_records,
-        COUNT(CASE WHEN d.data_quality = 'invalid' THEN 1 END)     AS invalid_records,
-        ROUND(
-            CASE
-                WHEN COUNT(d.station_id) = 0 THEN 0
-                ELSE COUNT(CASE WHEN d.data_quality = 'good' THEN 1 END)::NUMERIC
-                     / NULLIF(COUNT(d.station_id), 0)::NUMERIC * 100
-            END, 2
-        )                                                           AS data_quality_ratio
+        COUNT(d.station_id)                              AS total_records,
+        COUNT(d.hsp)                                     AS valid_records,
+        COUNT(d.station_id) - COUNT(d.hsp)               AS invalid_records,
+        ROUND(COUNT(d.hsp)::NUMERIC / NULLIF(COUNT(d.station_id), 0) * 100, 2)
+                                                         AS data_quality_ratio
     FROM wind_lidar_stations s
     LEFT JOIN wind_lidar_data d ON s.station_id = d.station_id
     GROUP BY s.station_id
@@ -229,7 +186,7 @@ $$ LANGUAGE plpgsql;
 -- 註解
 -- ─────────────────────────────────────────────────────────────────────────────
 COMMENT ON TABLE wind_lidar_stations   IS 'WindLidar 風光達儀器基本資料';
-COMMENT ON TABLE wind_lidar_parameters IS 'WindLidar 量測參數種類（7 項）';
-COMMENT ON TABLE wind_lidar_data       IS 'WindLidar 量測資料（分區表，按天，2026-03-27 至 2026-04-15）';
-COMMENT ON VIEW  wind_lidar_latest     IS '最近 1 小時 WindLidar 量測資料（寬表格式）';
+COMMENT ON TABLE wind_lidar_parameters IS 'WindLidar 量測參數種類（7 項，對應 wind_lidar_data 的欄位）';
+COMMENT ON TABLE wind_lidar_data       IS 'WindLidar 量測資料（寬表，按天分區）';
+COMMENT ON VIEW  wind_lidar_latest     IS '最近 1 小時 WindLidar 量測資料';
 COMMENT ON FUNCTION check_wind_lidar_quality() IS '檢查 WindLidar 資料品質統計';

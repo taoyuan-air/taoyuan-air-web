@@ -208,9 +208,28 @@ def process(csv_path: Path, batch_size: int):
 # 執行進入點
 # ===========================================================
 if __name__ == "__main__":
+    # 預設資料目錄（相對於 repo 根目錄）
+    REPO_ROOT = Path(__file__).resolve().parent.parent
+    DEFAULT_DIR = REPO_ROOT / "data" / "raw" / "exam-point"
+
     parser = argparse.ArgumentParser(description="固定污染源檢測資料匯入腳本 (直接從 CSV 匯入)")
-    parser.add_argument("--csv", type=Path, required=True, help="CSV 原始檔案路徑")
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=None,
+        help="指定單一 CSV 檔案路徑（預設：自動掃描 data/raw/exam-point/*.csv）"
+    )
     parser.add_argument("--batch-size", type=int, default=5000, help="批次寫入的大小")
     args = parser.parse_args()
 
-    process(args.csv, args.batch_size)
+    if args.csv:
+        csv_files = [args.csv]
+    else:
+        csv_files = sorted(DEFAULT_DIR.glob("*.csv"))
+        if not csv_files:
+            log.error(f"❌ 在 {DEFAULT_DIR} 找不到任何 CSV 檔案，請先將資料放入該目錄。")
+            exit(1)
+        log.info(f"🔍 找到 {len(csv_files)} 個 CSV 檔案：{[f.name for f in csv_files]}")
+
+    for csv_path in csv_files:
+        process(csv_path, args.batch_size)

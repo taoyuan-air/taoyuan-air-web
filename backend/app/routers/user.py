@@ -11,6 +11,7 @@ from ..schemas.user import (
 )
 from ..core.deps import get_current_user
 from ..core.security import verify_password, hash_password
+from ..config import settings
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -92,6 +93,6 @@ async def delete_account(
     await db.flush()
     response = Response(status_code=204)
     # 清除認證 cookie
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", path=settings.COOKIE_PATH, samesite=settings.COOKIE_SAMESITE, secure=settings.COOKIE_SECURE)
+    response.delete_cookie("refresh_token", path=settings.COOKIE_PATH, samesite=settings.COOKIE_SAMESITE, secure=settings.COOKIE_SECURE)
     return response

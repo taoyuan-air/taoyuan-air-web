@@ -47,6 +47,7 @@ data/models/**/*
 !data/exports/.gitkeep
 !data/models/.gitkeep
 !data/README.md
+data/logs/
 
 # WindLidar - keep folder structure, ignore data files
 data/raw/WindLidar/*
@@ -83,6 +84,18 @@ data/raw/UAV/*
 !data/raw/UAV/*/
 !data/raw/UAV/.gitkeep
 
+# IOP - keep folder structure, ignore data files
+data/raw/IOP/*
+!data/raw/IOP/
+!data/raw/IOP/**/
+!data/raw/IOP/**/.gitkeep
+
+# TEDS stations - keep folder structure, ignore data files
+data/raw/teds-stations/*
+!data/raw/teds-stations/
+!data/raw/teds-stations/*/
+!data/raw/teds-stations/**/.gitkeep
+
 # Database
 *.sql.backup
 *.dump
@@ -114,3 +127,13 @@ venv/
 
 # Private documentation
 docs/
+
+# Backend logs
+backend/*.log
+backend/*.err.log
+
+# Local scratch
+vm/
+
+# VM 專屬部署設定（無密鑰，但值因 VM 而異，只保留 .example 範本）
+deploy/deploy.env

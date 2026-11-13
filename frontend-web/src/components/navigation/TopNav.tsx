@@ -8,11 +8,12 @@ import { Menu, X, Bell, Settings, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 const navItems = [
-  { href: '/dashboard', label: '空氣總覽' },
-  { href: '/map',       label: '監測地圖' },
-  { href: '/explorer',  label: '數據檢索' },
-  { href: '/events',    label: '事件記錄' },
-  { href: '/alerts',    label: '警報通知' },
+  { href: '/dashboard',   label: '空氣總覽' },
+  { href: '/map',         label: '監測地圖' },
+  { href: '/explorer',    label: '數據檢索' },
+  { href: '/events',      label: '事件記錄' },
+  { href: '/instruments', label: '儀器介紹' },
+  { href: '/alerts',      label: '警報通知' },
 ];
 
 export function TopNav() {

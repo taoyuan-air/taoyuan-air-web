@@ -1,0 +1,14 @@
+# 範本檔案。VM 安裝時取代 __PLACEHOLDER__ 後複製到 /etc/systemd/system/。
+# 每小時資料匯入（風光達、無人機、TYDEP 即時），由 taoyuan-air-data-import.timer 觸發。
+# __DEPLOY_USER__ 需能讀取 /data/sftp_root/uploads（air_atm 群組）。
+[Unit]
+Description=Taoyuan Air hourly data import (WindLidar / UAV / TYDEP realtime)
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=__DEPLOY_USER__
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__PROJECT_DIR__/scripts/run_data_imports.sh
+TimeoutStartSec=50min

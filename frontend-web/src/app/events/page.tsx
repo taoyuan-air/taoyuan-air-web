@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Plane, Wind } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, Plane, Wind, BookOpen, Microscope } from 'lucide-react';
 import { UAVProfileChart, type ParamStats } from '@/components/UAV/UAVProfileChart';
 import { UAVParameterSelector } from '@/components/UAV/UAVParameterSelector';
 import { fetchFlights, fetchProfile, type FlightSummary } from '@/lib/uavApi';
 import { ALL_PARAMETER_IDS, DEFAULT_PARAMETERS, type ParameterId } from '@/components/UAV/uavConfig';
 import WindLidarPage from '@/components/WindLidar/WindLidarPage';
+import IOPView from '@/components/IOP/IOPView';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
 /* ──────────────────────────────────────────────────────────── */
@@ -24,7 +26,7 @@ const C = {
   hint:        '#6F91B2',
 };
 
-type ActiveView = 'uav' | 'wind-lidar';
+type ActiveView = 'uav' | 'wind-lidar' | 'iop';
 
 /* ──────────────────────────────────────────────────────────── */
 /*  View Switcher Tab Bar                                        */
@@ -47,10 +49,16 @@ function ViewSwitcher({
       label: 'Wind Lidar 風光達',
       icon: <Wind size={15} strokeWidth={2} />,
     },
+    {
+      id: 'iop',
+      label: 'IOP 密集觀測',
+      icon: <Microscope size={15} strokeWidth={2} />,
+    },
   ];
 
   return (
     <div
+      className="events-view-switcher"
       style={{
         display: 'flex',
         gap: 8,
@@ -256,13 +264,15 @@ export default function EventsPage() {
     [],
   );
 
+  const router = useRouter();
+
   const selectedFlight = flights.find((f) => f.flight_id === selectedId);
 
-  // ── 根據 activeView 決定頁面標題 ─────────────────────────
-  const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達廓線分析';
+  // ── 根據 activeView 決定頁面標題（只用於 uav / wind-lidar）─────────────
+  const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達剖面時序分析';
   const pageSubtitle = activeView === 'uav'
-    ? '無人機大氣量測 · 觀音站 · 2026-03-30 共 6 次飛行'
-    : '風光達觀測 · TMA_328 測站';
+    ? '無人機大氣量測 · Guanyin(觀音)站'
+    : '風光達觀測 · L02240328_Guanyin(觀音) 測站';
   const pageIcon = activeView === 'uav'
     ? <Plane size={20} color={C.blue} strokeWidth={2} />
     : <Wind  size={20} color={C.blue} strokeWidth={2} />;
@@ -271,31 +281,49 @@ export default function EventsPage() {
     <AuthGuard>
     <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}>
 
-      {/* Tab switcher — 放在 header 最下方、控制列上方 */}
-      <ViewSwitcher active={activeView} onChange={setActiveView} />
-
-      {/* ── Page header ── */}
-      <div style={{ padding: '28px 40px 0' }}>
-        {/* 標題列 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-          <div
-            style={{
-              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-              background: C.blueAlpha, border: `1px solid ${C.blueBorder}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {pageIcon}
-          </div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.blue }}>
-            {pageTitle}
-          </h1>
+      {/* Tab switcher */}
+      <ViewSwitcher active={activeView} onChange={setActiveView} />      {/* ── IOP view（單獨佔滿 padding 區域，不顯示原本的 header）── */}
+      {activeView === 'iop' && (
+        <div className="events-pad" style={{ padding: '28px 40px 0' }}>
+          <IOPView />
         </div>
-        <p style={{ margin: '4px 0 16px 52px', fontSize: 13, color: C.hint }}>
-          {pageSubtitle}
-        </p>
+      )}
 
-      </div>
+      {/* ── UAV / Wind-Lidar 的 Page header（IOP tab 時隱藏）── */}
+      {activeView !== 'iop' && (
+        <div className="events-pad" style={{ padding: '28px 40px 0' }}>
+          {/* 標題列 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+            <div
+              style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: C.blueAlpha, border: `1px solid ${C.blueBorder}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {pageIcon}
+            </div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.blue }}>
+              {pageTitle}
+            </h1>
+            {/* ── 儀器介紹按鈕 ── */}
+            <button
+              className="instrument-info-btn"
+              onClick={() => router.push(`/instruments?tab=${activeView}`)}
+              title={`前往${activeView === 'uav' ? 'UAV 無人機' : '風光達'}儀器介紹`}
+            >
+              <BookOpen size={13} strokeWidth={2.2} />
+              <span className="instrument-info-btn-label">
+                {activeView === 'uav' ? 'UAV 是什麼？' : '風光達是什麼？'}
+              </span>
+              <span className="instrument-info-btn-hover-text">移動到儀器介紹 →</span>
+            </button>
+          </div>
+          <p style={{ margin: '4px 0 16px 52px', fontSize: 13, color: C.hint }}>
+            {pageSubtitle}
+          </p>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════════════ */}
       {/* UAV 子視圖（保持 mounted，靠 CSS display 切換）      */}
@@ -304,6 +332,7 @@ export default function EventsPage() {
 
         {/* ── Controls ── */}
         <div
+          className="events-inner-pad"
           style={{
             margin: '20px 40px 0',
             background: C.glass,
@@ -378,7 +407,7 @@ export default function EventsPage() {
       {/* Wind Lidar 子視圖（切換時 mount / unmount）          */}
       {/* ════════════════════════════════════════════════════ */}
       {activeView === 'wind-lidar' && (
-        <div style={{ margin: '20px 40px 0' }}>
+        <div className="events-inner-pad" style={{ margin: '20px 40px 0' }}>
           <WindLidarPage />
         </div>
       )}
@@ -575,6 +604,83 @@ export default function EventsPage() {
         }
         @media (max-width: 600px) {
           .uav-chart-wrapper { margin: 12px 12px 0; }
+        }
+
+        /* ── Instrument info button ──────────────────────────── */
+        .instrument-info-btn {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1.5px solid ${C.blueBorder};
+          background: rgba(255,255,255,0.80);
+          color: ${C.muted};
+          font-size: 12px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          overflow: hidden;
+          transition: color 0.22s, border-color 0.22s, background 0.22s, box-shadow 0.22s, padding 0.22s;
+          box-shadow: 0 1px 6px rgba(72,149,236,0.10);
+        }
+        .instrument-info-btn-label {
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .instrument-info-btn-hover-text {
+          position: absolute;
+          left: 50%; top: 50%;
+          transform: translate(-50%, -50%) translateY(6px);
+          opacity: 0;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          pointer-events: none;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .instrument-info-btn:hover {
+          background: ${C.blue};
+          border-color: ${C.blue};
+          color: #fff;
+          box-shadow: 0 3px 14px rgba(72,149,236,0.35);
+        }
+        .instrument-info-btn:hover .instrument-info-btn-label {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        .instrument-info-btn:hover .instrument-info-btn-hover-text {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0);
+        }
+        .instrument-info-btn:active {
+          transform: scale(0.96);
+        }
+
+        /* ── IOP tab RWD ──────────────────────────────────── */
+        @media (max-width: 780px) {
+          /* 頁面左右 padding 縮小 */
+          .events-pad {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+          /* tab switcher margin 縮小 */
+          .events-view-switcher {
+            margin-left: 16px !important;
+            margin-right: 16px !important;
+          }
+          /* UAV controls + Wind Lidar margin 縮小 */
+          .events-inner-pad {
+            margin-left: 16px !important;
+            margin-right: 16px !important;
+          }
+          /* UAV chart wrapper */
+          .uav-chart-wrapper {
+            margin-left: 16px;
+            margin-right: 16px;
+          }
         }
       `}</style>
     </div>

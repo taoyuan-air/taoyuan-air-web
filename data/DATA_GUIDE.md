@@ -31,54 +31,130 @@ data/raw/
 │   ├── AQX_P_208_Resource/
 │   ├── AQX_P_209_Resource/
 │   └── AQX_P_255_Resource/
+│
 ├── cwa-stations/          # 氣象署（Package_24780/24781/24937）
+│   ├── Package_24780/
+│   ├── Package_24781/
+│   ├── Package_24937/
+│   └── json/              # 轉檔後暫存（*.agr_hr.json / *.auto_hr.json / *.cwa_hr.json）
+│       ├── Package_24780/
+│       ├── Package_24781/
+│       └── Package_24937/
+│
 ├── tydep-stations/        # 桃園市環保局 Excel（108–115 年）
-├── UAV/                   # 無人機垂直剖面 txt
-│                          # 檔名：UAV_V1_L3_gas_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
-├── WindLidar/             # 都卜勒風光達日檔
-│                          # 檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
+│   ├── 桃園市空氣品質測站監測數據(108-115).xlsx
+│   ├── json/              # 轉檔後暫存（convert_tydep_xlsx.py 產生）
+│   └── realtime/          # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
+│
 ├── teds-point/            # TEDS 點源
+│   ├── TEDS12_POINT_WGS84.csv
+│   └── json/              # 轉檔後暫存（TEDS12_POINT_WGS84.json）
+│
+├── teds-grid/             # TEDS 網格源
+│   └── TEDS12.0_total_emission_WGS84.csv
+│
+├── teds-stations/         # TEDS 測站暫存
+│   └── json/              # grid_temp_TEDS12.0_total_emission_WGS84.json
+│
+├── exam-point/            # 固定污染源戴奧辛/重金屬/氯化氫排放檢測
+│   └── 桃園市固定污染源戴奧辛、重金屬（鉛、鎘、汞）及氯化氫排放檢測資料.csv
+│
+├── uav/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
+│                          # 舊版檔名：UAV_V1_L3_{gas|met}_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
+│                          # 新版檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
+│
+├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
+│                          # 舊版檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
+│                          # 新版檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+│
+├── IOP/                   # 外場觀測強化期（IOP1 觀音/IOP2 大園）
+│   ├── Aerosol/           # 氣膠化學濾紙（PM1/PM2.5；Guanyin/NCU/Xinwu）
+│   │   ├── AersolChemistry_PM1FilterSample_Guanyin_2026IOP1_TYDEPproject.xlsx
+│   │   ├── AersolChemistry_PM2p5FilterSample_Guanyin_2026IOP1_TYDEPproject.xlsx
+│   │   ├── AersolChemistry_PM2p5FilterSample_NCU_2026IOP1_TYDEPproject.xlsx
+│   │   └── AersolChemistry_PM2p5FilterSample_Xinwu_2026IOP1_TYDEPproject.xlsx
+│   └── VOCs/              # VOCs 採罐樣品（觸發/無人機；Guanyin IOP1、Dayuan IOP2）
+│       ├── VOCs_TriggerCanisterSampling_GC-FID_Guanyin_2026IOP1_TYDEPproject.xlsx
+│       ├── VOCs_UAVCanisterSampling_GC-FID_Guanyin_2026IOP1_TYDEPproject.xlsx
+│       ├── VOCs_TriggerCanisterSampling_GC-FID_Dayuan_2026IOP2_TYDEPproject.xlsx
+│       └── VOCs_UAVCanisterSampling_GC-FID_Dayuan_2026IOP2_TYDEPproject.xlsx
+│
+├── aod/                   # MAIAC 衛星 AOD
+│   ├── maiac_crop/        # 裁切檔（download_maiac.py 產生，或從雲端取得，約 300 MB）
+│   │   └── <年>/MCD19A2.AYYYYDDD.h28v06|h29v06.061.*.npz
+│   └── boundaries/        # 內政部縣市界線（補 aod_grids.county 用）
+│       └── COUNTY_MOI_1140318.gml
+│
+├── tydep-stations/realtime/  # 環保局即時 CSV（watcher 從 SFTP 搬入，匯入後歸檔到 imported/YYYY/MM/）
+│
+│
 ├── MPL/                   # 預留
 └── NAQO/                  # 預留
 ```
 
+## Processed 資料結構
+
+```text
+data/processed/
+└── tydep-stations/
+    └── json/              # 各測站 JSON 檔（由 convert_tydep_xlsx.py 產生）
+        ├── <station_id>/
+        └── stations_meta.json
+```
+
 ## 檔名格式說明
+
+統一規則（2026-10）：`儀器_資料級別_量測主要參數_觀測起始年月日_儀器版本_測站_反演版本`
+大氣系資料經 SFTP（`/data/sftp_root/uploads/<儀器>/<測站>/<級別>/<年>/`）上傳。匯入程式新舊檔名皆支援。
 
 ### WindLidar
 ```
-DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
- │   │  │  │      │        │        └─ 測站
- │   │  │  │      │        └─ 儀器序號
- │   │  │  │      └─ 觀測日期（YYYYMMDD）
- │   │  │  └─ 量測參數（水平垂直風）
- │   │  └─ 等級1資料
- │   └─ 版本1
+DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
+ │   │  │      │        │        │     └─ 反演版本
+ │   │  │      │        │        └─ 測站
+ │   │  │      │        └─ 儀器序號
+ │   │  │      └─ 觀測日期（YYYYMMDD，UTC）
+ │   │  └─ 量測參數（水平垂直風）
+ │   └─ 資料級別 L1
  └─ 都卜勒風光達
 ```
+舊檔名（Google 雲端，2026-04）：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt`。檔案內容格式相同（tab 分隔）。
 
 ### UAV
 ```
-UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
- │   │  │   │     │      │       │            └─ 測站
- │   │  │   │     │      │       └─ 儀器版本
- │   │  │   │     │      └─ 起飛時間（HHMM）
- │   │  │   │     └─ 觀測日期（YYYYMMDD）
- │   │  │   └─ 量測主要參數
- │   │  └─ 資料級別 L3
- │   └─ 反演版本1
+UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt
+UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
+ │   │   │      │      │    │     │     └─ 反演版本
+ │   │   │      │      │    │     └─ 測站
+ │   │   │      │      │    └─ 儀器版本（Aeromount V4）
+ │   │   │      │      └─ 起飛時間（HHMM）
+ │   │   │      └─ 觀測日期（YYYYMMDD）
+ │   │   └─ 量測主要參數：gas（O3/CO/CO2/SO2/NO2/NH3/H2S/TVOC）、met（P/T/RH/PM/風/位溫等）
+ │   └─ 資料級別 L2
  └─ 儀器
 ```
+- 同一趟飛行拆成 gas、met 兩檔，`import_uav.py` 依檔名的 `YYYYMMDD_HHMM` 合併為同一個 `flight_id`
+- 檔頭 key 首字大寫（`Max_agl: 300 m`、`Elevation: 17 m`），程式不分大小寫並去除單位
+- 舊檔名（Google 雲端，L3 單檔）：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt`；同一趟若新舊並存，只採用新格式
 
 ## 匯入腳本對照
 
 | 資料源 | 腳本 | 備註 |
 | --- | --- | --- |
-| MOE | `scripts/import_moe_stations.py` | 月更新：`update_moe_monthly.py` |
+| MOE | `scripts/convert_zhongli_wide_csv.py` → `scripts/import_moe_stations.py` | 中壢站需先轉檔；月更新：`update_moe_monthly.py` |
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
-| TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔 |
-| UAV | `scripts/import_uav.py` | 自動解析檔案 metadata header |
-| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id |
-| TEDS | `scripts/import_teds_point.py` | — |
+| TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
+| TYDEP 即時 | `scripts/update_tydep_realtime.py` | 讀 `raw/tydep-stations/realtime/*.csv`，`source=realtime`，不覆蓋 history |
+| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV/Guanyin`（遞迴） |
+| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
+| AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
+| IOP VOCs | `scripts/import_iop_vocs.py` | 讀 `raw/IOP/VOCs/*.xlsx`（觸發採樣、無人機採樣）；IOP 以檔名為準 |
+| IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 讀 `raw/IOP/Aerosol/*.xlsx`（PM2.5、PM1 濾紙）；IOP 以檔名為準 |
+| TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
+| TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
+| Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
+
+每小時排程：`scripts/run_data_imports.sh`（`deploy/systemd/taoyuan-air-data-import.{service,timer}`）依序執行 WindLidar、UAV（觀音）、TYDEP 即時匯入。
 
 ## 匯入前置作業
 

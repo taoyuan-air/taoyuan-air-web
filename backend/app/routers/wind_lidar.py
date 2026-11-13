@@ -9,10 +9,12 @@ Wind Lidar FastAPI 路由器
 """
 
 import re
-from datetime import datetime
-from typing import Optional
+import time
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -21,12 +23,24 @@ from ..schemas.wind_lidar import PlotDataResponse, PanelData, StationResponse
 
 router = APIRouter(prefix="/wind-lidar", tags=["wind-lidar"])
 
+# ── In-memory cache ───────────────────────────────────────────────────────────
+# stations 清單變動少，TTL 設 10 分鐘；plot-data 是歷史資料不會改，TTL 設 24 小時
+_STATIONS_TTL  = 10 * 60          # 10 分鐘（秒）
+_PLOT_DATA_TTL = 24 * 60 * 60     # 24 小時（秒）
+
+# (fetched_at, response_dict)
+_stations_cache: Optional[Tuple[float, list]] = None
+
+# key: (station, date, heightMax, panels_tuple) -> (fetched_at, response_dict)
+_plot_data_cache: Dict[tuple, Tuple[float, dict]] = {}
+
 # ── 面板設定（colorMin / colorMax / unit）────────────────────────────────────
 PANEL_CONFIG: dict[str, dict] = {
-    "wind_speed":      {"param_id": "hsp",      "unit": "m/s", "colorMin": 0.0,  "colorMax": 30.0},
-    "wind_direction":  {"param_id": "wdir",     "unit": "°",   "colorMin": 0.0,  "colorMax": 360.0},
-    "turbulence":      {"param_id": "turb",     "unit": "",    "colorMin": 0.0,  "colorMax": 1.0},
-    "cnr":             {"param_id": "mean_int", "unit": "",    "colorMin": 0.0,  "colorMax": 10.0},
+    "wind_direction":  {"param_id": "wdir",     "unit": "°",   "colorMin": 0.0,   "colorMax": 360.0},
+    "vertical_wind":   {"param_id": "vsp",      "unit": "m/s", "colorMin": -10.0, "colorMax": 10.0},
+    "wind_speed":      {"param_id": "hsp",      "unit": "m/s", "colorMin": 0.0,   "colorMax": 30.0},
+    "turbulence":      {"param_id": "turb",     "unit": "",    "colorMin": 0.0,   "colorMax": 1.0},
+    "cnr":             {"param_id": "mean_int", "unit": "",    "colorMin": 0.0,   "colorMax": 10.0},
 }
 
 ALL_PANELS = list(PANEL_CONFIG.keys())
@@ -82,19 +96,25 @@ def _build_2d_grid(
 
 # ── 端點：取得可用測站與日期清單 ─────────────────────────────────────────────
 
-@router.get("/stations", response_model=list[StationResponse])
+@router.get("/stations")
 async def list_stations(db: AsyncSession = Depends(get_db)):
     """
     掃描 wind_lidar_data 資料表，回傳所有測站及其有資料的日期清單。
     日期以降冪排序（最新在前）。
+    結果快取 10 分鐘（X-Cache: HIT/MISS）。
     """
+    global _stations_cache
+    now = time.time()
+
+    if _stations_cache and now - _stations_cache[0] < _STATIONS_TTL:
+        return JSONResponse(_stations_cache[1], headers={"X-Cache": "HIT"})
+
     result = await db.execute(
         text("""
             SELECT
                 station_id,
                 TO_CHAR(DATE(measure_time), 'YYYY-MM-DD') AS date_str
             FROM wind_lidar_data
-            WHERE data_quality = 'good'
             GROUP BY station_id, DATE(measure_time)
             ORDER BY station_id ASC, DATE(measure_time) DESC
         """)
@@ -109,20 +129,23 @@ async def list_stations(db: AsyncSession = Depends(get_db)):
             station_dates[sid] = []
         station_dates[sid].append(row["date_str"])
 
-    return [
-        StationResponse(station=sid, dates=dates)
+    response_list = [
+        {"station": sid, "dates": dates}
         for sid, dates in station_dates.items()
     ]
+
+    _stations_cache = (now, response_list)
+    return JSONResponse(response_list, headers={"X-Cache": "MISS"})
 
 
 # ── 端點：取得指定測站/日期的 plot data ──────────────────────────────────────
 
-@router.get("/plot-data", response_model=PlotDataResponse)
+@router.get("/plot-data")
 async def get_plot_data(
     station:   str   = Query(..., description="測站 ID，例如 TMA_328"),
     date:      str   = Query(..., description="日期 YYYY-MM-DD（台灣時間）"),
     heightMax: float = Query(default=1.0, description="高度上限（km）"),
-    panels:    str   = Query(default="wind_speed,wind_direction,turbulence,cnr",
+    panels:    str   = Query(default="wind_direction,vertical_wind,wind_speed,turbulence,cnr",
                              description="要回傳的面板，逗號分隔"),
     db: AsyncSession = Depends(get_db),
 ):
@@ -131,14 +154,24 @@ async def get_plot_data(
     - 有效篩選條件：n_samples > 10 AND hsp > 0
     - heightMax 過濾：只回傳 height_m <= heightMax * 1000 的高度層
     - 面板 z 矩陣格式：z[height_idx][time_idx]，None = 無資料（透明）
+    - 歷史資料不會改變，結果快取 24 小時（X-Cache: HIT/MISS）
     """
     _validate_station(station)
     _validate_date(date)
-    parsed_date = datetime.strptime(date, "%Y-%m-%d").date()  # str → date 物件，asyncpg 需要真正的 date 型別
 
     requested_panels = [p.strip() for p in panels.split(",") if p.strip() in PANEL_CONFIG]
     if not requested_panels:
         requested_panels = ALL_PANELS
+
+    # ── 快取命中檢查 ──────────────────────────────────────────────────────────
+    cache_key = (station, date, heightMax, tuple(sorted(requested_panels)))
+    now = time.time()
+    cached = _plot_data_cache.get(cache_key)
+    if cached and now - cached[0] < _PLOT_DATA_TTL:
+        return JSONResponse(cached[1], headers={"X-Cache": "HIT"})
+
+    day_start = datetime.strptime(date, "%Y-%m-%d")  # asyncpg 需要 datetime 型別
+    day_end   = day_start + timedelta(days=1)
 
     height_max_m = heightMax * 1000.0  # 公里 → 公尺
 
@@ -150,32 +183,24 @@ async def get_plot_data(
     if not station_check.scalar_one_or_none():
         raise HTTPException(status_code=404, detail=f"找不到測站：{station}")
 
-    # ── 核心查詢：pivot 7 個參數為寬表，同時套用有效性篩選 ────────────────
-    # 使用條件式 MAX 進行 pivot，在同一 pass 中完成
-    # 有效性篩選在 HAVING 中做：n_samples > 10 AND hsp > 0
+    # ── 核心查詢：寬表一列即一個時間 × 高度，7 個參數各一欄 ────────────────
+    # 用時間範圍（而非 DATE()）篩選，才能只掃當天的分區
     query = text("""
         SELECT
-            TO_CHAR(d.measure_time, 'YYYY-MM-DD HH24:MI')  AS time_str,
-            d.height_m,
-            MAX(CASE WHEN d.parameter_id = 'hsp'       THEN d.value END) AS hsp,
-            MAX(CASE WHEN d.parameter_id = 'vsp'       THEN d.value END) AS vsp,
-            MAX(CASE WHEN d.parameter_id = 'wdir'      THEN d.value END) AS wdir,
-            MAX(CASE WHEN d.parameter_id = 'turb'      THEN d.value END) AS turb,
-            MAX(CASE WHEN d.parameter_id = 'min_int'   THEN d.value END) AS min_int,
-            MAX(CASE WHEN d.parameter_id = 'mean_int'  THEN d.value END) AS mean_int,
-            MAX(CASE WHEN d.parameter_id = 'n_samples' THEN d.value END) AS n_samples
-        FROM wind_lidar_data d
-        WHERE d.station_id   = :station
-          AND DATE(d.measure_time) = CAST(:date AS date)
-          AND d.height_m     <= :height_max_m
-          AND d.data_quality = 'good'
-        GROUP BY d.measure_time, d.height_m
-        ORDER BY d.measure_time ASC, d.height_m ASC
+            TO_CHAR(measure_time, 'YYYY-MM-DD HH24:MI') AS time_str,
+            height_m, hsp, vsp, wdir, turb, min_int, mean_int, n_samples
+        FROM wind_lidar_data
+        WHERE station_id   = :station
+          AND measure_time >= :day_start
+          AND measure_time <  :day_end
+          AND height_m     <= :height_max_m
+        ORDER BY measure_time ASC, height_m ASC
     """)
 
     result = await db.execute(query, {
         "station":      station,
-        "date":         parsed_date,
+        "day_start":    day_start,
+        "day_end":      day_end,
         "height_max_m": height_max_m,
     })
     raw_rows = result.mappings().all()
@@ -212,7 +237,7 @@ async def get_plot_data(
     h_index = {h: i for i, h in enumerate(heights_list)}
     t_index = {t: i for i, t in enumerate(times_list)}
 
-    panels_data: dict[str, PanelData] = {}
+    panels_data: dict[str, dict] = {}
 
     for panel_key in requested_panels:
         cfg      = PANEL_CONFIG[panel_key]
@@ -233,18 +258,21 @@ async def get_plot_data(
             if v is not None:
                 grid[h_idx][t_idx] = float(v)
 
-        panels_data[panel_key] = PanelData(
-            z=grid,
-            unit=cfg["unit"],
-            colorMin=cfg["colorMin"],
-            colorMax=cfg["colorMax"],
-        )
+        panels_data[panel_key] = {
+            "z":        grid,
+            "unit":     cfg["unit"],
+            "colorMin": cfg["colorMin"],
+            "colorMax": cfg["colorMax"],
+        }
 
-    return PlotDataResponse(
-        station=station,
-        timezone="Asia/Taipei",
-        heightsKm=heights_km,
-        times=times_list,
-        panels=panels_data,
-        warnings=[],
-    )
+    response_dict = {
+        "station":   station,
+        "timezone":  "Asia/Taipei",
+        "heightsKm": heights_km,
+        "times":     times_list,
+        "panels":    panels_data,
+        "warnings":  [],
+    }
+
+    _plot_data_cache[cache_key] = (now, response_dict)
+    return JSONResponse(response_dict, headers={"X-Cache": "MISS"})
