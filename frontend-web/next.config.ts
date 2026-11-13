@@ -5,7 +5,7 @@ import path from "node:path";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 // Backend 位址預設本機開發用的 127.0.0.1:8001；VM 上如果 backend 監聽位址/port 不同，
 // 用 BACKEND_ORIGIN 覆寫，不要直接改這個檔案。
-const backendOrigin = process.env.BACKEND_ORIGIN || process.env.BACKEND_URL || 'http://127.0.0.1:8001';
+const backendOrigin = process.env.BACKEND_ORIGIN || 'http://127.0.0.1:8001';
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath, assetPrefix: basePath } : {}),

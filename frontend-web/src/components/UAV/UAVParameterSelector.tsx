@@ -42,22 +42,17 @@ function RangeLabel({
   paramId,
   stats,
   active,
-  unit,
 }: {
   paramId: ParameterId;
   stats: Record<string, ParamStats> | undefined;
   active: boolean;
-  unit: string;
 }) {
-  if (!active || !stats) {
-    return <span className="uav-param-range uav-param-unit-line">{unit}</span>;
-  }
-
+  if (!active || !stats) return null;
   const s = stats[paramId];
-  if (!s) return <span className="uav-param-range uav-param-unit-line">{unit}</span>;
+  if (!s) return null;
 
   const text = s.hasData
-    ? `${s.min.toFixed(1)}~${s.max.toFixed(1)} ${unit}`
+    ? `${s.min.toFixed(1)} ~ ${s.max.toFixed(1)}`
     : '無資料';
 
   return (
@@ -96,13 +91,19 @@ export function UAVParameterSelector({ selected, onChange, paramStats, available
             return (
               <button
                 key={id}
-                type="button"
-                aria-pressed={active}
                 onClick={() => toggle(id)}
                 className={`uav-param-btn${active ? ' active' : ''}`}
+                style={{
+                  borderColor: cfg.color,
+                  color: active ? '#fff' : cfg.color,
+                  backgroundColor: active ? cfg.color : 'transparent',
+                }}
               >
-                <span className="uav-param-btn-text">{cfg.label}</span>
-                <RangeLabel paramId={id} stats={paramStats} active={active} unit={cfg.unit} />
+                <span className="uav-param-btn-text">
+                  {cfg.label}
+                  <span className="uav-param-unit">（{cfg.unit}）</span>
+                </span>
+                <RangeLabel paramId={id} stats={paramStats} active={active} />
               </button>
             );
           })}

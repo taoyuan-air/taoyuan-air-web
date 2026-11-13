@@ -13,13 +13,13 @@ import { API_BASE } from '@/lib/apiBase';
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const C = {
-  primary:       '#315E8F',
-  primaryAlpha:  'rgba(49,94,143,0.12)',
-  primaryBorder: 'rgba(49,94,143,0.30)',
-  red:           '#B4234D',
+  primary:       '#4895EC',
+  primaryAlpha:  'rgba(72,149,236,0.12)',
+  primaryBorder: 'rgba(72,149,236,0.30)',
+  red:           '#E94C78',
   redAlpha:      'rgba(233,76,120,0.12)',
   redBorder:     'rgba(233,76,120,0.30)',
-  orange:        '#C45A18',
+  orange:        '#EA580C',
   orangeAlpha:   'rgba(234,88,12,0.12)',
   orangeBorder:  'rgba(234,88,12,0.30)',
   yellow:        '#CA8A04',
@@ -42,10 +42,10 @@ const C = {
   maroonBorder:  'rgba(159,18,57,0.30)',
   glass:         'rgba(255,255,255,0.60)',
   glassBorder:   'rgba(255,255,255,0.80)',
-  glassShadow:   '0 4px 16px rgba(23,58,94,0.10)',
-  text:          '#172A40',
-  muted:         '#506780',
-  hint:          '#6F91B2',
+  glassShadow:   '0 4px 16px rgba(30,58,95,0.10)',
+  text:          '#0F1D3A',
+  muted:         '#4A6080',
+  hint:          '#7A9AC0',
 };
 
 /* ─── Gauge helpers ──────────────────────────────────────────── */
@@ -416,7 +416,7 @@ function Dropdown({ id, value, options, onSelect, openId, setOpenId, renderOptio
               fontSize: 13, fontWeight: value === opt ? 700 : 500,
               color: value === opt ? C.primary : C.text,
               backgroundColor: value === opt ? C.primaryAlpha : 'transparent',
-              borderBottom: i < options.length - 1 ? '1px solid rgba(23,58,94,0.08)' : 'none',
+              borderBottom: i < options.length - 1 ? '1px solid rgba(30,58,95,0.08)' : 'none',
             }}>
               {renderOption ? renderOption(opt) : opt}
             </button>
@@ -673,9 +673,9 @@ function StationCard({ station }: { station: StationData }) {
     : null;
 
   const TrendIcon  = station.trend === '上升中' ? TrendingUp : station.trend === '下降中' ? TrendingDown : Minus;
-  const tColor  = station.trend === '上升中' ? sColor  : station.trend === '下降中' ? C.green : C.hint;
-  const tAlpha  = station.trend === '上升中' ? sAlpha  : station.trend === '下降中' ? C.greenAlpha : 'rgba(80,103,128,0.10)';
-  const tBorder = station.trend === '上升中' ? sBorder : station.trend === '下降中' ? C.greenBorder : 'rgba(80,103,128,0.20)';
+  const tColor  = station.trend === '上升中' ? C.red   : station.trend === '下降中' ? C.green : C.hint;
+  const tAlpha  = station.trend === '上升中' ? C.redAlpha   : station.trend === '下降中' ? C.greenAlpha : 'rgba(180,160,200,0.10)';
+  const tBorder = station.trend === '上升中' ? C.redBorder  : station.trend === '下降中' ? C.greenBorder : 'rgba(180,160,200,0.20)';
 
   return (
     <div style={{
@@ -683,7 +683,7 @@ function StationCard({ station }: { station: StationData }) {
       backgroundColor: 'rgba(255,255,255,0.94)',
       border: '1px solid rgba(0,0,0,0.06)',
       borderRadius: 20,
-      boxShadow: '0 4px 16px rgba(23,58,94,0.10)',
+      boxShadow: '0 4px 16px rgba(30,58,95,0.10)',
       height: 440,
       overflow: 'hidden',
       minWidth: 0,
@@ -895,9 +895,9 @@ function StationCard({ station }: { station: StationData }) {
             {getParameterDisplay(station.parameter)}
           </span>
           <span style={{
-            fontSize: 12, fontWeight: 700, color: sColor,
+            fontSize: 12, fontWeight: 600, color: C.muted,
             padding: '3px 10px', borderRadius: 99,
-            backgroundColor: sAlpha, border: `1px solid ${sBorder}`,
+            backgroundColor: 'rgba(180,160,200,0.10)', border: '1px solid rgba(180,160,200,0.15)',
           }}>
             {isWeather ? '氣象觀測' : `AQI ${station.aqi}`}
           </span>
@@ -1236,7 +1236,7 @@ export default function ExplorerPage() {
             backgroundColor: 'rgba(255,255,255,0.85)',
             border: '1px solid rgba(255,255,255,0.92)',
             borderRadius: 999,
-            boxShadow: '0 4px 16px rgba(23,58,94,0.10)',
+            boxShadow: '0 4px 16px rgba(30,58,95,0.10)',
             display: 'flex', alignItems: 'center', padding: '10px 18px', gap: 10,
             ...(isMobile ? {} : { width: 340, flexShrink: 0 }),
           }}>
@@ -1289,7 +1289,7 @@ export default function ExplorerPage() {
               }}>
                 <div style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: active ? C.primary : 'rgba(23,58,94,0.35)',
+                  backgroundColor: active ? C.primary : 'rgba(30,58,95,0.35)',
                   transition: 'background-color 0.18s',
                 }} />
                 {tab}
@@ -1297,7 +1297,7 @@ export default function ExplorerPage() {
             );
           })}
 
-          {!isMobile && <div style={{ width: 1, height: 24, backgroundColor: 'rgba(23,58,94,0.20)', margin: '0 2px' }} />}
+          {!isMobile && <div style={{ width: 1, height: 24, backgroundColor: 'rgba(30,58,95,0.20)', margin: '0 2px' }} />}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
             <Dropdown id="parameter" value={selectedParameter} options={parameterOptions} onSelect={setSelectedParameter} openId={openId} setOpenId={setOpenId} renderOption={getParameterDisplay} />
@@ -1329,8 +1329,8 @@ export default function ExplorerPage() {
             marginBottom: 18,
             padding: '9px 15px',
             borderRadius: 12,
-            backgroundColor: 'rgba(80,103,128,0.08)',
-            border: '1px solid rgba(80,103,128,0.20)',
+            backgroundColor: 'rgba(180,160,200,0.08)',
+            border: '1px solid rgba(180,160,200,0.20)',
             color: C.muted,
             fontSize: 12,
             fontWeight: 500,

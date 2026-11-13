@@ -134,8 +134,8 @@ const ensureTEDSMarkerStyles = () => {
       box-sizing: border-box;
     }
     .teds-pin.pin-chimney {
-      color: #315E8F;
-      background: #315E8F;
+      color: #4895EC;
+      background: #4895EC;
     }
     .teds-pin.pin-mercury {
       color: #2d9a5e;
@@ -224,7 +224,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
         //     const marker = targetL.circleMarker(pos, {
         //       radius: zoom <= 10 ? 2.5 : 3.5,
         //       stroke: false,
-        //       fillColor: "#315E8F",
+        //       fillColor: "#4895EC",
         //       fillOpacity: 0.85,
         //       interactive: false,
         //     });
@@ -630,7 +630,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
           zIndex: 520,
           width: 214,
           background: 'rgba(255,255,255,0.97)',
-          border: '1px solid rgba(49, 94, 143, 0.28)',
+          border: '1px solid rgba(72, 149, 236, 0.28)',
           borderRadius: 14,
           padding: '10px 12px',
           boxShadow: '0 10px 24px rgba(15,29,58,0.2)',
@@ -667,7 +667,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
             step={1}
             value={zoomLevel}
             onChange={(e) => handleZoomRequest(Number(e.target.value))}
-            style={{ flex: 1, minWidth: 0, accentColor: '#315E8F', height: 24 }}
+            style={{ flex: 1, minWidth: 0, accentColor: '#2d78b8', height: 24 }}
           />
           <button
             onClick={() => handleZoomRequest(zoomLevel + 1)}

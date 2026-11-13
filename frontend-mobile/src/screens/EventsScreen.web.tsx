@@ -153,7 +153,7 @@ export const EventsScreen: React.FC<EventsScreenProps> = ({ scrollRef }) => {
   const eventImagePlaceholder: ViewStyle = {
     width: "100%",
     aspectRatio: 4 / 3,
-    backgroundColor: "#EAF1F8",
+    backgroundColor: "#FFF1FF",
     justifyContent: "center",
     alignItems: "center",
     position: "relative",

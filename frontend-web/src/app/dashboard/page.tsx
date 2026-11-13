@@ -28,15 +28,15 @@ const fetchMoeStations = (): Promise<MoeStationData[]> =>
     .then(response => response.data);
 
 const C = {
-  blue: '#315E8F',
-  blueLt: 'rgba(49,94,143,0.12)',
-  blueBorder: 'rgba(49,94,143,0.30)',
+  rose: '#4895EC',
+  roseLt: 'rgba(72,149,236,0.12)',
+  roseBorder: 'rgba(72,149,236,0.30)',
   glass: 'rgba(255,255,255,0.52)',
   glassInner: 'rgba(255,255,255,0.80)',
-  glassShadow: 'rgba(23,58,94,0.14)',
-  text: '#172A40',
-  muted: '#506780',
-  hint: '#6F91B2',
+  glassShadow: 'rgba(30,58,95,0.10)',
+  text: '#0F1D3A',
+  muted: '#4A6080',
+  hint: '#7A9AC0',
 };
 
 const COLORS = {
@@ -90,7 +90,7 @@ const getAQIStatus = (aqi: number) => {
 };
 
 const getPM25Color = (v: number) => {
-  if (v <= 15.4) return '#315E8F';
+  if (v <= 15.4) return COLORS.good;
   if (v <= 35.4) return COLORS.moderate;
   if (v <= 54.4) return COLORS.unhealthySensitive;
   if (v <= 150.4) return COLORS.unhealthy;
@@ -99,7 +99,7 @@ const getPM25Color = (v: number) => {
 };
 
 const getO3Color = (v: number) => {
-  if (v <= 54) return '#315E8F';
+  if (v <= 54) return COLORS.good;
   if (v <= 70) return COLORS.moderate;
   if (v <= 85) return COLORS.unhealthySensitive;
   if (v <= 105) return COLORS.unhealthy;
@@ -117,7 +117,7 @@ const WEATHER_ICON_MAP: Record<WeatherIconKey, typeof Sun> = {
 
 const getActivityInfo = (aqi: number) => {
   if (aqi <= 50) {
-    return { icon: Smile, color: '#315E8F', advice: '正常戶外活動，無須特別注意。' };
+    return { icon: Smile, color: COLORS.good, advice: '正常戶外活動，無須特別注意。' };
   }
   if (aqi <= 100) {
     return { icon: Meh, color: COLORS.moderate, advice: '正常戶外活動。' };
@@ -360,7 +360,7 @@ function TrendBars() {
                     height: Math.max(5, value * MAX_H),
                     width: BAR_W,
                     backgroundColor: barColor(value, slot.isPrediction),
-                    borderColor: slot.isNow ? '#6F91B2' : 'transparent',
+                    borderColor: slot.isNow ? '#93C5FD' : 'transparent',
                   }}
                 />
               </div>
@@ -433,7 +433,7 @@ function WeatherCard({
           </div>
         </div>
         <span className="weather-icon-circle">
-          <CurrentIcon size={32} color="#315E8F" />
+          <CurrentIcon size={32} color="#4895EC" />
         </span>
       </div>
 
@@ -441,7 +441,7 @@ function WeatherCard({
         {stats.map(({ Icon, val, label }, i) => (
           <React.Fragment key={label}>
             <div className="weather-stat-item">
-              <Icon size={13} color="#315E8F" />
+              <Icon size={13} color="#4895EC" />
               <span className="weather-stat-val">{val}</span>
               <span className="weather-stat-label">{label}</span>
             </div>
@@ -463,7 +463,7 @@ function WeatherCard({
             >
               <span className="weather-forecast-label">{day.label}</span>
               <span className="weather-forecast-date">{day.dateLabel}</span>
-              <DayIcon size={20} color="#315E8F" style={{ margin: '8px 0' }} />
+              <DayIcon size={20} color="#4895EC" style={{ margin: '8px 0' }} />
               <div className="weather-forecast-temp-row">
                 <span className="weather-forecast-hi">{day.maxTemp}°</span>
                 <span className="weather-forecast-lo"> / {day.minTemp}°</span>
@@ -493,7 +493,7 @@ function DashboardStyles() {
         max-width: 100%;
         box-sizing: border-box;
         min-height: calc(100vh - 80px);
-        padding: 12px 40px 32px;
+        padding: 28px 40px 32px;
         display: grid;
         grid-template-columns: minmax(380px, 36%) minmax(760px, 1fr);
         gap: 22px;
@@ -504,7 +504,7 @@ function DashboardStyles() {
       align-self: start;
         position: relative;
         min-width: 0;
-        padding: 26px 18px 42px 0;
+        padding: 58px 18px 42px 0;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -523,11 +523,11 @@ function DashboardStyles() {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        border: 1px solid #315E8F;
+        border: 1px solid #4895EC;
         border-radius: 999px;
         padding: 10px 18px;
-        background: #DCE8F3;
-        color: #315E8F;
+        background: #EBF3FE;
+        color: #4895EC;
         font-size: 15px;
         font-weight: 800;
         white-space: nowrap;
@@ -540,11 +540,11 @@ function DashboardStyles() {
         max-width: 100%;
         overflow: hidden;
         align-self: start;    
-        margin-top: 10px;
+        margin-top: 28px;
         background: rgba(255, 255, 255, 0.97);
-        border: 1px solid rgba(49, 94, 143, 0.08);
+        border: 1px solid rgba(72, 149, 236, 0.08);
         border-radius: 20px;
-        box-shadow: 0 4px 32px rgba(49, 94, 143, 0.08);
+        box-shadow: 0 4px 32px rgba(72, 149, 236, 0.08);
         padding: 26px 36px 24px;
         display: flex;
         flex-direction: column;
@@ -554,7 +554,7 @@ function DashboardStyles() {
         display: flex;
         align-items: center;
         gap: 10px;
-        color: #315E8F;
+        color: #4895EC;
         font-size: 22px;
         font-weight: 900;
         letter-spacing: 0;
@@ -594,9 +594,9 @@ function DashboardStyles() {
         gap: 4px;
         font-size: 12px;
         font-weight: 600;
-        color: ${C.blue};
-        background: ${C.blueLt};
-        border: 1px solid ${C.blueBorder};
+        color: ${C.rose};
+        background: ${C.roseLt};
+        border: 1px solid ${C.roseBorder};
         border-radius: 10px;
         padding: 4px 10px;
         align-self: flex-end;   
@@ -627,14 +627,14 @@ function DashboardStyles() {
         font-size: 13px;
         font-weight: 600;
       }
-      .weather-hi { color: #357DA4; }
-      .weather-lo { color: #6F91B2; }
+      .weather-hi { color: #e05c2a; }
+      .weather-lo { color: #93C5FD; }
       .weather-sep { color: #bbb; font-size: 12px; }
       .weather-icon-circle {
         width: 64px;
         height: 64px;
         border-radius: 32px;
-        background: ${C.blueLt};
+        background: ${C.roseLt};
         display: flex;
         align-items: center;
         justify-content: center;
@@ -680,8 +680,8 @@ function DashboardStyles() {
       .weather-forecast-label { font-size: 12px; font-weight: 700; color: ${C.text}; }
       .weather-forecast-date { font-size: 10px; color: ${C.hint}; margin-top: 2px; }
       .weather-forecast-temp-row { font-size: 13px; }
-      .weather-forecast-hi { font-weight: 700; color: #357DA4; }
-      .weather-forecast-lo { font-weight: 600; color: #6F91B2; }
+      .weather-forecast-hi { font-weight: 700; color: #e05c2a; }
+      .weather-forecast-lo { font-weight: 600; color: #93C5FD; }
       .weather-forecast-pop-row {
         display: flex;
         align-items: center;
@@ -755,8 +755,8 @@ function DashboardStyles() {
         height: 14px;
         flex-shrink: 0;
         border-radius: 2px;
-        background: ${C.blue};
-        box-shadow: 0 0 8px ${C.blueBorder};
+        background: ${C.rose};
+        box-shadow: 0 0 8px ${C.roseBorder};
       }
 
       .dash-section-label small {
@@ -940,7 +940,7 @@ function DashboardStyles() {
       }
 
       .mini-pollut-value strong {
-        color: #315E8F;
+        color: #4895EC;
         font-size: 16px;
         line-height: 1;
         font-weight: 800;
@@ -996,13 +996,13 @@ function DashboardStyles() {
       }
 
       .insight-card {
-        background: ${C.blueLt};
-        border: 1px solid ${C.blueBorder};
+        background: ${C.roseLt};
+        border: 1px solid ${C.roseBorder};
       }
 
       .insight-icon {
-        background: rgba(49, 94, 143, 0.16);
-        color: ${C.blue};
+        background: rgba(72, 149, 236, 0.16);
+        color: ${C.rose};
       }
 
       .insight-copy {
@@ -1012,7 +1012,7 @@ function DashboardStyles() {
 
       .insight-copy strong {
         display: block;
-        color: ${C.blue};
+        color: ${C.rose};
         font-size: 13px;
         font-weight: 800;
         overflow-wrap: anywhere;
@@ -1029,11 +1029,11 @@ function DashboardStyles() {
 
       .insight-chip {
         flex: 0 0 auto;
-        border: 1px solid ${C.blueBorder};
+        border: 1px solid ${C.roseBorder};
         border-radius: 999px;
         padding: 5px 11px;
-        background: rgba(49, 94, 143, 0.14);
-        color: ${C.blue};
+        background: rgba(72, 149, 236, 0.14);
+        color: ${C.rose};
         font-size: 13px;
         font-weight: 800;
       }
@@ -1060,11 +1060,11 @@ function DashboardStyles() {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        border: 1px solid ${C.blueBorder};
+        border: 1px solid ${C.roseBorder};
         border-radius: 999px;
         padding: 4px 10px;
-        background: rgba(49, 94, 143, 0.10);
-        color: ${C.blue};
+        background: rgba(72, 149, 236, 0.10);
+        color: ${C.rose};
         font-size: 11px;
         font-weight: 800;
       }
@@ -1082,7 +1082,7 @@ function DashboardStyles() {
         overscroll-behavior-inline: contain;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
-        scrollbar-color: rgba(49, 94, 143, 0.28) transparent;
+        scrollbar-color: rgba(72, 149, 236, 0.28) transparent;
       }
 
       .trend-scroll::-webkit-scrollbar {
@@ -1094,12 +1094,12 @@ function DashboardStyles() {
       }
 
       .trend-scroll::-webkit-scrollbar-thumb {
-        background: rgba(49, 94, 143, 0.28);
+        background: rgba(72, 149, 236, 0.28);
         border-radius: 99px;
       }
 
       .trend-scroll::-webkit-scrollbar-thumb:hover {
-        background: rgba(49, 94, 143, 0.55);
+        background: rgba(72, 149, 236, 0.55);
       }
 
       .trend-inner {
@@ -1115,7 +1115,7 @@ function DashboardStyles() {
       .trend-date-label {
         position: absolute;
         top: 0;
-        color: ${C.blue};
+        color: ${C.rose};
         font-size: 11px;
         font-weight: 800;
         white-space: nowrap;
@@ -1143,7 +1143,7 @@ function DashboardStyles() {
         width: 1.5px;
         height: 70px;
         transform: translateX(-50%);
-        background: ${C.blue};
+        background: ${C.rose};
         z-index: 0;
       }
 
@@ -1172,7 +1172,7 @@ function DashboardStyles() {
       }
 
       .trend-hour.now {
-        color: ${C.blue};
+        color: ${C.rose};
         font-size: 9px;
         font-weight: 900;
       }
@@ -1196,7 +1196,7 @@ function DashboardStyles() {
       .trend-footer strong {
         position: absolute;
         top: 0;
-        color: ${C.blue};
+        color: ${C.rose};
         font-size: 11px;
         font-weight: 900;
       }
