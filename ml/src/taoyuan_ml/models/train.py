@@ -1,57 +1,27 @@
 """
 Train independent XGBoost models for imputation variables.
 
-Examples:
-    python -m impute.train
-    python -m impute.train --variable temperature
-    python -m impute.train --all
+Use the taoyuan-ml entry point; see ml/README.md for commands.
 """
 
 import argparse
-import sys
-import tempfile
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
-from config import EXPORTS_DIR, MODELS_DIR, TRAIN_CUTOFF_DATE, VARIABLES, XGB_PARAMS
-from impute.features import add_features, feature_columns
-
-
-def load_data(variable: str) -> pd.DataFrame:
-    path = EXPORTS_DIR / VARIABLES[variable]['parquet']
-    if not path.exists():
-        raise FileNotFoundError(f"Parquet not found: {path}\nRun ml/export_parquet.py --variable {variable} first.")
-    df = pd.read_parquet(path)
-    print(f"Loaded {len(df):,} rows from {path.name}")
-    return df
+from taoyuan_ml.settings import MODELS_DIR, METRICS_DIR, TRAIN_CUTOFF_DATE, VARIABLES, XGB_PARAMS
+from .artifacts import model_name, save_model, record_schema
+from taoyuan_ml.evaluation.metrics import evaluate
+from taoyuan_ml.data.datasets import read_dataset as load_data
+from taoyuan_ml.features.pipeline import add_features
+from taoyuan_ml.features.definitions import feature_columns
 
 
 def split(df: pd.DataFrame):
     cutoff = pd.Timestamp(TRAIN_CUTOFF_DATE)
     mask = df['monitor_date'] < cutoff
     return df[mask], df[~mask]
-
-
-def evaluate(model: XGBRegressor, X: pd.DataFrame, y: pd.Series, label: str) -> dict:
-    pred = model.predict(X)
-    mae = mean_absolute_error(y, pred)
-    rmse = np.sqrt(mean_squared_error(y, pred))
-    r2 = r2_score(y, pred)
-    print(f"  [{label}] MAE={mae:.3f} RMSE={rmse:.3f} R2={r2:.4f}")
-    return {'label': label, 'mae': mae, 'rmse': rmse, 'r2': r2, 'n': len(y)}
-
-
-def model_name(variable: str, target_col: str) -> str:
-    if variable == 'wind_direction':
-        suffix = 'sin' if target_col.endswith('_sin') else 'cos'
-        return f'xgb_wind_dir_{suffix}.json'
-    return f'xgb_{variable}.json'
 
 
 def report_name(variable: str, target_col: str) -> str:
@@ -90,14 +60,12 @@ def train_target(variable: str, target_col: str) -> XGBRegressor:
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     out = MODELS_DIR / model_name(variable, target_col)
-    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tmp:
-        tmp_out = Path(tmp.name)
-    model.save_model(str(tmp_out))
-    out.write_bytes(tmp_out.read_bytes())
-    tmp_out.unlink(missing_ok=True)
+    save_model(model, out)
+    record_schema(variable, target_col, cols)
     print(f"Model saved {out}")
 
-    report = MODELS_DIR / report_name(variable, target_col)
+    METRICS_DIR.mkdir(parents=True, exist_ok=True)
+    report = METRICS_DIR / report_name(variable, target_col)
     with open(report, 'w', encoding='utf-8') as f:
         f.write(f"variable={variable}\n")
         f.write(f"target={target_col}\n")

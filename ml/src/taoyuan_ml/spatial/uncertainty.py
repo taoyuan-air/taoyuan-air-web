@@ -4,6 +4,8 @@ Spatial uncertainty metrics for PM2.5 grid predictions.
 Provides two public functions:
     compute_spatial_uncertainty(grid, stations) -> grid with distance columns
     assign_confidence_level(grid)               -> grid with confidence_level column
+
+Use the taoyuan-ml entry point; see ml/README.md for commands.
 """
 
 import numpy as np
@@ -117,3 +119,17 @@ def update_thresholds(
     _HIGH_COUNT_5KM = high_count_5km
     _MED_DIST_KM    = med_dist_km
     _MED_COUNT_10KM = med_count_10km
+
+
+def load_thresholds(variable: str = 'pm25') -> None:
+    """PM2.5 error calibration must not be applied to other variables/units."""
+    import json
+    from taoyuan_ml.settings import MODELS_DIR
+    path = MODELS_DIR / 'calibration.json'
+    values = json.loads(path.read_text(encoding='utf-8')) if variable == 'pm25' and path.exists() else {}
+    update_thresholds(
+        high_dist_km=float(values.get('high_dist_km', 3.0)),
+        high_count_5km=int(values.get('high_count_5km', 2)),
+        med_dist_km=float(values.get('med_dist_km', 8.0)),
+        med_count_10km=int(values.get('med_count_10km', 2)),
+    )

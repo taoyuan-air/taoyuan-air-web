@@ -5,20 +5,12 @@ Reads a grid_pm25_*.parquet file produced by ml/impute/predict.py and draws:
   - Left panel  : filled contour PM2.5 map with low-confidence hatch overlay
   - Right panel : confidence-level distribution map (high/medium/low)
 
-Usage:
-    cd ml
-    python visualize.py --time "2024-06-15 14:00"
-    python visualize.py --input ../data/exports/grid_pm25_20240615_1400.parquet
-
-Output:
-    data/exports/map_pm25_<timestamp>_with_confidence.png
+Use the taoyuan-ml entry point; see ml/README.md for commands.
 """
 
 import argparse
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
 
 import matplotlib
 matplotlib.use('Agg')  # non-interactive backend (works without a display)
@@ -31,7 +23,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import griddata
 
-from config import EXPORTS_DIR, TAOYUAN_BBOX, GRID_RESOLUTION
+from taoyuan_ml.settings import DATASET_DIR, PREDICTIONS_DIR, FIGURES_DIR, TAOYUAN_BBOX
 
 
 def _setup_cjk_font():
@@ -60,18 +52,18 @@ _CONF_COLORS = {'high': '#2ecc71', 'medium': '#f1c40f', 'low': '#e74c3c'}
 
 def _find_grid_file(target: pd.Timestamp) -> Path:
     fname = f"grid_pm25_{target.strftime('%Y%m%d_%H%M')}.parquet"
-    path  = EXPORTS_DIR / fname
+    path  = PREDICTIONS_DIR / fname
     if not path.exists():
         raise FileNotFoundError(
             f"Grid file not found: {path}\n"
-            f"Run: cd ml && python -m impute.predict --time \"{target}\""
+            f"Run: cd ml && taoyuan-ml predict --time \"{target}\""
         )
     return path
 
 
 def _load_stations(target: pd.Timestamp) -> pd.DataFrame:
     """Return station actual values at target_time (may be empty if no data)."""
-    parquet = EXPORTS_DIR / 'pm25_hourly.parquet'
+    parquet = DATASET_DIR / 'pm25_hourly.parquet'
     if not parquet.exists():
         return pd.DataFrame()
     df = pd.read_parquet(parquet)
@@ -241,8 +233,8 @@ def main():
         target    = pd.Timestamp(args.time)
         grid_path = _find_grid_file(target)
 
-    out_path = EXPORTS_DIR / f"map_pm25_{target.strftime('%Y%m%d_%H%M')}_with_confidence.png"
-    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = FIGURES_DIR / f"map_pm25_{target.strftime('%Y%m%d_%H%M')}_with_confidence.png"
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plot_grid(grid_path, target, out_path)
 
 

@@ -1,0 +1,6 @@
+# Overrides layered on configs/default.toml and saved with each training run.
+train_cutoff_date = "2025-07-01"
+
+[xgb]
+n_estimators = 500
+max_depth = 6

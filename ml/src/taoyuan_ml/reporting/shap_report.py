@@ -1,26 +1,20 @@
 """
 Generate SHAP feature-importance reports for trained imputation models.
 
-Examples:
-    cd ml
-    python -m impute.shap_report --variable pm25
-    python -m impute.shap_report --variable temperature --sample-size 3000
-    python -m impute.shap_report --all
+Use the taoyuan-ml entry point; see ml/README.md for commands.
 """
 
 import argparse
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import pandas as pd
-from xgboost import XGBRegressor
 
-from config import EXPORTS_DIR, MODELS_DIR, TRAIN_CUTOFF_DATE, VARIABLES
-from impute.features import add_features, feature_columns
-from impute.train import model_name
+from taoyuan_ml.settings import SHAP_DIR, TRAIN_CUTOFF_DATE, VARIABLES
+from taoyuan_ml.features.pipeline import add_features
+from taoyuan_ml.features.definitions import feature_columns
+from taoyuan_ml.models.artifacts import model_name, load_model as _load_model
+from taoyuan_ml.data.datasets import read_dataset
 
 
 DEFAULT_SAMPLE_SIZE = 5000
@@ -32,29 +26,8 @@ def _targets_for(variable: str) -> list[str]:
     return [VARIABLES[variable]['value_col']]
 
 
-def _load_model(variable: str, target_col: str) -> XGBRegressor:
-    path = MODELS_DIR / model_name(variable, target_col)
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Model not found: {path}\n"
-            f"Run ml/impute/train.py --variable {variable} before SHAP analysis."
-        )
-    model = XGBRegressor()
-    model.load_model(str(path))
-    return model
-
-
 def _load_feature_matrix(variable: str, target_col: str) -> tuple[pd.DataFrame, pd.Series]:
-    config = VARIABLES[variable]
-    path = EXPORTS_DIR / config['parquet']
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Parquet not found: {path}\n"
-            f"Run ml/export_parquet.py --variable {variable} before SHAP analysis."
-        )
-
-    df = pd.read_parquet(path)
-    df['monitor_date'] = pd.to_datetime(df['monitor_date'])
+    df = read_dataset(variable)
     df = add_features(df, variable=variable, target_col=target_col)
     cols = feature_columns(variable=variable, target_col=target_col)
     df = df.dropna(subset=cols + [target_col])
@@ -120,10 +93,10 @@ def report_target(
     importance['rank'] = importance.index + 1
     importance = importance[['rank', 'feature', 'mean_abs_shap', 'mean_shap']]
 
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    SHAP_DIR.mkdir(parents=True, exist_ok=True)
     stem = model_name(variable, target_col).replace('.json', '')
-    csv_path = MODELS_DIR / f'{stem}_shap_importance.csv'
-    txt_path = MODELS_DIR / f'{stem}_shap_report.txt'
+    csv_path = SHAP_DIR / f'{stem}_shap_importance.csv'
+    txt_path = SHAP_DIR / f'{stem}_shap_report.txt'
     importance.to_csv(csv_path, index=False, encoding='utf-8')
 
     with open(txt_path, 'w', encoding='utf-8') as f:
