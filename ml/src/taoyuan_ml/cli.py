@@ -11,6 +11,7 @@ COMMANDS = {
     'export': 'data.export', 'train': 'models.train', 'predict': 'spatial.predict',
     'validate': 'evaluation.spatial_validation', 'compare': 'evaluation.comparison',
     'shap': 'reporting.shap_report', 'plot': 'reporting.maps',
+    'history-map': 'reporting.history_map',
 }
 
 

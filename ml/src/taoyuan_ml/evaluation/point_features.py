@@ -56,7 +56,9 @@ def _build_station_features(
     for col, value in _calendar_feature_values(target_time).items():
         st[col] = value
 
-    st = _add_station_rolling_stats(st.set_index('station_id'), train_data, target_time, 'pm25')
+    # The window already contains every hour required by lag/rolling features.
+    # Avoid rescanning the entire multi-year dataset for every station/hour.
+    st = _add_station_rolling_stats(st.set_index('station_id'), window, target_time, 'pm25')
     st = _add_station_neighbor_lags(st, LAG_HOURS).reset_index()
 
     # ---- IDW features at the target point ----

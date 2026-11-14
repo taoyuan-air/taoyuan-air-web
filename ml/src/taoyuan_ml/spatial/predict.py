@@ -45,7 +45,8 @@ def _clip_final(series: pd.Series, config: dict) -> pd.Series:
     return series
 
 
-def predict_grid(target_time: pd.Timestamp, variable: str = 'pm25') -> pd.DataFrame:
+def predict_grid(target_time: pd.Timestamp, variable: str = 'pm25', *, grid: pd.DataFrame | None = None,
+                 include_kriging: bool = True) -> pd.DataFrame:
     """Return a DataFrame with grid predictions for one non-circular variable."""
     config = VARIABLES[variable]
     if config.get('circular'):
@@ -96,7 +97,7 @@ def predict_grid(target_time: pd.Timestamp, variable: str = 'pm25') -> pd.DataFr
     stations = _add_station_neighbor_lags(stations, lag_hours)
     station_features = stations.reset_index()
 
-    grid = build_grid()
+    grid = build_grid() if grid is None else grid.copy()
     for h in lag_hours:
         grid[f'lag_{h}h'] = _idw(grid, station_features, f'lag_{h}h')
     grid = _add_time_features_for_timestamp(grid, target_time)
@@ -119,15 +120,14 @@ def predict_grid(target_time: pd.Timestamp, variable: str = 'pm25') -> pd.DataFr
 
     grid[xgb_col] = model.predict(grid[feature_cols])
 
-    station_features = _add_time_features_for_timestamp(station_features, target_time)
-    station_features[xgb_col] = model.predict(station_features[feature_cols])
-    station_features['residual'] = station_features[value_col] - station_features[xgb_col]
-
-    kriging_correction, kriging_variance = kriging_residual(grid, station_features)
-
-    grid[kriging_col] = kriging_correction
-    grid[variance_col] = np.asarray(kriging_variance)
-    grid[final_col] = _clip_final(grid[xgb_col] + grid[kriging_col], config)
+    if include_kriging:
+        station_features = _add_time_features_for_timestamp(station_features, target_time)
+        station_features[xgb_col] = model.predict(station_features[feature_cols])
+        station_features['residual'] = station_features[value_col] - station_features[xgb_col]
+        kriging_correction, kriging_variance = kriging_residual(grid, station_features)
+        grid[kriging_col] = kriging_correction
+        grid[variance_col] = np.asarray(kriging_variance)
+        grid[final_col] = _clip_final(grid[xgb_col] + grid[kriging_col], config)
 
     stations_for_uncertainty = station_features[['latitude', 'longitude']]
     grid = compute_spatial_uncertainty(grid, stations_for_uncertainty)
@@ -138,9 +138,7 @@ def predict_grid(target_time: pd.Timestamp, variable: str = 'pm25') -> pd.DataFr
         'latitude',
         'longitude',
         xgb_col,
-        kriging_col,
-        variance_col,
-        final_col,
+        *([kriging_col, variance_col, final_col] if include_kriging else []),
         'nearest_station_distance',
         'station_count_within_3km',
         'station_count_within_5km',

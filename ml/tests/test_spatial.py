@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from taoyuan_ml.evaluation.calibration import save_calibration
 from taoyuan_ml.spatial.uncertainty import load_thresholds, assign_confidence_level
 from taoyuan_ml.spatial.interpolation import _idw, kriging_residual
@@ -61,3 +62,23 @@ def test_non_pm25_grid_uses_all_six_rolling_hours(storage, station_data, monkeyp
     monkeypatch.setattr(predict, '_add_station_rolling_stats', check_window)
     predict.predict_grid(pd.Timestamp('2025-07-01 12:00'), 'humidity')
     assert checked
+
+
+def test_xgboost_only_prediction_skips_kriging(storage, station_data, monkeypatch):
+    from taoyuan_ml.spatial import predict
+    monkeypatch.setattr(predict, 'load_station_data', lambda variable: station_data)
+    calls = []
+    class Model:
+        def predict(self, frame):
+            calls.append(len(frame))
+            return np.full(len(frame), 12.5)
+    monkeypatch.setattr(predict, 'load_model', lambda *args: Model())
+    monkeypatch.setattr(predict, 'kriging_residual', lambda *args: pytest.fail('Kriging must not run'))
+    grid = pd.DataFrame({'latitude': [25.01], 'longitude': [121.12]}, index=[42])
+    original = grid.copy()
+    result = predict.predict_grid(pd.Timestamp('2025-07-01 12:00'), grid=grid, include_kriging=False)
+    assert result.pm25_xgb.tolist() == [12.5]
+    assert result.index.tolist() == [42]
+    assert 'pm25_kriging' not in result and 'pm25_final' not in result
+    assert calls == [1]
+    pd.testing.assert_frame_equal(grid, original)

@@ -3,6 +3,14 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
+
+def nonnegative_predictions(values) -> np.ndarray:
+    """Reject invalid model output before clipping valid negative predictions."""
+    predictions = np.asarray(values, dtype=float)
+    if not np.isfinite(predictions).all():
+        raise ValueError('Model returned non-finite predictions.')
+    return predictions.clip(min=0)
+
 def evaluate(model: XGBRegressor, X: pd.DataFrame, y: pd.Series, label: str) -> dict:
     pred = model.predict(X)
     mae = mean_absolute_error(y, pred)
