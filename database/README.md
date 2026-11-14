@@ -9,6 +9,7 @@
 | `moe_stations_schema.sql` | MOE 環境部測站 | 空氣品質測站與小時值資料 |
 | `cwa_stations_schema.sql` | CWA 氣象署測站 | 氣象測站與小時觀測資料 |
 | `tydep_stations_schema.sql` | TYDEP 桃園市環保局 | 桃園市環保局測站與小時值資料 |
+| `migrate_tydep_v2.sql` | TYDEP 升級 | 舊版 TYDEP 資料庫升級用（測站編號、參數表改名），見下方說明 |
 | `teds_point_schema.sql` | TEDS 點源 | 排放源位置與年排放量資料 |
 | `teds_grid_schema.sql` | TEDS 網格源 | 排放源網格資料 |
 | `exam_point_schema.sql` | Exam Point 固定源 | 固定污染源排放管道與檢測紀錄（戴奧辛/重金屬/HCl） |
@@ -40,7 +41,7 @@
 | --- | --- | --- | --- |
 | MOE | 依 `monitor_date` 月分區 | `scripts/import_moe_stations.py` | 中壢站需先跑 `convert_zhongli_wide_csv.py`；月更新：`update_moe_monthly.py` 以 history 覆蓋 realtime |
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
-| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入；即時：`update_tydep_realtime.py` 寫入 realtime，不覆蓋 history |
+| TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入；即時：`update_tydep_realtime.py` 讀環保局 SFTP 的 CSV（`TYDEP_<代號>_<YYYYMMDDHH>.csv`），寫入 realtime，不覆蓋 history |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區；重匯時整趟飛行重寫 |
 | WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
 | AOD | 依 `obs_date` 月分區 | `scripts/import_maiac_aod.py` | 以「日」為單位整天替換；`--force` 重做；只存通過 QA 的格點 |
@@ -68,34 +69,13 @@ NAQO_DEFAULT_DATA_TYPE=min60
 NAQO_TZ_WORKAROUND=true
 ```
 
-`NAQO_SUPABASE_ANON_KEY` 不要寫進 Git。若需要本地歷史查詢或 cache，再進入第二階段：建立 `database/naqo_schema.sql`，並用 `scripts/sync_naqo.py` 從 Supabase 增量同步。
-
-## NAQO FastAPI endpoints
-
-| Endpoint | 用途 | 階段 1 來源 | 階段 2 來源 |
-| --- | --- | --- | --- |
-| `GET /api/naqo/status` | 檢查 Supabase 設定與上游連線 | Supabase | Supabase + DB |
-| `GET /api/naqo/types` | 取得可用 `data_type` | Supabase distinct | `naqo_hourly_data` |
-| `GET /api/naqo/latest?limit=5` | 最新資料 | Supabase | `naqo_latest_data` |
-| `GET /api/naqo/data?days=7` | 指定天數資料 | Supabase | `naqo_hourly_data` |
-| `GET /api/explorer/history?days=7` | 數據檢索頁歷史資料 | 本機 DB 既有資料源 | 本機 DB + `naqo_hourly_data` |
-
-後端職責：
-
-1. 從 `backend/.env` 讀取 Supabase 設定，前端不直接接觸 key。
-2. 處理 NAQO 來源時間欄位的時區修正。
-3. 將 Supabase 寬表轉成前端卡片需要的資料格式。
-4. 欄位正規化：`PM25` 顯示為 `PM2.5`；`NO2` 由 Supabase 原始欄位 `NOX - NO` 推算。
-5. 補上展示欄位：`source = '中大空品站'`、`region = '中壢區'`、`station = 'NAQO 中大空品站'`。
-6. 上游或單一歷史資料源失敗時回傳明確錯誤資訊，避免前端整頁掛掉。
-
 ## NAQO 本機啟動
 
 本機測試時需要同時開後端與前端。後端讀 `backend/.env`，前端讀 `frontend-web/.env.local`。
 
 ### 後端環境變數
 
-`backend/.env` 至少需要：
+`backend/.env`：
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://你的USER:你的PASSWORD@localhost:5432/taoyuan_air
@@ -265,6 +245,19 @@ curl -i http://localhost:8001/api/explorer/history?days=7
 | `/api/explorer/history` 回 `errors` | 依錯誤內容檢查 DB、schema 或欄位 |
 
 ## 建議建置順序
+
+### TYDEP 升級（2026-11）
+
+TYDEP 改為 8 個測站、15 個量測項目，測站編號改成與即時 CSV 檔名一致（例如 `0604616A0002` → `TYDEP_Xinxing`），`tydep_pollutants` 改名為 `tydep_parameters`，欄位 `pollutant_*` 改名為 `parameter_*`。
+
+**已經建過舊版 TYDEP 資料表的資料庫**（本機、虛擬機），先執行升級，再執行 schema：
+
+```bash
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -v ON_ERROR_STOP=1 < database/migrate_tydep_v2.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -v ON_ERROR_STOP=1 < database/tydep_stations_schema.sql
+```
+
+歷史資料會一併改到新編號；舊的 JSON 檔（目錄名稱仍是舊編號）不用重新轉檔，`import_tydep_stations.py` 會自動換成新編號。新資料庫只需要執行 `tydep_stations_schema.sql`。
 
 依需要執行單一資料源 schema。**teds_point 必須在 teds_grid 之前建立**（兩者共用 teds_observations 表，順序相反會建表失敗）：
 

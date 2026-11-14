@@ -14,9 +14,20 @@ TYDEP（桃園市環保局）即時小時值入庫腳本。
   - 分區沿用 import_tydep_stations.py 的 ensure_tydep_partitions
   - concentration 保留原始字串（如 '6.4*'、'無資料'），方便事後區分無效原因
 
-CSV 格式（暫定，沿用環保局提供之 Excel 欄位；實際格式確認後調整 COLUMN_ALIASES 即可）：
-  日期&時間,測站,NO2,SO2,CO,O3,PM2.5,PM10[,其他欄位會略過]
-  2026-10-13 13:00,(局)新興國小,6.7,1.7,0.54,34.9,12,25
+環保局即時 CSV 格式（2026-11 實際檔案）：
+  檔名：TYDEP_<測站代號>_<YYYYMMDDHH>.csv，例如 TYDEP_Xinxing_2026111113.csv
+  第 1 列：欄位名稱，前兩欄空白（時間、測站）
+  第 2 列：單位
+  第 3 列起：資料
+    ,,PM2.5,PM10,O3,SO2,NO2,NO,NOx,CO,THC,CH4,NMHC,WIND_SPEED,WIND_ANGLE,AMB_TEMP,RH
+    ,,μg/m3,μg/m3,ppb,ppb,ppb,ppb,ppb,ppm,ppm,ppm,ppm,m/sec,deg,℃,%
+    2026/11/11 13:00,(局)新興國小,13.0,32.0,54.3,...
+  空品站（(局)開頭 4 站）有 15 個項目，氣象站（國小、污水廠 4 站）只有風速、風向、溫度、濕度。
+  也相容舊的暫定格式（表頭有「日期&時間」「測站」）。
+
+測站判斷：先看檔名的測站代號，對不到再看 CSV 裡的測站名稱。
+時間：monitor_date 直接取 CSV 時間，視為該小時的開始（13:00 → 13:00–13:59）。
+     若環保局確認是「時段結束」，把 TIME_IS_PERIOD_END 改成 True。
 
 用法：
   python scripts/update_tydep_realtime.py
@@ -28,6 +39,7 @@ import csv
 import io
 import math
 import os
+import re
 import shutil
 import sys
 from datetime import datetime, timedelta
@@ -38,7 +50,7 @@ ROOT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(Path(__file__).parent))
 
 from import_tydep_stations import (  # noqa: E402
-    POLLUTANT_MAP,
+    PARAMETER_MAP,
     connect_db,
     ensure_tydep_partitions,
 )
@@ -53,16 +65,28 @@ except ImportError:
 
 REALTIME_DIR = ROOT_DIR / 'data' / 'raw' / 'tydep-stations' / 'realtime'
 
-# 欄位別名（小寫比對）→ 內部代碼
+# 環保局確認時間定義前，先當成時段開始
+TIME_IS_PERIOD_END = False
+
+# CSV 欄位名稱（小寫比對）→ 內部代碼（PARAMETER_MAP 的 key）
 COLUMN_ALIASES = {
-    'datetime': {'日期&時間', '日期時間', '監測時間', 'monitor_date', 'datetime', 'date/time', 'time'},
-    'station':  {'測站', '測站名稱', '測站代碼', 'station', 'station_id', 'sitename', 'siteid'},
-    'so2':      {'so2'},
-    'co':       {'co'},
-    'o3':       {'o3'},
-    'no2':      {'no2'},
-    'pm10':     {'pm10'},
-    'pm25':     {'pm2.5', 'pm25', 'pm2_5'},
+    'datetime':   {'日期&時間', '日期時間', '監測時間', 'monitor_date', 'datetime', 'date/time', 'time'},
+    'station':    {'測站', '測站名稱', '測站代碼', 'station', 'station_id', 'sitename', 'siteid'},
+    'so2':        {'so2'},
+    'co':         {'co'},
+    'o3':         {'o3'},
+    'pm10':       {'pm10'},
+    'nox':        {'nox'},
+    'no':         {'no'},
+    'no2':        {'no2'},
+    'thc':        {'thc'},
+    'nmhc':       {'nmhc'},
+    'ch4':        {'ch4'},
+    'pm25':       {'pm2.5', 'pm25', 'pm2_5'},
+    'ws':         {'wind_speed', 'ws', '風速'},
+    'wd':         {'wind_angle', 'wind_direc', 'wd', '風向'},
+    'at':         {'amb_temp', 'temp', '溫度', '氣溫'},
+    'rh':         {'rh', '相對濕度', '濕度'},
 }
 
 TIME_FORMATS = (
@@ -72,13 +96,15 @@ TIME_FORMATS = (
     '%Y%m%d%H',
 )
 
+FILENAME_PATTERN = re.compile(r'^TYDEP_(?P<code>[A-Za-z0-9]+)_(?P<ts>\d{10})$')
+
 UPSERT_SQL = """
     INSERT INTO tydep_hourly_data
-        (station_id, monitor_date, pollutant_id, pollutant_name,
-         pollutant_eng_name, unit, concentration, concentration_numeric,
+        (station_id, monitor_date, parameter_id, parameter_name,
+         parameter_eng_name, unit, concentration, concentration_numeric,
          data_quality, period_start, period_end, source)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'realtime')
-    ON CONFLICT (station_id, monitor_date, pollutant_id)
+    ON CONFLICT (station_id, monitor_date, parameter_id)
     DO UPDATE SET
         concentration         = EXCLUDED.concentration,
         concentration_numeric = EXCLUDED.concentration_numeric,
@@ -91,8 +117,11 @@ UPSERT_SQL = """
 """
 
 
+STATION_IDS = {info['id'] for info in STATION_MAP.values()}
+
+
 def build_station_lookup() -> dict:
-    """測站名稱／代碼 → station_id。接受 '(局)新興國小'、'新興國小'、'0604616A0002'。"""
+    """測站名稱／代碼 → station_id。接受 '(局)新興國小'、'新興國小'、'TYDEP_Xinxing'。"""
     lookup = {}
     for raw_name, info in STATION_MAP.items():
         for key in (raw_name, raw_name.replace('(局)', ''), info['name'], info['id']):
@@ -101,6 +130,15 @@ def build_station_lookup() -> dict:
 
 
 STATION_LOOKUP = build_station_lookup()
+
+
+def station_from_filename(path: Path) -> Optional[str]:
+    """TYDEP_Xinxing_2026111113.csv → TYDEP_Xinxing（資料庫有這個測站才回傳）。"""
+    match = FILENAME_PATTERN.match(path.stem)
+    if not match:
+        return None
+    station_id = f"TYDEP_{match.group('code')}"
+    return station_id if station_id in STATION_IDS else None
 
 
 def read_csv_text(path: Path) -> str:
@@ -114,14 +152,23 @@ def read_csv_text(path: Path) -> str:
     raise ValueError('無法辨識檔案編碼（非 UTF-8 / Big5）')
 
 
-def map_columns(fieldnames: list) -> dict:
-    """把 CSV 表頭對應到內部代碼，回傳 {內部代碼: 原始欄名}。"""
+def map_columns(header: list) -> dict:
+    """把表頭對應到內部代碼，回傳 {內部代碼: 欄位位置}。
+
+    環保局格式的前兩欄沒有名稱，固定當成「時間」「測站」。
+    """
     mapping = {}
-    for name in fieldnames or []:
+    for idx, name in enumerate(header):
         key = (name or '').strip().lower()
+        if not key:
+            if idx == 0:
+                mapping.setdefault('datetime', idx)
+            elif idx == 1:
+                mapping.setdefault('station', idx)
+            continue
         for code, aliases in COLUMN_ALIASES.items():
             if key in {a.lower() for a in aliases} and code not in mapping:
-                mapping[code] = name
+                mapping[code] = idx
     return mapping
 
 
@@ -153,32 +200,46 @@ def parse_file(path: Path) -> tuple[list, list]:
     text = read_csv_text(path)
     if not text.strip():
         raise ValueError('檔案是空的')
-    reader = csv.DictReader(io.StringIO(text))
-    columns = map_columns(reader.fieldnames)
+    lines = list(csv.reader(io.StringIO(text)))
+    header, body = lines[0], lines[1:]
+    columns = map_columns(header)
 
     missing = [c for c in ('datetime', 'station') if c not in columns]
     if missing:
-        raise ValueError(f'缺少必要欄位：{", ".join(missing)}（表頭：{reader.fieldnames}）')
-    if not any(code in columns for code in POLLUTANT_MAP):
-        raise ValueError(f'找不到任何污染物欄位（表頭：{reader.fieldnames}）')
+        raise ValueError(f'缺少必要欄位：{", ".join(missing)}（表頭：{header}）')
+    params = [code for code in PARAMETER_MAP if code in columns]
+    if not params:
+        raise ValueError(f'找不到任何量測項目欄位（表頭：{header}）')
 
+    file_station = station_from_filename(path)
     rows, warnings = [], []
-    for line_no, record in enumerate(reader, start=2):
-        monitor_date = parse_time(record.get(columns['datetime']))
+    for line_no, record in enumerate(body, start=2):
+        if not any(cell.strip() for cell in record):
+            continue                                   # 空白列
+        cell = lambda code: record[columns[code]].strip() if columns[code] < len(record) else ''
+
+        raw_time = cell('datetime')
+        if not raw_time:
+            continue                                   # 單位列（前兩欄空白）
+        monitor_date = parse_time(raw_time)
         if monitor_date is None:
-            warnings.append(f'第 {line_no} 列時間無法解析：{record.get(columns["datetime"])!r}')
+            warnings.append(f'第 {line_no} 列時間無法解析：{raw_time!r}')
             continue
+        if TIME_IS_PERIOD_END:
+            monitor_date -= timedelta(hours=1)
 
-        station_raw = (record.get(columns['station']) or '').strip()
-        station_id = STATION_LOOKUP.get(station_raw)
+        station_raw = cell('station')
+        station_id = file_station or STATION_LOOKUP.get(station_raw)
         if not station_id:
-            warnings.append(f'第 {line_no} 列未知測站：{station_raw!r}')
+            warnings.append(f'第 {line_no} 列未知測站：{station_raw!r}（檔名 {path.name}）')
             continue
+        name_id = STATION_LOOKUP.get(station_raw)
+        if file_station and name_id and name_id != file_station:
+            warnings.append(f'第 {line_no} 列測站名稱 {station_raw!r} 與檔名 {path.name} 不一致，以檔名為準')
 
-        for code, meta in POLLUTANT_MAP.items():
-            if code not in columns:
-                continue
-            raw_text = (record.get(columns[code]) or '').strip()
+        for code in params:
+            meta = PARAMETER_MAP[code]
+            raw_text = cell(code)
             numeric = parse_number(raw_text)
             rows.append((
                 station_id,
@@ -224,7 +285,7 @@ def main():
     args = parser.parse_args()
 
     print('=' * 60)
-    print('TYDEP 即時資料入庫工具')
+    print('TYDEP 即時資料入庫工具' + ('（dry-run，不寫入、不搬檔）' if args.dry_run else ''))
     print('=' * 60)
 
     base_dir = args.dir
@@ -248,7 +309,7 @@ def main():
             try:
                 rows, warnings = parse_file(path)
                 if not rows:
-                    raise ValueError('沒有可匯入的資料列')
+                    raise ValueError('沒有可匯入的資料列' + (f'：{warnings[0]}' if warnings else ''))
 
                 valid = sum(1 for r in rows if r[8] == 'good')
                 if not args.dry_run:
@@ -260,7 +321,7 @@ def main():
 
                 grand_total += len(rows)
                 grand_valid += valid
-                print(f'{len(rows)} 筆（有效 {valid}，無效 {len(rows) - valid}）')
+                print(f'{rows[0][0]} {rows[0][1]:%Y-%m-%d %H:%M}，{len(rows)} 筆（有效 {valid}，無效 {len(rows) - valid}）')
                 for w in warnings:
                     print(f'      [WARN] {w}')
 
@@ -277,7 +338,7 @@ def main():
 
     print('-' * 60)
     print(f'[OK] 完成：{grand_total:,} 筆（有效 {grand_valid:,}），失敗檔案 {failed} 個')
-    if failed:
+    if failed and not args.dry_run:
         print(f'     失敗檔案已移到 {base_dir / "failed"}，原因見同名 .err 檔')
 
 

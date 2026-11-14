@@ -115,7 +115,11 @@ async def _fetch_air_history(
     station_table: str,
     source_name: str,
     days: int,
+    parameter_column: str = "pollutant_eng_name",
 ) -> List[Dict[str, Any]]:
+    # TYDEP 的欄位叫 parameter_eng_name，MOE、NAQO 是 pollutant_eng_name
+    if parameter_column not in {"pollutant_eng_name", "parameter_eng_name"}:
+        raise ValueError(f"unsupported parameter column: {parameter_column}")
     if not await _table_exists(db, table_name):
         return []
 
@@ -127,7 +131,7 @@ async def _fetch_air_history(
             h.station_id,
             s.station_name,
             h.monitor_date AS observed_at,
-            h.pollutant_eng_name AS parameter,
+            h.{parameter_column} AS parameter,
             h.concentration_numeric AS value,
             h.unit
             {station_extra}
@@ -136,7 +140,7 @@ async def _fetch_air_history(
         WHERE h.monitor_date >= NOW() - (:days * INTERVAL '1 day')
           AND h.data_quality = 'good'
           AND h.concentration_numeric IS NOT NULL
-          AND h.pollutant_eng_name IN ('PM2.5', 'PM25', 'PM10', 'O3', 'NOx', 'NOX', 'NO2', 'SO2', 'CO')
+          AND h.{parameter_column} IN ('PM2.5', 'PM25', 'PM10', 'O3', 'NOx', 'NOX', 'NO2', 'SO2', 'CO')
         ORDER BY h.monitor_date DESC
         LIMIT 1200
         """
@@ -195,7 +199,7 @@ async def get_history(
 
     sources = [
         ("環境部", lambda: _fetch_air_history(db, "moe_hourly_data", "moe_stations", "環境部", days)),
-        ("桃園市環保局", lambda: _fetch_air_history(db, "tydep_hourly_data", "tydep_stations", "桃園市環保局", days)),
+        ("桃園市環保局", lambda: _fetch_air_history(db, "tydep_hourly_data", "tydep_stations", "桃園市環保局", days, "parameter_eng_name")),
         ("中大空品站", lambda: _fetch_air_history(db, "naqo_hourly_data", "naqo_stations", "中大空品站", days)),
         ("氣象署", lambda: _fetch_cwa_history(db, days)),
     ]
