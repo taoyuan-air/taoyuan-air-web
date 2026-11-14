@@ -1,116 +1,130 @@
 # 桃園空氣品質 ML
 
-這是獨立執行的離線 Python 套件。資料匯出、訓練、空間推估、驗證及報告不會自動由網站後端觸發。
+這個模組負責整理空氣品質與氣象資料、訓練模型，並產生桃園的歷史 PM2.5 分布地圖。它使用獨立的 Python 環境，網站後端則負責呼叫已訓練好的模型、提供結果給前端。
+
+## 整體架構
+
+```text
+資料庫中的測站與氣象觀測
+          ↓
+整理成訓練資料
+          ↓
+訓練模型 → 評估與報告
+          ↓
+產生歷史 PM2.5 網格
+          ↓
+後端 API → 網站 /history
+```
+
+一般網格推估可結合 XGBoost 與空間插值；目前 `/history` 地圖使用 XGBoost，將桃園切成約 3 km × 3 km 的網格，呈現各格的小時濃度推估。查詢地圖時會使用既有模型，不會重新訓練。
+
+主要目錄如下，`data/` 和 `scripts/` 都位於專案根目錄：
+
+| 位置 | 用途 |
+|---|---|
+| `ml/src/taoyuan_ml/data/`、`features/` | 讀取資料，整理模型需要的輸入 |
+| `ml/src/taoyuan_ml/models/`、`spatial/` | 訓練模型、推估空間分布 |
+| `ml/src/taoyuan_ml/evaluation/`、`reporting/` | 評估表現、產生報告與地圖 |
+| `ml/configs/` | 模型參數與實驗設定 |
+| `ml/tests/` | 自動化測試 |
+| `scripts/` | 資料下載與鄰近測站比較實驗 |
+| `data/processed/ml/` | 整理後的資料集 |
+| `data/models/` | 訓練完成的模型與設定 |
+| `data/exports/ml/` | 評估結果、報告與地圖輸出 |
 
 ## 安裝
 
-需要 Python 3.11 以上。在專案根目錄執行（Windows PowerShell）：
+需要 Python 3.11 以上。以下指令以 Windows PowerShell 為例，均在**專案根目錄**執行。請保留這份專案的目錄結構。
 
 ```powershell
 python -m venv ml/.venv
-./ml/.venv/Scripts/Activate.ps1
+.\ml\.venv\Scripts\Activate.ps1
+python -m pip install -e ./ml
+```
+
+如果不方便啟用虛擬環境，也可以直接使用 `.\ml\.venv\Scripts\python.exe` 執行 Python 指令。
+
+若要使用 `scripts/` 裡的下載與實驗工具，再安裝其依賴：
+
+```powershell
+python -m pip install -r scripts/requirements.txt
+```
+
+## 環境與模型設定
+
+首次使用時，將 `ml/.env.example` 複製為 `ml/.env`，填入資料庫連線資訊：
+
+```dotenv
+DATABASE_URL=postgresql://DB_USER:DB_PASSWORD@127.0.0.1:5432/taoyuan_air
+
+# 選填：資料與模型的存放位置，預設為專案根目錄的 data/
+# ML_DATA_ROOT=C:/path/to/data
+```
+
+請換成自己的帳號、密碼與資料庫名稱。也支援後端使用的 `postgresql+asyncpg://` 連線格式。
+
+一般匯出流程讀取資料庫中已匯入的觀測，不會自行下載資料。資料匯入工具放在 `scripts/`。若想沿用後端的資料庫設定，可在指令中明確指定 `--env-file backend/.env`；程式不會自動改讀後端的 `.env`。
+
+模型預設設定在 [`configs/default.toml`](configs/default.toml)。需要調整訓練參數時，可參考 [`configs/experiments/`](configs/experiments/)，在訓練指令加上 `--config` 指定設定檔。既有模型在推估時會沿用訓練時保存的設定。
+
+## 基本使用流程
+
+以 PM2.5 為例，啟用虛擬環境後依序執行：
+
+```powershell
+# 1. 從資料庫匯出資料集
+python -m taoyuan_ml --dataset-id meteo-demo-v1 export --variable pm25
+
+# 2. 使用資料集訓練模型
+python -m taoyuan_ml --dataset-id meteo-demo-v1 --run-id pm25-demo-v1 train --variable pm25
+
+# 3. 評估模型
+python -m taoyuan_ml --run-id pm25-demo-v1 validate --max-hours 100
+
+# 4. 建立歷史地圖可選的日期與時刻
+python -m taoyuan_ml --run-id pm25-demo-v1 history-map --catalog
+```
+
+`dataset-id` 是資料集名稱，`run-id` 是模型版本名稱。範例名稱可以自行更換；更新資料或重新訓練時，請使用新名稱，保留舊版成果。
+
+共用設定（例如 `--run-id`、`--env-file`）放在動作名稱之前。更多指令可查詢：
+
+```powershell
+python -m taoyuan_ml --help
+python -m taoyuan_ml predict --help
+```
+
+## 連接網站
+
+在 `backend/.env` 設定要使用的模型版本，名稱需與上面的 `run-id` 一致：
+
+```dotenv
+ML_HISTORY_RUN_ID=pm25-demo-v1
+
+# 選填：使用其他環境或資料位置時才需要設定，建議填絕對路徑
+# ML_PYTHON=C:/path/to/project/ml/.venv/Scripts/python.exe
+# ML_DATA_ROOT=C:/path/to/project/data
+```
+
+先完成該版本的訓練與 `history-map --catalog`，再重新啟動後端、開啟前端的 `/history`。首次查詢某個時刻可能需要等待，之後會重用已產生的結果。
+
+右上角的「訓練成果」可查看模型資訊與版本比較；比較內容需要另外產生實驗報告，一般訓練不會自動建立。鄰近測站名單在 `ml/configs/regional_stations.json`，相關流程可查看 `scripts/train_regional_pm25.py` 與 `scripts/report_regional_pm25.py` 的 `--help`。
+
+部署到其他機器時，除了程式碼，也需要另行搬移選定版本的資料集、模型及相關報告。這些產物不會隨 Git 上傳。
+
+## 使用時需要知道的事
+
+- 地圖呈現歷史小時濃度的空間推估，不能當成未來預報或日 AQI。
+- 可查詢的日期取決於空氣品質與氣象資料是否齊全；只補其中一種資料，未必能延長可查詢期間。
+- 遠離測站的地區，例如山區，推估結果需更審慎解讀。空間診斷也不等於完全未見測站的泛化測試。
+
+## 執行測試
+
+需要開發或修改程式時，再安裝測試依賴並執行：
+
+```powershell
 python -m pip install -e "./ml[test]"
-```
-
-目前以 repository editable installation 為使用方式，保留 `ml/configs/` 與根目錄 `data/` 的相對位置。套件安裝後可從任何資料夾執行 `taoyuan-ml` 或 `python -m taoyuan_ml`。相對的 CLI 路徑以目前工作目錄解析，預設資料路徑則固定相對專案根目錄。
-
-## 環境與實驗設定
-
-將 `ml/.env.example` 複製成 `ml/.env`，填入 `DATABASE_URL`；或以 `--env-file backend/.env` 明確沿用後端設定。支援 `postgresql://` 與後端的 `postgresql+asyncpg://` 格式。程序環境變數優先於 `.env`；不會自動搜尋其他目錄的 `.env`。密碼及 API 金鑰不會寫入實驗快照。
-
-ML 不需要首頁的 CWA/MOE API 金鑰，而是讀取 PostgreSQL 已匯入的資料。資料庫 schema 留在 `database/`，匯入工具留在 `scripts/`。
-
-`configs/default.toml` 保留原本模型參數、網格範圍和時間切分。`configs/experiments/*.toml` 可以只覆寫部分設定，透過 `--config` 指定。`--variable` 選擇要執行的變數，設定檔名稱本身不會自動選擇變數。
-
-`lag_hours` 必須遞增、不重複，包含 1 與至少另一個正整數時差。Rolling 特徵以實際的前三／六小時觀測計算，不會因缺時資料而取用更早的資料列；推估也會讀取完整六小時視窗。
-
-## 執行流程
-
-以下指令均在專案根目錄執行。**共用選項放在動作前面**，各動作選項放後面。
-
-```powershell
-# 1. 從現有資料庫匯出所有變數，建立資料集 manifest
-taoyuan-ml --env-file backend/.env --dataset-id meteo-v1 export --all
-
-# 2. 每次訓練使用新的 run-id，避免覆蓋既有模型
-taoyuan-ml --dataset-id meteo-v1 --run-id pm25-v1 --config ml/configs/experiments/pm25.toml train --variable pm25
-
-# 3. 既有 run 自動載入保存的設定及 dataset-id
-taoyuan-ml --run-id pm25-v1 validate --max-hours 100 --calibrate
-taoyuan-ml --run-id pm25-v1 compare --max-hours 100
-taoyuan-ml --run-id pm25-v1 predict --variable pm25 --time "2025-07-15 14:00"
-taoyuan-ml --run-id pm25-v1 shap --variable pm25 --sample-size 3000
-taoyuan-ml --run-id pm25-v1 plot --time "2025-07-15 14:00"
-
-# 多變數可在同一次訓練處理
-taoyuan-ml --dataset-id meteo-v1 --run-id multivar-v1 train --all
-
-# 查詢各動作的參數
-taoyuan-ml --help
-taoyuan-ml predict --help
-```
-
-`--data-root` 可改用其他資料儲存位置；使用既有 run 時也須指定相同位置。也可在 `ml/.env` 設定絕對路徑 `ML_DATA_ROOT`。
-
-## 目錄與責任
-
-```text
-ml/
-  configs/                  # 無密鑰的預設與實驗參數
-  src/taoyuan_ml/
-    cli.py                  # 指令入口、資料集與實驗選擇
-    settings.py             # 明確載入 .env、TOML 及路徑
-    data/                   # 資料庫連線、SQL、Parquet 匯出
-    features/               # 特徵定義、時間、鄰站、組裝流程
-    models/                 # 訓練及模型／資料集產物管理
-    spatial/                # 網格、插值、推估、可信度
-    evaluation/             # 空間驗證、方法比較、校準、指標
-    reporting/              # SHAP 與地圖
-  tests/                    # 特徵、設定、產物與整合測試
-
-data/
-  processed/ml/<dataset_id>/
-    *_hourly.parquet
-    manifest.json           # 欄位、期間、筆數、匯出時間、SHA-256
-  models/<run_id>/
-    xgb_*.json
-    config.toml             # 訓練時的完整設定快照
-    metadata.json           # dataset、訓練狀態、Git commit、套件版本
-    feature_schema.json     # 每個模型的目標、特徵版本與順序
-    calibration.json        # 執行 --calibrate 後建立
-  exports/ml/<run_id>/
-    predictions/            # 網格 Parquet
-    metrics/                # 訓練及空間評估結果
-    shap/                   # SHAP CSV 與文字報告
-    figures/                # 圖片
-```
-
-資料與模型產物由 `.gitignore` 排除。不要把密鑰加入 `configs/`。同一 dataset 可增加尚未匯出的變數，但禁止覆蓋已有 Parquet；資料內容改變時使用新 dataset-id。Run 保存當次資料 manifest 並檢查檔案雜湊，避免推估時默默使用不同資料。訓練拒絕覆蓋既有 run；失敗的訓練保留現場，重新執行請使用新的 run-id。報告與同時間的預測可重新產生。
-
-只有 `metadata.json` 中狀態為 `complete` 的 run 可用於推估與報告；執行中或失敗的 run 會被拒絕。訓練使用的每個變數都必須列入 dataset manifest。特徵計算版本不符的模型必須以新 run-id 重新訓練，不能只沿用相同欄位名稱。
-
-## 支援範圍與限制
-
-| 功能 | PM2.5 | 溫度、濕度、風速、氣壓 | 風向 |
-|---|---|---|---|
-| 匯出、訓練、SHAP | 支援 | 支援 | 支援 sin/cos 模型 |
-| 網格推估 | 支援 | 支援 | 尚未實作圓周重建 |
-| 留一站驗證、方法比較、地圖 | 支援 | 尚未泛化 | 尚未泛化 |
-
-推估需要目標時刻及所需 lag 時刻的測站觀測，是歷史空間補值，並非未來預報。可信度是測站距離與密度的規則分級，不等於統計信賴區間。校準門檻寫入該 run 的 `calibration.json`，後續推估會自動載入。
-
-目前校準僅針對 PM2.5，其他變數使用預設的距離／測站密度分級。驗證的 `--time-range` 僅限制評估目標時間，仍保留範圍之前的 lag／rolling 歷史資料。
-
-保留原本空間驗證的限制：XGBoost 不會在每個留一站 fold 重新訓練，只有空間殘差修正排除該站，因此不能解讀為完全獨立的未見測站泛化評估。此次整理不改變模型方法及此項限制。
-
-## 從舊架構遷移
-
-舊的 `ml/config.py`、`ml/export_parquet.py`、`ml/impute/` 與 `ml/visualize.py` 已由套件與 CLI 取代，不再使用 `sys.path.insert()`。舊的 `data/exports/*.parquet` 或 `data/models/xgb_*.json` 不會自動搬移或覆蓋；若有舊產物，請保留並透過新流程建立可追蹤的新 dataset/run。
-
-## 驗證
-
-```powershell
 python -m pytest ml/tests -q
 ```
 
-測試使用合成資料和暫存目錄，不讀取真實資料庫或密鑰。包含模擬資料庫的匯出處理、跨程序的訓練／推估／校準／報告流程，以及設定快照、資料異動偵測與特徵一致性。
+測試使用合成資料與暫存目錄，不需要連接真實資料庫。
