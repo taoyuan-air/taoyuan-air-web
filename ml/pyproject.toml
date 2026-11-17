@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taoyuan-ml"
+version = "0.1.0"
+description = "Offline air-quality and meteorological imputation pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "psycopg2-binary>=2.9.0", "python-dotenv>=1.0.0", "pandas>=2.0.0",
+  "pyarrow>=14.0.0", "numpy>=1.26.0", "scipy>=1.11.0", "xgboost>=2.0.0",
+  "scikit-learn>=1.3.0", "pykrige>=1.7.0", "matplotlib>=3.8.0", "shap>=0.45.0",
+  "pyproj>=3.6.0", "shapely>=2.1.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "requests>=2.32.0"]
+
+[project.scripts]
+taoyuan-ml = "taoyuan_ml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

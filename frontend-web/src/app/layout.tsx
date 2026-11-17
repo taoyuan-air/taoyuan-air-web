@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TopNav } from "@/components/navigation/TopNav";
+import { SiteFrame } from "@/components/navigation/SiteFrame";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
@@ -18,8 +18,7 @@ export default function RootLayout({
     <html lang="zh-TW" suppressHydrationWarning>
       <body style={{ minHeight: '100vh' }}>
         <AuthProvider>
-          <TopNav />
-          <main style={{ paddingTop: 80 }}>{children}</main>
+          <SiteFrame>{children}</SiteFrame>
         </AuthProvider>
       </body>
     </html>
