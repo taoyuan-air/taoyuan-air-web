@@ -79,7 +79,6 @@ CREATE TABLE IF NOT EXISTS tydep_hourly_data (
     UNIQUE (station_id, monitor_date, pollutant_id)
 ) PARTITION BY RANGE (monitor_date);
 
--- Monthly partitions 2019-2026 are defined in database/tydep_partitions.sql.
 -- 保底分區：避免尚未建立月份分區時，匯入資料直接失敗。
 CREATE TABLE IF NOT EXISTS tydep_hourly_data_default
     PARTITION OF tydep_hourly_data DEFAULT;
@@ -111,7 +110,7 @@ SELECT
 FROM tydep_stations s
 JOIN tydep_hourly_data h ON s.station_id = h.station_id
 WHERE h.monitor_date >= NOW() - INTERVAL '24 hours'
-GROUP BY s.station_id, s.station_name, s.county, h.monitor_date
+GROUP BY s.station_id, s.station_name, s.county, s.district, h.monitor_date
 ORDER BY h.monitor_date DESC;
 
 CREATE OR REPLACE VIEW tydep_monthly_stats AS
