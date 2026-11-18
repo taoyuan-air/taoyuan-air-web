@@ -1,0 +1,5 @@
+train_cutoff_date = "2025-07-01"
+
+[xgb]
+n_estimators = 500
+max_depth = 6

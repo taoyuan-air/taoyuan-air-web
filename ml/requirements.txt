@@ -1,0 +1,3 @@
+# Compatibility entry; dependencies are defined in pyproject.toml.
+# Run from the repository root: pip install -r ml/requirements.txt
+-e ./ml
