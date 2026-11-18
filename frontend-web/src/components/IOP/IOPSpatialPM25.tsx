@@ -165,11 +165,37 @@ function DatePills({
   );
 }
 
-// ── Cross-fade 圖片框 ─────────────────────────────────────────────────────────
+// ── 地理範圍（TWD97 GeoTransform → WGS84，硬編碼桃園市 bbox） ─────────────────
+// GeoTransform: origin=(248184.77, 2779479.54), pixel=50m, size=1008×1189
+// X: 248184 ~ 298584 m  →  ~121.00° ~ 121.56°E
+// Y: 2779479 ~ 2720029 m → ~25.14° ~ 24.60°N
+const GEO = {
+  lonMin: 121.00, lonMax: 121.56,
+  latMin: 24.60,  latMax: 25.14,
+};
+
+// 軸刻度：每 0.1° 一個刻度
+function range(min: number, max: number, step: number): number[] {
+  const ticks: number[] = [];
+  // 第一個刻度從 ceil(min/step)*step 開始
+  const start = Math.ceil(min / step) * step;
+  for (let v = start; v <= max + 1e-9; v = Math.round((v + step) * 1e9) / 1e9) {
+    ticks.push(v);
+  }
+  return ticks;
+}
+
+const LON_TICKS = range(GEO.lonMin, GEO.lonMax, 0.1); // [121.0, 121.1, ..., 121.5]
+const LAT_TICKS = range(GEO.latMin, GEO.latMax, 0.1); // [24.6, 24.7, ..., 25.1]
+
+const AXIS_L = 42; // 左軸寬 px
+const AXIS_B = 20; // 底軸高 px
+
+// ── Cross-fade 圖片框（含座標軸） ────────────────────────────────────────────
 function FadeImage({
-  url, alt, minHeight, aspectRatio = 0.74,
+  url, alt, minHeight, aspectRatio = 0.74, showAxes = false,
 }: {
-  url: string | null; alt: string; minHeight: number; aspectRatio?: number;
+  url: string | null; alt: string; minHeight: number; aspectRatio?: number; showAxes?: boolean;
 }) {
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [loading, setLoading]       = useState(false);
@@ -186,12 +212,14 @@ function FadeImage({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
-  return (
+  // 圖片本體（不含軸）
+  const imgBox = (
     <div style={{
       position: 'relative', width: '100%',
       paddingBottom: `${aspectRatio * 100}%`, minHeight,
       background: 'rgba(72,149,236,0.03)',
-      border: `1px solid ${C.roseBorder}`, borderRadius: 12, overflow: 'hidden',
+      border: `1px solid ${C.roseBorder}`, borderRadius: showAxes ? '0 12px 0 0' : 12,
+      overflow: 'hidden',
     }}>
       <div style={{
         position: 'absolute', inset: 0,
@@ -201,12 +229,13 @@ function FadeImage({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={displayUrl} alt={alt} style={{
             width: '100%', height: '100%', objectFit: 'contain', display: 'block',
-            borderRadius: 10, transition: 'opacity 0.25s ease', opacity: loading ? 0.35 : 1,
+            borderRadius: showAxes ? '0 10px 0 0' : 10,
+            transition: 'opacity 0.25s ease', opacity: loading ? 0.35 : 1,
           }} />
         )}
         {loading && (
           <div style={{
-            position: 'absolute', inset: 0, borderRadius: 12,
+            position: 'absolute', inset: 0, borderRadius: showAxes ? '0 12px 0 0' : 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: displayUrl ? 'rgba(255,255,255,0.55)' : 'transparent',
           }}>
@@ -219,6 +248,82 @@ function FadeImage({
           </span>
         )}
         {error && <span style={{ fontSize: 12, color: '#c0392b', fontWeight: 600 }}>圖片載入失敗</span>}
+      </div>
+    </div>
+  );
+
+  if (!showAxes) return imgBox;
+
+  // ── 有座標軸版本 ───────────────────────────────────────────────────────────
+  const lonSpan = GEO.lonMax - GEO.lonMin;
+  const latSpan = GEO.latMax - GEO.latMin;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {/* 上排：Y 軸 + 圖片 */}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+
+        {/* Y 軸（緯度） */}
+        <div style={{
+          width: AXIS_L, flexShrink: 0,
+          position: 'relative',
+          // 配合 imgBox 的 paddingBottom aspect-ratio trick：
+          // 用 paddingBottom 在父容器撐高，不可行；改用 aspectRatio CSS
+          aspectRatio: `${AXIS_L} / ${aspectRatio * 100}`,
+          minHeight,
+        }}>
+          {LAT_TICKS.map((lat) => {
+            // lat 在圖片中的相對位置（由上到下，latMax 在頂）
+            const pct = ((GEO.latMax - lat) / latSpan) * 100;
+            return (
+              <div key={lat} style={{
+                position: 'absolute', right: 6, top: `${pct}%`,
+                transform: 'translateY(-50%)',
+                display: 'flex', alignItems: 'center', gap: 3,
+              }}>
+                <span style={{
+                  fontSize: 9.5, fontWeight: 700, color: C.hint,
+                  fontFamily: 'monospace', whiteSpace: 'nowrap', letterSpacing: '-0.2px',
+                }}>
+                  {lat.toFixed(1)}°N
+                </span>
+                {/* 刻度短線 */}
+                <div style={{ width: 5, height: 1, background: C.hint, flexShrink: 0 }} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 圖片本體 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {imgBox}
+        </div>
+      </div>
+
+      {/* X 軸（經度） */}
+      <div style={{
+        marginLeft: AXIS_L,
+        height: AXIS_B,
+        position: 'relative',
+      }}>
+        {LON_TICKS.map((lon) => {
+          const pct = ((lon - GEO.lonMin) / lonSpan) * 100;
+          return (
+            <div key={lon} style={{
+              position: 'absolute', left: `${pct}%`, top: 0,
+              transform: 'translateX(-50%)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <div style={{ width: 1, height: 5, background: C.hint }} />
+              <span style={{
+                fontSize: 9.5, fontWeight: 700, color: C.hint,
+                fontFamily: 'monospace', whiteSpace: 'nowrap', letterSpacing: '-0.2px',
+              }}>
+                {lon.toFixed(1)}°E
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -326,7 +431,7 @@ function CompareSlot({
         <FadeImage
           url={imgUrl}
           alt={`PM2.5 ${date} ${String(hour).padStart(2, '0')}:00`}
-          minHeight={160} aspectRatio={1.18}
+          minHeight={160} aspectRatio={1.18} showAxes
         />
       </div>
     </div>
