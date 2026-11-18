@@ -31,12 +31,7 @@ yarn-error.*
 
 # local env files
 .env
-.env.*
 .env*.local
-!.env.example
-!.env.*.example
-# Common typo for a local environment file
-.enb
 
 # typescript
 *.tsbuildinfo
@@ -45,15 +40,9 @@ yarn-error.*
 data/raw/**/*
 data/processed/**/*
 data/exports/**/*
-data/models/**/*
 !data/raw/**/.gitkeep
 !data/processed/.gitkeep
 !data/exports/.gitkeep
-!data/processed/ml/
-!data/processed/ml/.gitkeep
-!data/exports/ml/
-!data/exports/ml/.gitkeep
-!data/models/.gitkeep
 !data/README.md
 data/logs/
 
@@ -109,8 +98,6 @@ data/raw/teds-stations/*
 *.dump
 
 # Python
-.venv/
-backend/.venv/
 __pycache__/
 *.pyc
 *.pyo
