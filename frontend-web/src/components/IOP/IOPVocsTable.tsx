@@ -38,7 +38,12 @@ const C = {
 };
 
 // 預設顯示物種（常見 VOCs）
-const DEFAULT_SHOWN_IDS = new Set([1, 2, 3, 4, 5, 6, 10, 12, 20, 25, 34, 38, 39, 41, 56, 57]);
+const DEFAULT_SHOWN_IDS = new Set([
+  1, 2, 3, 4, 5, 6, 7, 8, 9,  // Ethane, Ethylene, Propane, Propylene, Isobutane, Butane, trans-2-Butene, 1-Butene, cis-2-Butene
+  20,                         // Isoprene
+  25, 34, 38, 39, 40, 41,     // Benzene, Toluene, Ethylbenzene, m,p-Xylene, Styrene, o-Xylene
+  56, 57, 58, 59,             // CFC-12, CFC-11, CFC-113, CCl4
+]);
 
 type SamplingTab = 'trigger' | 'uav';
 type SiteFilter = 'all' | 'Guanyin' | 'Dayuan';
