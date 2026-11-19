@@ -24,10 +24,6 @@ class Settings(BaseSettings):
     CWA_API_KEY: Optional[str] = None
     MOE_API_KEY: Optional[str] = None
 
-    ML_HISTORY_RUN_ID: str = 'full-history-20261113-v1'
-    ML_PYTHON: Optional[str] = None
-    ML_DATA_ROOT: Optional[str] = None
-
     class Config:
         env_file = ".env"
 

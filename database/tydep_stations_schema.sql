@@ -105,7 +105,6 @@ CREATE TABLE IF NOT EXISTS tydep_hourly_data (
     UNIQUE (station_id, monitor_date, parameter_id)
 ) PARTITION BY RANGE (monitor_date);
 
--- Monthly partitions 2019-2026 are defined in database/tydep_partitions.sql.
 -- 保底分區：避免尚未建立月份分區時，匯入資料直接失敗。
 CREATE TABLE IF NOT EXISTS tydep_hourly_data_default
     PARTITION OF tydep_hourly_data DEFAULT;
