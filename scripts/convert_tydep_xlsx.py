@@ -6,8 +6,9 @@ TYDEP（桃園市環保局）測站資料轉換腳本（原 TEPA）
 輸入：data/raw/tydep-stations/桃園市空氣品質測站監測數據(108-115).xlsx
 輸出：data/processed/tydep-stations/json/<station_id>/<YYYY_MM>.json
 
-保留污染物（對齊 MOE/CWA 六項）：
-  SO2, CO, O3, NO2, PM10, PM2.5
+保留項目：
+  污染物 SO2, CO, O3, NO2, PM10, PM2.5
+  氣象   RH, AMB_TEMP, WIND_ANGLE, WIND_SPEED（存在 records[].meteo）
 
 時間範圍：2019-03-01 起
 """
@@ -26,11 +27,17 @@ ROOT_DIR = Path(__file__).parent.parent
 INPUT_FILE = ROOT_DIR / "data" / "raw" / "tydep-stations" / "桃園市空氣品質測站監測數據(108-115).xlsx"
 OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "tydep-stations" / "json"
 
+# 測站對照表：環保局資料中的測站名稱 → 資料庫 station_id
+# station_id 與即時 CSV 檔名一致（TYDEP_<代號>_<YYYYMMDDHH>.csv），須與 database/tydep_stations_schema.sql 同步
 STATION_MAP = {
-    "(局)新興國小": {"id": "0604616A0002", "name": "新興國小", "district": "蘆竹區"},
-    "(局)內壢":     {"id": "0604316A0003", "name": "內壢",     "district": "中壢區"},
-    "(局)華亞":     {"id": "0604816I0005", "name": "華亞",     "district": "龜山區"},
-    "(局)觀音":     {"id": "0605316I0004", "name": "觀音_N",   "district": "觀音區"},
+    "(局)新興國小": {"id": "TYDEP_Xinxing",     "name": "新興國小",   "district": "蘆竹區"},
+    "(局)內壢":     {"id": "TYDEP_Neili",       "name": "內壢",       "district": "中壢區"},
+    "(局)華亞":     {"id": "TYDEP_Huaya",       "name": "華亞",       "district": "龜山區"},
+    "(局)觀音":     {"id": "TYDEP_Guanyin",     "name": "觀音_N",     "district": "觀音區"},
+    "草漯國小":     {"id": "TYDEP_Caoluo",      "name": "草漯國小",   "district": "觀音區"},
+    "富林國小":     {"id": "TYDEP_Fulin",       "name": "富林國小",   "district": "觀音區"},
+    "觀音污水廠":   {"id": "TYDEP_GuanyinWWTP", "name": "觀音污水廠", "district": "觀音區"},
+    "樹林國小":     {"id": "TYDEP_Shulin",      "name": "樹林國小",   "district": "觀音區"},
 }
 
 COL = {

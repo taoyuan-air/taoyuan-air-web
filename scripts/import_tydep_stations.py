@@ -3,6 +3,9 @@
 TYDEP 測站資料匯入腳本（原 TEPA）
 讀取 data/processed/tydep-stations/json/<station_id>/<YYYY_MM>.json
 並批次匯入 PostgreSQL 的 tydep_hourly_data 分區表
+
+舊版 JSON 的 station_id（0604616A0002 等）會自動換成新編號（TYDEP_Xinxing 等），
+不需要重新轉檔。
 """
 
 import json
@@ -42,13 +45,31 @@ ROOT_DIR        = Path(__file__).parent.parent
 JSON_DIR        = ROOT_DIR / 'data' / 'processed' / 'tydep-stations' / 'json'
 LEGACY_JSON_DIR = ROOT_DIR / 'data' / 'raw' / 'tydep-stations' / 'json'
 
-POLLUTANT_MAP = {
-    'so2':  {'id': '1',  'name': '二氧化硫',   'eng': 'SO2',   'unit': 'ppb'},
-    'co':   {'id': '2',  'name': '一氧化碳',   'eng': 'CO',    'unit': 'ppm'},
-    'o3':   {'id': '3',  'name': '臭氧',       'eng': 'O3',    'unit': 'ppb'},
-    'no2':  {'id': '7',  'name': '二氧化氮',   'eng': 'NO2',   'unit': 'ppb'},
-    'pm10': {'id': '4',  'name': '懸浮微粒',   'eng': 'PM10',  'unit': 'ug/m3'},
-    'pm25': {'id': '33', 'name': '細懸浮微粒', 'eng': 'PM2.5', 'unit': 'ug/m3'},
+# 量測參數：內部代碼 → tydep_parameters（須與 database/tydep_stations_schema.sql 同步）
+PARAMETER_MAP = {
+    'so2':  {'id': '1',  'name': '二氧化硫',         'eng': 'SO2',        'unit': 'ppb'},
+    'co':   {'id': '2',  'name': '一氧化碳',         'eng': 'CO',         'unit': 'ppm'},
+    'o3':   {'id': '3',  'name': '臭氧',             'eng': 'O3',         'unit': 'ppb'},
+    'pm10': {'id': '4',  'name': '懸浮微粒',         'eng': 'PM10',       'unit': 'ug/m3'},
+    'nox':  {'id': '5',  'name': '氮氧化物',         'eng': 'NOx',        'unit': 'ppb'},
+    'no':   {'id': '6',  'name': '一氧化氮',         'eng': 'NO',         'unit': 'ppb'},
+    'no2':  {'id': '7',  'name': '二氧化氮',         'eng': 'NO2',        'unit': 'ppb'},
+    'thc':  {'id': '8',  'name': '總碳氫化合物',     'eng': 'THC',        'unit': 'ppm'},
+    'nmhc': {'id': '9',  'name': '非甲烷碳氫化合物', 'eng': 'NMHC',       'unit': 'ppm'},
+    'ws':   {'id': '10', 'name': '風速',             'eng': 'WIND_SPEED', 'unit': 'm/s'},
+    'wd':   {'id': '11', 'name': '風向',             'eng': 'WIND_ANGLE', 'unit': 'deg'},
+    'at':   {'id': '14', 'name': '溫度',             'eng': 'AMB_TEMP',   'unit': '℃'},
+    'ch4':  {'id': '31', 'name': '甲烷',             'eng': 'CH4',        'unit': 'ppm'},
+    'pm25': {'id': '33', 'name': '細懸浮微粒',       'eng': 'PM2.5',      'unit': 'ug/m3'},
+    'rh':   {'id': '38', 'name': '相對濕度',         'eng': 'RH',         'unit': '%'},
+}
+
+# 舊版測站編號 → 新版（舊 JSON 檔仍是舊編號）
+LEGACY_STATION_IDS = {
+    '0604616A0002': 'TYDEP_Xinxing',
+    '0604316A0003': 'TYDEP_Neili',
+    '0604816I0005': 'TYDEP_Huaya',
+    '0605316I0004': 'TYDEP_Guanyin',
 }
 
 
@@ -80,7 +101,7 @@ def ensure_tydep_station_names(conn) -> None:
             SET station_name = '觀音_N',
                 district = '觀音區',
                 updated_at = NOW()
-            WHERE station_id = '0605316I0004'
+            WHERE station_id = 'TYDEP_Guanyin'
             """
         )
 
@@ -120,11 +141,14 @@ def build_rows(record: dict) -> list:
     monitor_date = datetime.fromisoformat(record['monitor_date'])
     period_start = monitor_date
     period_end   = monitor_date + timedelta(minutes=59)
-    station_id   = record['station_id']
+    station_id   = LEGACY_STATION_IDS.get(record['station_id'], record['station_id'])
+    values       = {**record.get('pollutants', {}), **record.get('meteo', {})}
     rows = []
 
-    for key, meta in POLLUTANT_MAP.items():
-        raw_val = record['pollutants'].get(key)
+    for key, meta in PARAMETER_MAP.items():
+        if key not in values:   # 歷史 Excel 沒有的項目（NO、THC 等）就不寫入
+            continue
+        raw_val = values.get(key)
         conc_numeric = parse_concentration(raw_val)
         conc_str = str(raw_val) if raw_val is not None else 'x'
         quality  = 'good' if conc_numeric is not None else 'invalid'
@@ -169,11 +193,11 @@ def import_json_file(conn, json_path: Path) -> tuple:
 
     insert_sql = """
         INSERT INTO tydep_hourly_data
-            (station_id, monitor_date, pollutant_id, pollutant_name,
-             pollutant_eng_name, unit, concentration, concentration_numeric,
+            (station_id, monitor_date, parameter_id, parameter_name,
+             parameter_eng_name, unit, concentration, concentration_numeric,
              data_quality, period_start, period_end, source)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (station_id, monitor_date, pollutant_id) DO NOTHING
+        ON CONFLICT (station_id, monitor_date, parameter_id) DO NOTHING
     """
 
     cursor = None
