@@ -49,7 +49,7 @@ router = APIRouter(prefix="/iop", tags=["iop"])
 SAMPLING_TYPE_LABELS = {"trigger": "觸發採樣", "uav": "無人機採樣"}
 
 # 允許的圖片類型（對應 spatial-pictures 子目錄）
-_ALLOWED_IMAGE_TYPES = {"hourly", "daily_rf", "daily_xgboost"}
+_ALLOWED_IMAGE_TYPES = {"hourly", "daily_rf", "daily_xgboost", "hourly_wind"}
 # 安全性：只允許合法檔名格式
 _SAFE_FILENAME_RE = re.compile(r'^[\w\-\.]+\.jpg$')
 
@@ -348,7 +348,7 @@ async def list_spatial_images(
     base = SPATIAL_ROOT / iop_dir_name
     result: dict[str, list[str]] = {}
 
-    for img_type in ("hourly", "daily_rf", "daily_xgboost"):
+    for img_type in ("hourly", "daily_rf", "daily_xgboost", "hourly_wind"):
         folder = base / img_type
         if folder.is_dir():
             files = sorted(f.name for f in folder.iterdir() if f.suffix.lower() == ".jpg")

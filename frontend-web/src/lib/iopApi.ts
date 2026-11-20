@@ -124,6 +124,7 @@ export interface SpatialImageList {
   hourly: string[];        // e.g. ["PM25_XGB_2026-03-27_00.jpg", ...]
   daily_rf: string[];      // e.g. ["RF_2026-03-27.jpg", ...]
   daily_xgboost: string[]; // e.g. ["XGBoost_2026-03-27.jpg", ...]
+  hourly_wind: string[];   // e.g. ["PM25_Wind_2026-03-27_00.jpg", ...]
 }
 
 export async function fetchSpatialImages(iopId: string): Promise<SpatialImageList> {
@@ -134,7 +135,7 @@ export async function fetchSpatialImages(iopId: string): Promise<SpatialImageLis
 
 export function getSpatialImageUrl(
   iopId: string,
-  imgType: 'hourly' | 'daily_rf' | 'daily_xgboost',
+  imgType: 'hourly' | 'daily_rf' | 'daily_xgboost' | 'hourly_wind',
   filename: string,
 ): string {
   return `${BASE}/${encodeURIComponent(iopId)}/spatial-images/${imgType}/${encodeURIComponent(filename)}`;
