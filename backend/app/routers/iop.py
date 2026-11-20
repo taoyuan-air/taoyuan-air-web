@@ -36,7 +36,7 @@ from ..schemas.iop import (
 
 # ── 空間推估圖根目錄（相對於 backend/ 目錄往上兩層到 repo root）─────────────────
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-SPATIAL_ROOT = _REPO_ROOT / "data" / "raw" / "iop" / "spatial-pictures"
+SPATIAL_ROOT = _REPO_ROOT / "data" / "raw" / "IOP" / "spatial-pictures"
 
 # IOP ID → 資料夾名稱的對應（全小寫）
 _IOP_DIR: dict[str, str] = {
