@@ -7,8 +7,8 @@
  * Section B：日均模型比較（RF vs XGBoost 並排）
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Map, BarChart2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Map, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   fetchSpatialImages,
   getSpatialImageUrl,
@@ -29,6 +29,10 @@ const C = {
 
 function parseHourlyDate(f: string): string {
   const m = f.match(/PM25_XGB_(\d{4}-\d{2}-\d{2})_\d{2}\.jpg$/);
+  return m ? m[1] : '';
+}
+function parseWindDate(f: string): string {
+  const m = f.match(/PM25_Wind_(\d{4}-\d{2}-\d{2})_\d{2}\.jpg$/);
   return m ? m[1] : '';
 }
 function parseDailyDate(f: string): string {
@@ -193,9 +197,9 @@ const AXIS_B = 20; // 底軸高 px
 
 // ── Cross-fade 圖片框（含座標軸） ────────────────────────────────────────────
 function FadeImage({
-  url, alt, minHeight, aspectRatio = 0.74, showAxes = false,
+  url, alt, minHeight, aspectRatio = 0.74, showAxes = false, emptyText = '選擇日期以顯示圖片',
 }: {
-  url: string | null; alt: string; minHeight: number; aspectRatio?: number; showAxes?: boolean;
+  url: string | null; alt: string; minHeight: number; aspectRatio?: number; showAxes?: boolean; emptyText?: string;
 }) {
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [loading, setLoading]       = useState(false);
@@ -244,7 +248,7 @@ function FadeImage({
         )}
         {!url && !loading && !error && (
           <span style={{ fontSize: 12, color: C.hint, fontWeight: 600, textAlign: 'center', padding: '0 8px' }}>
-            選擇日期以顯示圖片
+            {emptyText}
           </span>
         )}
         {error && <span style={{ fontSize: 12, color: '#c0392b', fontWeight: 600 }}>圖片載入失敗</span>}
@@ -329,171 +333,130 @@ function FadeImage({
   );
 }
 
-// ── 新增按鈕格 ────────────────────────────────────────────────────────────────
-function AddSlotButton({ onClick }: { onClick: () => void }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        width: '100%', height: '100%', minHeight: 260,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 10,
-        background: hov ? 'rgba(72,149,236,0.22)' : 'rgba(72,149,236,0.10)',
-        border: `2px dashed ${hov ? C.rose : 'rgba(72,149,236,0.55)'}`,
-        borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
-        color: hov ? C.rose : C.muted, fontSize: 13, fontWeight: 700,
-        transition: 'all 0.15s',
-      }}
-      aria-label="新增比較日期"
-    >
-      <div style={{
-        width: 36, height: 36, borderRadius: '50%',
-        background: hov ? 'rgba(72,149,236,0.30)' : 'rgba(72,149,236,0.20)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 0.15s',
-      }}>
-        <Plus size={18} color={C.rose} strokeWidth={2.5} />
-      </div>
-      新增比較日期
-    </button>
-  );
-}
-
-// ── 比較格子 ──────────────────────────────────────────────────────────────────
-function CompareSlot({
-  date, hour, dates, iopId, imageList, canClose, onClose, onDateChange,
+// ── 逐小時格子（前一 / 目前 / 後一小時通用） ───────────────────────────────────
+function HourCell({
+  date, hour, iopId, imageList, tag, isCurrent,
 }: {
-  date: string; hour: number;
-  dates: string[]; iopId: string; imageList: SpatialImageList;
-  canClose: boolean; onClose: () => void; onDateChange: (d: string) => void;
+  date: string; hour: number; iopId: string; imageList: SpatialImageList;
+  tag: string; isCurrent: boolean;
 }) {
-  const filename   = date ? `PM25_XGB_${date}_${String(hour).padStart(2, '0')}.jpg` : null;
+  const valid      = !!date && hour >= 0 && hour <= 23;
+  const filename   = valid ? `PM25_XGB_${date}_${String(hour).padStart(2, '0')}.jpg` : null;
   const fileExists = filename ? imageList.hourly.includes(filename) : false;
   const imgUrl     = fileExists && filename ? getSpatialImageUrl(iopId, 'hourly', filename) : null;
+  const emptyText  = valid ? '此小時無資料' : '無此小時資料';
 
-  useEffect(() => {
-    if (!date) return;
-    for (let h = 0; h < 24; h++) {
-      const fn = `PM25_XGB_${date}_${String(h).padStart(2, '0')}.jpg`;
-      if (imageList.hourly.includes(fn)) {
-        const img = new window.Image();
-        img.src = getSpatialImageUrl(iopId, 'hourly', fn);
-      }
-    }
-  }, [date, iopId, imageList.hourly]);
+  const border = isCurrent ? C.rose : C.roseBorder;
+  const headBg = isCurrent ? 'rgba(72,149,236,0.14)' : 'rgba(72,149,236,0.06)';
 
   return (
     <div style={{
       width: '100%', height: '100%', background: '#fff',
-      border: `1.5px solid ${C.roseBorder}`,
-      borderRadius: 14, overflow: 'hidden',
+      border: `1.5px solid ${border}`, borderRadius: 14, overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
+      boxShadow: isCurrent ? '0 4px 16px rgba(72,149,236,0.18)' : 'none',
+      transition: 'box-shadow 0.15s, border-color 0.15s',
     }}>
       {/* 格子頭部 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 12px 8px',
         borderBottom: `1px solid rgba(72,149,236,0.10)`,
-        background: 'rgba(72,149,236,0.06)', flexShrink: 0,
+        background: headBg, flexShrink: 0,
       }}>
-        <span style={{ flex: 1, fontSize: 15, fontWeight: 900, color: C.rose, letterSpacing: '-0.2px' }}>
-          {date ? fmtFull(date) : '—'}
-        </span>
-        {canClose && (
-          <button
-            onClick={onClose}
-            style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              border: 'none', background: 'rgba(72,149,236,0.14)',
-              cursor: 'pointer', padding: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s',
-            }}
-            aria-label="移除此比較格"
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(220,60,60,0.20)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(72,149,236,0.14)')}
-          >
-            <X size={12} color={C.muted} strokeWidth={2.5} />
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 1 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.hint, letterSpacing: '0.06em' }}>
+            {tag}
+          </span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: isCurrent ? C.rose : C.text, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+            {valid ? `${String(hour).padStart(2, '0')}:00` : '—'}
+          </span>
+        </div>
+        {isCurrent && (
+          <span style={{
+            padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800,
+            color: '#fff', background: C.rose, letterSpacing: '0.04em', alignSelf: 'center',
+          }}>
+            目前
+          </span>
         )}
-      </div>
-
-      {/* 日期 pills */}
-      <div style={{ padding: '8px 10px 6px', flexShrink: 0 }}>
-        <DatePills dates={dates} selected={date} onChange={onDateChange} size="sm" />
       </div>
 
       {/* 圖片 */}
       <div style={{ padding: '0 10px 10px', flex: 1 }}>
         <FadeImage
           url={imgUrl}
-          alt={`PM2.5 ${date} ${String(hour).padStart(2, '0')}:00`}
+          alt={`PM2.5 ${date || ''} ${valid ? String(hour).padStart(2, '0') : '--'}:00`}
           minHeight={160} aspectRatio={1.18} showAxes
+          emptyText={emptyText}
         />
       </div>
     </div>
   );
 }
 
-// ── Section A：逐小時圖 ───────────────────────────────────────────────────────
-let _id = 0;
-const uid = () => `s${++_id}`;
-interface SlotState { id: string; date: string; }
+// ── 風場逐小時面板 ─────────────────────────────────────────────────────────────
+function WindHourlyPanel({
+  iopId, imageList, dates, hour, selDate, onHourChange, onDateChange,
+}: {
+  iopId: string;
+  imageList: SpatialImageList;
+  dates: string[];
+  hour: number;
+  selDate: string;
+  onHourChange: (h: number) => void;
+  onDateChange: (d: string) => void;
+}) {
+  const filename = selDate
+    ? `PM25_Wind_${selDate}_${String(hour).padStart(2, '0')}.jpg`
+    : null;
+  const fileExists = filename ? imageList.hourly_wind.includes(filename) : false;
+  const imgUrl = fileExists && filename
+    ? getSpatialImageUrl(iopId, 'hourly_wind', filename)
+    : null;
 
-function HourlySection({ iopId, imageList }: { iopId: string; imageList: SpatialImageList }) {
-  const dates = [...new Set(imageList.hourly.map(parseHourlyDate))].sort();
-  const [hour,  setHour]  = useState(12);
-  const [slots, setSlots] = useState<SlotState[]>([{ id: uid(), date: dates[0] ?? '' }]);
-
-  const addSlot = () => {
-    if (slots.length >= 3) return;
-    const used = new Set(slots.map((s) => s.date));
-    const next = dates.find((d) => !used.has(d)) ?? dates[0] ?? '';
-    setSlots((p) => [...p, { id: uid(), date: next }]);
-  };
-  const removeSlot = (id: string) => setSlots((p) => p.filter((s) => s.id !== id));
-  const updateDate = (id: string, d: string) => setSlots((p) => p.map((s) => s.id === id ? { ...s, date: d } : s));
-
-  const count    = slots.length;
-  const isSingle = count === 1;
-  const ADD_W    = 160;
+  // 偵測容器寬度，決定控制區排列方向
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      setNarrow(entry.contentRect.width < 620);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   return (
-    <div style={{ background: '#fff', borderRadius: 16, boxShadow: C.glassShadow, overflow: 'hidden' }}>
-
-      {/* Header */}
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* 時間控制區 */}
       <div style={{
-        padding: '18px 24px 14px', borderBottom: `1px solid rgba(72,149,236,0.10)`,
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex',
+        flexDirection: narrow ? 'column' : 'row',
+        alignItems: narrow ? 'stretch' : 'stretch',
+        gap: narrow ? 14 : 20,
+        padding: '16px 20px',
+        background: 'rgba(72,149,236,0.04)',
+        borderRadius: 14, border: `1px solid ${C.roseBorder}`,
       }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: C.roseAlpha, border: `1px solid ${C.roseBorder}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Map size={15} color={C.rose} strokeWidth={2} />
+        {/* 日期選擇 */}
+        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.hint }}>日期</div>
+          <DatePills dates={dates} selected={selDate} onChange={onDateChange} size="sm" />
         </div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>逐小時 <PM25 /> 空間分佈</div>
-          <div style={{ fontSize: 11, color: C.hint, fontWeight: 500 }}>XGBoost 模型輸出 · 桃園市空間推估</div>
-        </div>
-      </div>
 
-      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* 分隔：寬螢幕垂直線，窄螢幕水平線 */}
+        {narrow
+          ? <div style={{ height: 1, background: C.roseBorder }} />
+          : <div style={{ width: 1, background: C.roseBorder, flexShrink: 0, alignSelf: 'stretch' }} />
+        }
 
-        {/* 時間控制區 */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-          padding: '20px 24px',
-          background: 'rgba(72,149,236,0.04)',
-          borderRadius: 14, border: `1px solid ${C.roseBorder}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* 時間控制 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 10, justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <button
-              onClick={() => setHour((h) => Math.max(0, h - 1))} disabled={hour === 0}
+              onClick={() => onHourChange(Math.max(0, hour - 1))} disabled={hour === 0}
               style={{
                 width: 36, height: 36, borderRadius: '50%',
                 border: `2px solid ${hour === 0 ? C.roseBorder : C.rose}`,
@@ -510,20 +473,18 @@ function HourlySection({ iopId, imageList }: { iopId: string; imageList: Spatial
             </button>
 
             <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '10px 28px', background: '#fff', borderRadius: 12,
               border: `1.5px solid ${C.roseBorder}`,
               boxShadow: '0 2px 10px rgba(72,149,236,0.12)', minWidth: 130,
             }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: '0.08em', textTransform: 'uppercase' }}>時間</span>
               <span style={{ fontSize: 28, fontWeight: 900, color: C.rose, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
                 {String(hour).padStart(2, '0')}:00
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: C.hint }}>LST（本地時間）</span>
             </div>
 
             <button
-              onClick={() => setHour((h) => Math.min(23, h + 1))} disabled={hour === 23}
+              onClick={() => onHourChange(Math.min(23, hour + 1))} disabled={hour === 23}
               style={{
                 width: 36, height: 36, borderRadius: '50%',
                 border: `2px solid ${hour === 23 ? C.roseBorder : C.rose}`,
@@ -540,48 +501,223 @@ function HourlySection({ iopId, imageList }: { iopId: string; imageList: Spatial
             </button>
           </div>
 
-          <div style={{ width: '100%', maxWidth: 520, display: 'flex' }}>
-            <HourSlider value={hour} onChange={setHour} />
+          <div style={{ width: '100%', display: 'flex' }}>
+            <HourSlider value={hour} onChange={onHourChange} />
+          </div>
+        </div>
+      </div>
+
+      {/* 風場圖：全寬單張，16:9，限制最大高度讓控制區同時可見 */}
+      <FadeImage
+        url={imgUrl}
+        alt={`PM2.5 風場 ${selDate || ''} ${String(hour).padStart(2, '0')}:00`}
+        minHeight={120}
+        aspectRatio={0.42}
+        showAxes={false}
+        emptyText={selDate ? '此小時無資料' : '請選擇日期'}
+      />
+    </div>
+  );
+}
+
+// ── Section A：逐小時圖（XGBoost + 風場，tab 切換） ──────────────────────────
+function HourlySection({ iopId, imageList }: { iopId: string; imageList: SpatialImageList }) {
+  const [activeTab, setActiveTab] = useState<'xgb' | 'wind'>('xgb');
+
+  // XGBoost tab 狀態
+  const xgbDates = [...new Set(imageList.hourly.map(parseHourlyDate))].sort();
+  const [xgbHour,    setXgbHour]    = useState(12);
+  const [xgbSelDate, setXgbSelDate] = useState(xgbDates[0] ?? '');
+
+  // 風場 tab 狀態
+  const windDates = [...new Set(imageList.hourly_wind.map(parseWindDate))].sort();
+  const [windHour,    setWindHour]    = useState(12);
+  const [windSelDate, setWindSelDate] = useState(windDates[0] ?? '');
+
+  const hasWind = imageList.hourly_wind.length > 0;
+
+  // 預載 XGBoost
+  useEffect(() => {
+    if (!xgbSelDate) return;
+    for (let h = 0; h < 24; h++) {
+      const fn = `PM25_XGB_${xgbSelDate}_${String(h).padStart(2, '0')}.jpg`;
+      if (imageList.hourly.includes(fn)) {
+        const img = new window.Image();
+        img.src = getSpatialImageUrl(iopId, 'hourly', fn);
+      }
+    }
+  }, [xgbSelDate, iopId, imageList.hourly]);
+
+  // 預載風場
+  useEffect(() => {
+    if (!windSelDate || !hasWind) return;
+    for (let h = 0; h < 24; h++) {
+      const fn = `PM25_Wind_${windSelDate}_${String(h).padStart(2, '0')}.jpg`;
+      if (imageList.hourly_wind.includes(fn)) {
+        const img = new window.Image();
+        img.src = getSpatialImageUrl(iopId, 'hourly_wind', fn);
+      }
+    }
+  }, [windSelDate, iopId, imageList.hourly_wind, hasWind]);
+
+  const xgbCells = [
+    { key: 'prev', hour: xgbHour - 1, tag: '前一小時', current: false },
+    { key: 'cur',  hour: xgbHour,     tag: '目前',     current: true  },
+    { key: 'next', hour: xgbHour + 1, tag: '後一小時', current: false },
+  ];
+
+  // ── Tab 控制區 ───────────────────────────────────────────────────────────────
+  const tabs = [
+    { key: 'xgb',  label: <span>XGBoost 推估</span> },
+    ...(hasWind ? [{ key: 'wind' as const, label: <span>逐小時 <PM25 /> 風場疊圖</span> }] : []),
+  ] as { key: 'xgb' | 'wind'; label: ReactNode }[];
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, boxShadow: C.glassShadow, overflow: 'hidden' }}>
+
+      {/* Header */}
+      <div style={{
+        padding: '18px 24px 0', borderBottom: `1px solid rgba(72,149,236,0.10)`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: C.roseAlpha, border: `1px solid ${C.roseBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Map size={15} color={C.rose} strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>逐小時 <PM25 /> 空間分佈</div>
+            <div style={{ fontSize: 11, color: C.hint, fontWeight: 500 }}>桃園市空間推估 · 每小時一張</div>
           </div>
         </div>
 
-        {/* 格子區 */}
-        {isSingle ? (
-          <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: 16 }}>
-            <div style={{ width: ADD_W, flexShrink: 0, alignSelf: 'stretch' }}>
-              <AddSlotButton onClick={addSlot} />
-            </div>
-            <div style={{ flex: '1 1 0', minWidth: 0, maxWidth: 380 }}>
-              <CompareSlot
-                date={slots[0].date} hour={hour}
-                dates={dates} iopId={iopId} imageList={imageList}
-                canClose={false} onClose={() => {}}
-                onDateChange={(d) => updateDate(slots[0].id, d)}
-              />
-            </div>
-            <div style={{ width: ADD_W, flexShrink: 0, alignSelf: 'stretch' }}>
-              <AddSlotButton onClick={addSlot} />
-            </div>
+        {/* Tabs */}
+        {tabs.length > 1 && (
+          <div style={{ display: 'flex', gap: 0 }}>
+            {tabs.map((tab) => {
+              const active = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    padding: '9px 20px',
+                    fontSize: 13, fontWeight: active ? 800 : 600,
+                    color: active ? C.rose : C.muted,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: `2.5px solid ${active ? C.rose : 'transparent'}`,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                    marginBottom: -1,
+                  }}
+                  aria-selected={active}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', alignItems: 'stretch' }}>
-            {slots.map((slot) => (
-              <div key={slot.id} style={{ flex: '1 1 0', minWidth: 0, maxWidth: 380 }}>
-                <CompareSlot
-                  date={slot.date} hour={hour}
-                  dates={dates} iopId={iopId} imageList={imageList}
-                  canClose={count > 1}
-                  onClose={() => removeSlot(slot.id)}
-                  onDateChange={(d) => updateDate(slot.id, d)}
-                />
+        )}
+      </div>
+
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* ── XGBoost tab ── */}
+        {activeTab === 'xgb' && (
+          <>
+            {/* 時間控制區 */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+              padding: '20px 24px',
+              background: 'rgba(72,149,236,0.04)',
+              borderRadius: 14, border: `1px solid ${C.roseBorder}`,
+            }}>
+              <div style={{ width: '100%', maxWidth: 520 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.hint, marginBottom: 8, textAlign: 'center' }}>日期</div>
+                <DatePills dates={xgbDates} selected={xgbSelDate} onChange={setXgbSelDate} />
               </div>
-            ))}
-            {count < 3 && (
-              <div style={{ flex: '0 0 150px' }}>
-                <AddSlotButton onClick={addSlot} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={() => setXgbHour((h) => Math.max(0, h - 1))} disabled={xgbHour === 0}
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    border: `2px solid ${xgbHour === 0 ? C.roseBorder : C.rose}`,
+                    background: xgbHour === 0 ? '#fff' : C.rose,
+                    color: xgbHour === 0 ? C.hint : '#fff',
+                    cursor: xgbHour === 0 ? 'not-allowed' : 'pointer',
+                    opacity: xgbHour === 0 ? 0.4 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'all 0.15s',
+                  }}
+                  aria-label="前一小時"
+                >
+                  <ChevronLeft size={16} strokeWidth={2.5} />
+                </button>
+
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '10px 28px', background: '#fff', borderRadius: 12,
+                  border: `1.5px solid ${C.roseBorder}`,
+                  boxShadow: '0 2px 10px rgba(72,149,236,0.12)', minWidth: 130,
+                }}>
+                  <span style={{ fontSize: 28, fontWeight: 900, color: C.rose, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                    {String(xgbHour).padStart(2, '0')}:00
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setXgbHour((h) => Math.min(23, h + 1))} disabled={xgbHour === 23}
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    border: `2px solid ${xgbHour === 23 ? C.roseBorder : C.rose}`,
+                    background: xgbHour === 23 ? '#fff' : C.rose,
+                    color: xgbHour === 23 ? C.hint : '#fff',
+                    cursor: xgbHour === 23 ? 'not-allowed' : 'pointer',
+                    opacity: xgbHour === 23 ? 0.4 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'all 0.15s',
+                  }}
+                  aria-label="後一小時"
+                >
+                  <ChevronRight size={16} strokeWidth={2.5} />
+                </button>
               </div>
-            )}
-          </div>
+
+              <div style={{ width: '100%', maxWidth: 520, display: 'flex' }}>
+                <HourSlider value={xgbHour} onChange={setXgbHour} />
+              </div>
+            </div>
+
+            {/* 格子區：前一 / 目前 / 後一小時 */}
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', alignItems: 'stretch' }}>
+              {xgbCells.map((c) => (
+                <div key={c.key} style={{ flex: '1 1 0', minWidth: 0, maxWidth: 380 }}>
+                  <HourCell
+                    date={xgbSelDate} hour={c.hour}
+                    iopId={iopId} imageList={imageList}
+                    tag={c.tag} isCurrent={c.current}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── 風場 tab ── */}
+        {activeTab === 'wind' && hasWind && (
+          <WindHourlyPanel
+            iopId={iopId}
+            imageList={imageList}
+            dates={windDates}
+            hour={windHour}
+            selDate={windSelDate}
+            onHourChange={setWindHour}
+            onDateChange={setWindSelDate}
+          />
         )}
 
       </div>
@@ -694,7 +830,7 @@ export default function IOPSpatialPM25({ iopId }: { iopId: string }) {
 
   if (!imageList) return null;
 
-  const hasHourly = imageList.hourly.length > 0;
+  const hasHourly = imageList.hourly.length > 0 || imageList.hourly_wind.length > 0;
   const hasDaily  = imageList.daily_rf.length > 0 || imageList.daily_xgboost.length > 0;
 
   if (!hasHourly && !hasDaily) return (
