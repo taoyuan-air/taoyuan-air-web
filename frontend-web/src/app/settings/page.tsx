@@ -8,7 +8,7 @@ import Image from 'next/image';
 import {
   Bell, Camera, Check, CheckCircle2, ChevronRight,
   Eye, EyeOff, Heart, Key, LogOut, Settings, Shield,
-  Star, UserCheck, Wind, Trash2
+  UserCheck, Wind, Trash2
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
@@ -123,7 +123,6 @@ function ToggleRow({
 
 const INIT = {
   twoFactor: false,
-  conditions: { asthma: true, elderly: false, child: false },
   notifs: { pm25: true, aqi: true, health: false, system: true },
 };
 
@@ -145,7 +144,6 @@ export default function SettingsPage() {
   const [twoFactor, setTwoFactor] = useState(INIT.twoFactor);
 
   /* 健康檔案 state */
-  const [conditions, setConditions] = useState(INIT.conditions);
   const [profileDistrict, setProfileDistrict] = useState('');
   const [profileGender, setProfileGender] = useState('');
   const [profileSensitivity, setProfileSensitivity] = useState('一般民眾');
@@ -241,11 +239,6 @@ export default function SettingsPage() {
     // Defer state updates to avoid synchronous setState inside effect
     const t = setTimeout(() => {
       setTwoFactor(user.two_factor_enabled);
-      setConditions({
-        asthma: user.has_respiratory,
-        elderly: user.has_elderly,
-        child: user.has_child,
-      });
       setNotifs({
         pm25: user.notif_pm25,
         aqi: user.notif_aqi,
@@ -266,10 +259,7 @@ export default function SettingsPage() {
   const healthDirty = user && (
     profileGender !== (user.gender ?? '') ||
     profileDistrict !== (user.default_district ?? '') ||
-    profileSensitivity !== user.sensitivity ||
-    conditions.asthma !== user.has_respiratory ||
-    conditions.elderly !== user.has_elderly ||
-    conditions.child !== user.has_child
+    profileSensitivity !== user.sensitivity
   );
 
   const profileDirty = user && (
@@ -341,9 +331,6 @@ export default function SettingsPage() {
           gender: profileGender || null,
           default_district: profileDistrict || null,
           sensitivity: profileSensitivity,
-          has_respiratory: conditions.asthma,
-          has_elderly: conditions.elderly,
-          has_child: conditions.child,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -924,38 +911,17 @@ export default function SettingsPage() {
                         {['桃園區','中壢區','八德區','龜山區','蘆竹區','大園區','大溪區','平鎮區','楊梅區','龍潭區','觀音區','新屋區','復興區'].map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, letterSpacing: 0.8 }}>敏感度預設</span>
-                      <select value={profileSensitivity} onChange={(e) => setProfileSensitivity(e.target.value)}
-                        style={{ padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.glassBorder}`, backgroundColor: 'rgba(255,255,255,0.6)', fontSize: 14, color: C.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                        <option value="一般民眾">一般民眾</option>
-                        <option value="敏感族群">敏感族群</option>
-                      </select>
-                    </div>
                   </div>
-                </div>
 
-                <div style={{ ...card, padding: 28 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 20 }}>特殊健康狀況</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <ToggleRow
-                      Icon={Wind} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="氣喘 / 呼吸道疾病" desc={<>調低 PM<sub style={{ fontSize: '0.75em' }}>2.5</sub> 警報門檻至 15 µg/m³</>}
-                      value={conditions.asthma} onChange={(v) => setConditions(p => ({ ...p, asthma: v }))}
-                    />
-                    <div style={{ height: 1, backgroundColor: 'rgba(30,58,95,0.12)' }} />
-                    <ToggleRow
-                      Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="年長者 (65 歲以上)" desc="啟用額外健康警示與建議"
-                      value={conditions.elderly} onChange={(v) => setConditions(p => ({ ...p, elderly: v }))}
-                    />
-                    <div style={{ height: 1, backgroundColor: 'rgba(30,58,95,0.12)' }} />
-                    <ToggleRow
-                      Icon={Star} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="兒童 (12 歲以下)" desc="針對兒童調整戶外活動建議"
-                      value={conditions.child} onChange={(v) => setConditions(p => ({ ...p, child: v }))}
-                    />
-                  </div>
+                  <div style={{ height: 1, backgroundColor: 'rgba(30,58,95,0.12)', margin: '16px 0' }} />
+
+                  <ToggleRow
+                    Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
+                    title="我屬於敏感族群"
+                    desc={<>官方定義：有心臟、呼吸道及心血管疾病患者、孩童及老年人。（資料來源：環境部空氣品質指標）</>}
+                    value={profileSensitivity === '敏感族群'}
+                    onChange={(v) => setProfileSensitivity(v ? '敏感族群' : '一般民眾')}
+                  />
                 </div>
               </div>
             )}
@@ -987,7 +953,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <ToggleRow
                       Icon={Heart} iconColor={C.primary} iconBg={C.primaryAlpha}
-                      title="健康建議推播" desc="AI 根據空氣狀況提供活動建議"
+                      title="健康與防護資訊推播" desc="接收健康與防護相關資訊通知"
                       value={notifs.health} onChange={(v) => setNotifs(p => ({ ...p, health: v }))}
                     />
                     <div style={{ height: 1, backgroundColor: 'rgba(30,58,95,0.12)' }} />

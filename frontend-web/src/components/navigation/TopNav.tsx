@@ -13,7 +13,7 @@ const navItems = [
   { href: '/explorer',    label: '數據檢索' },
   { href: '/events',      label: '事件記錄' },
   { href: '/instruments', label: '儀器介紹' },
-  { href: '/alerts',      label: '警報通知' },
+  { href: '/health',      label: '健康與防護' },
 ];
 
 export function TopNav() {
