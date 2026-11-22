@@ -62,7 +62,17 @@ export function useMoeCurrent(): UseMoeCurrentResult {
   return { data, isFallback, loading, error, refetch };
 }
 
-/** 依參考測站名稱(如「中壢」)取出對應的即時資料。sitename 與站名直接相等。 */
+/** 依參考測站名稱(如「中壢」)取出對應的即時資料。sitename 與站名直接相等。
+ *  找不到時 fallback 到 data 第一筆(總比顯示空白好),仍標示是哪個測站。
+ */
 export function findStationData(data: MoeStationData[], station: string): MoeStationData | undefined {
-  return data.find((d) => d.sitename === station);
+  if (!data.length) return undefined;
+  return data.find((d) => d.sitename === station) ?? data[0];
+}
+
+/** 回傳 data 中實際存在的測站名稱(供 UI 顯示「實際參考測站」用)。 */
+export function resolvedStation(data: MoeStationData[], preferredStation: string): string {
+  if (!data.length) return preferredStation;
+  const found = data.find((d) => d.sitename === preferredStation);
+  return found ? found.sitename : (data[0]?.sitename ?? preferredStation);
 }

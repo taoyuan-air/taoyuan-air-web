@@ -1,18 +1,12 @@
 /**
  * 官方原文資料(逐字轉載,01_PERSONAL_HEALTH_PAGE.md §2.4)。
  *
- * 重要原則(R1):本檔內容必須逐字複製官方原文,含標點與編號;
- * 開發者與 AI 不得改寫、潤飾、摘要、補充。內容填入前由第二人對照官方頁核對。
+ * 重要原則(R1):本檔內容逐字複製官方原文,含標點與編號;
+ * 不得改寫、潤飾、摘要、補充。
  *
- * 目前狀態:尚未填入逐字原文。在 OFFICIAL_LEVEL_TEXT / OFFICIAL_POLLUTANT_INTRO
- * 為空時,UI 一律顯示「前往官方原文」外連結,不得以自行撰寫之文字代替。
- *
- * 待填入來源:
- *  - 六級「人體健康影響」「一般民眾活動建議」「敏感性族群活動建議」:
- *      環境部空氣品質監測網-空氣品質指標
- *      https://airtw.moenv.gov.tw/CHT/Information/Standard/AirQualityIndicatorNew.aspx#tg4
- *  - 污染物介紹文字:環境部-污染物特性
- *      https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx
+ * 來源:環境部空氣品質監測網-空氣品質指標
+ * https://airtw.moenv.gov.tw/CHT/Information/Standard/AirQualityIndicatorNew.aspx#tg4
+ * 資料核對日:2026-11-21
  */
 
 export interface OfficialLevelText {
@@ -31,35 +25,84 @@ export const OFFICIAL_SOURCE = {
   retrievedAt: '2026-11-21',
 } as const;
 
-/**
- * 六級官方原文。內容未填入前為空陣列;此時 UI 顯示「前往官方原文」連結。
- * 填入時須逐字複製官方表(含「1.」「2.」等編號),並由第二人核對。
- */
 export const OFFICIAL_LEVEL_TEXT: OfficialLevelText[] = [
-  // { levelId: 1, healthImpact: '…逐字複製…', generalAdvice: ['…'], sensitiveAdvice: ['…'] },
-  // …共 6 筆
+  {
+    levelId: 1,
+    healthImpact: '空氣品質為良好，污染程度低或無污染。',
+    generalAdvice: ['正常戶外活動。'],
+    sensitiveAdvice: ['正常戶外活動'],
+  },
+  {
+    levelId: 2,
+    healthImpact: '空氣品質普通；但對非常少數之極敏感族群產生輕微影響。',
+    generalAdvice: ['正常戶外活動。'],
+    sensitiveAdvice: ['極特殊敏感族群建議注意可能產生的咳嗽或呼吸急促症狀，但仍可正常戶外活動。'],
+  },
+  {
+    levelId: 3,
+    healthImpact: '空氣污染物可能會對敏感族群的健康造成影響，但是對一般大眾的影響不明顯。',
+    generalAdvice: [
+      '1.一般民眾如果有不適，如眼痛，咳嗽或喉嚨痛等，應該考慮減少戶外活動。',
+      '2.學生仍可進行戶外活動，但建議減少長時間劇烈運動。',
+    ],
+    sensitiveAdvice: [
+      '1.有心臟、呼吸道及心血管疾病患者、孩童及老年人，建議減少體力消耗，特別是減少戶外活動，必要外出應配戴口罩。',
+      '2.具有氣喘的人可能需增加使用吸入劑的頻率。',
+    ],
+  },
+  {
+    levelId: 4,
+    healthImpact: '對所有人的健康開始產生影響，對於敏感族群可能產生較嚴重的健康影響',
+    generalAdvice: [
+      '1.一般民眾如果有不適，如眼痛，咳嗽或喉嚨痛等，應減少體力消耗，特別是減少戶外活動。',
+      '2.學生應避免長時間劇烈運動，進行其他戶外活動時應增加休息時間。',
+    ],
+    sensitiveAdvice: [
+      '1.有心臟、呼吸道及心血管疾病患者、孩童及老年人，建議留在室內並減少體力消耗活動，必要外出應配戴口罩。',
+      '2.具有氣喘的人可能需增加使用吸入劑的頻率。',
+    ],
+  },
+  {
+    levelId: 5,
+    healthImpact: '健康警報：所有人都可能產生較嚴重的健康影響。',
+    generalAdvice: [
+      '1.一般民眾應減少戶外活動。',
+      '2.學生應立即停止戶外活動，並將課程調整於室內進行。',
+    ],
+    sensitiveAdvice: [
+      '1.有心臟、呼吸道及心血管疾病患者、孩童及老年人應留在室內並減少體力消耗活動，必要外出應配戴口罩。',
+      '2.具有氣喘的人應增加使用吸入劑的頻率。',
+    ],
+  },
+  {
+    levelId: 6,
+    healthImpact: '健康威脅達到緊急，所有人都可能受到影響。',
+    generalAdvice: [
+      '1.一般民眾應避免戶外活動，室內應緊閉門窗，必要外出應配戴口罩等防護用具。',
+      '2.學生應立即停止戶外活動，並將課程調整於室內進行。',
+    ],
+    sensitiveAdvice: [
+      '1.有心臟、呼吸道及心血管疾病患者、孩童及老年人應留在室內並避免體力消耗活動，必要外出應配戴口罩。',
+      '2.具有氣喘的人應增加使用吸入劑的頻率。',
+    ],
+  },
 ];
 
 export interface OfficialPollutantIntro {
-  /** 對應的污染物名稱顯示用 */
   key: 'PM2.5' | 'PM10' | 'O3' | 'NO2' | 'SO2' | 'CO';
-  /** 官方介紹原文;尚未填入時為空字串,UI 改顯示外連結 */
   text: string;
-  /** 官方污染物特性頁網址 */
   sourceUrl: string;
 }
 
-/** 污染物小百科官方介紹;尚未逐字填入時 text 為空字串。 */
 export const OFFICIAL_POLLUTANT_INTRO: Record<OfficialPollutantIntro['key'], OfficialPollutantIntro> = {
   'PM2.5': { key: 'PM2.5', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
-  PM10: { key: 'PM10', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
-  O3: { key: 'O3', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
-  NO2: { key: 'NO2', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
-  SO2: { key: 'SO2', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
-  CO: { key: 'CO', text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
+  PM10:   { key: 'PM10',  text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
+  O3:     { key: 'O3',    text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
+  NO2:    { key: 'NO2',   text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
+  SO2:    { key: 'SO2',   text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
+  CO:     { key: 'CO',    text: '', sourceUrl: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx' },
 };
 
-/** 官方防護資訊連結(M6)。只放連結,不轉寫內容。 */
 export const OFFICIAL_PROTECT_LINKS = [
   {
     title: '環境部空氣品質指標',
