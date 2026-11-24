@@ -12,6 +12,7 @@ export interface IOPSummary {
   trigger_samples: number;
   uav_samples: number;
   aerosol_samples: number;
+  lcs_sites?: number;   // 微型感測器測站數（舊版後端沒有這個欄位）
 }
 
 export interface VOCsVariable {
@@ -115,6 +116,51 @@ export function getAerosolCSVUrl(
   if (site) params.set('site', site);
   const qs = params.toString();
   return `${BASE}/${encodeURIComponent(iopId)}/aerosol.csv${qs ? `?${qs}` : ''}`;
+}
+
+// ── 微型感測器（LCS）──────────────────────────────────────────────────────────
+
+export interface LCSVariable {
+  variables_id: number;
+  variables_name: string;
+  unit: string;
+}
+
+export interface LCSSite {
+  site: string;
+  device_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface LCSRow {
+  site: string;
+  obs_time: string;          // 'YYYY-MM-DD HH:MM'，台灣時間，該小時開始
+  values: Record<string, number | string | null>;   // 'QC' = QC 剔除，null = 缺值
+}
+
+export interface LCSTable {
+  iop_id: string;
+  variables: LCSVariable[];
+  sites: LCSSite[];
+  rows: LCSRow[];
+}
+
+function lcsQuery(site?: string): string {
+  const params = new URLSearchParams();
+  if (site) params.set('site', site);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export async function fetchLCS(iopId: string, site?: string): Promise<LCSTable> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(iopId)}/lcs${lcsQuery(site)}`);
+  if (!res.ok) throw new Error(`無法取得微型感測器資料（HTTP ${res.status}）`);
+  return res.json();
+}
+
+export function getLCSCSVUrl(iopId: string, site?: string): string {
+  return `${BASE}/${encodeURIComponent(iopId)}/lcs.csv${lcsQuery(site)}`;
 }
 
 // ── 空間推估圖 ────────────────────────────────────────────────────────────────

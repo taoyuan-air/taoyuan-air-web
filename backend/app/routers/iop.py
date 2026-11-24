@@ -1,22 +1,3 @@
-"""
-IOP 密集觀測 API（資料表見 database/iop_schema.sql）
-
-  GET /api/iop                                   IOP 清單與各類採樣罐數
-  GET /api/iop/vocs/variables                    VOCs 變數（59 種物種與單位）
-  GET /api/iop/{iop_id}/vocs                     VOCs 採樣資料表（一罐一列，變數各一欄）
-  GET /api/iop/{iop_id}/vocs.csv                 同上，下載 CSV
-  GET /api/iop/aerosol/variables                 氣膠化學變數（6 項與單位）
-  GET /api/iop/{iop_id}/aerosol                  氣膠化學資料表（一張濾紙一列，變數各一欄）
-  GET /api/iop/{iop_id}/aerosol.csv              同上，下載 CSV
-  GET /api/iop/{iop_id}/spatial-images           空間推估圖可用日期清單
-  GET /api/iop/{iop_id}/spatial-images/{type}/{filename}  serve 單張圖片
-
-/vocs 與 /vocs.csv 可帶篩選：
-  sampling_type=trigger|uav   site=Guanyin|Dayuan   variables=1,2,25（variables_id，逗號分隔）
-  /aerosol 與 /aerosol.csv 可帶篩選：
-  pm_size=PM2.5|PM1   site=Guanyin|Xinwu|NCU   variables=1,2
-"""
-
 import csv
 import io
 import re
@@ -31,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..schemas.iop import (
-    AerosolSample, AerosolTable, IOPSummary, IOPVariable, VOCsSample, VOCsTable, VOCsVariable,
+    AerosolSample, AerosolTable, IOPSummary, IOPVariable, LCSRow, LCSSite, LCSTable,
+    VOCsSample, VOCsTable, VOCsVariable,
 )
 
 # ── 空間推估圖根目錄（相對於 backend/ 目錄往上兩層到 repo root）─────────────────
@@ -150,15 +132,24 @@ async def _load_table(
 
 @router.get("", response_model=list[IOPSummary])
 async def list_iops(db: AsyncSession = Depends(get_db)):
-    """IOP 清單，附各類 VOCs 採樣罐數。"""
-    result = await db.execute(text("""
+    """IOP 清單，附各類 VOCs 採樣罐數、氣膠化學濾紙數、微型感測器測站數。"""
+    # 還沒執行 iop_lcs_schema.sql 的資料庫也要能列出 IOP
+    exists = (await db.execute(text(
+        "SELECT to_regclass('iop_lcs_samples') IS NOT NULL"
+    ))).one()
+    lcs_count = (
+        "(SELECT COUNT(DISTINCT l.site) FROM iop_lcs_samples l WHERE l.iop_id = e.iop_id)"
+        if exists[0] else "0"
+    )
+    result = await db.execute(text(f"""
         SELECT e.iop_id, e.iop_name, e.start_date, e.end_date, e.description,
             (SELECT COUNT(*) FROM iop_vocs_samples s
             WHERE s.iop_id = e.iop_id AND s.sampling_type = 'trigger') AS trigger_samples,
             (SELECT COUNT(*) FROM iop_vocs_samples s
             WHERE s.iop_id = e.iop_id AND s.sampling_type = 'uav')     AS uav_samples,
             (SELECT COUNT(*) FROM iop_aerosol_samples a
-            WHERE a.iop_id = e.iop_id)                                 AS aerosol_samples
+            WHERE a.iop_id = e.iop_id)                                 AS aerosol_samples,
+            {lcs_count}                                                AS lcs_sites
         FROM iop_events e
         ORDER BY e.start_date
     """))
@@ -320,6 +311,113 @@ async def download_aerosol_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ─── 微型感測器（LCS）────────────────────────────────────────────────────────
+
+async def _load_lcs_table(
+    db: AsyncSession,
+    iop_id: str,
+    site: Optional[str],
+    variables: Optional[str],
+) -> LCSTable:
+    await _ensure_iop(db, iop_id)
+    var_list = await _load_variables(db, _parse_variable_ids(variables), "iop_lcs_variables")
+    var_ids = [v.variables_id for v in var_list]
+
+    where = ["iop_id = :iop"]
+    params: dict = {"iop": iop_id}
+    if site:
+        where.append("site = :site")
+        params["site"] = site
+
+    sample_rows = (await db.execute(
+        text(
+            "SELECT sample_id, site, TO_CHAR(sample_time, 'YYYY-MM-DD HH24:MI') AS sample_time, "
+            "device_id, latitude, longitude "
+            f"FROM iop_lcs_samples WHERE {' AND '.join(where)} ORDER BY site, sample_time"
+        ),
+        params,
+    )).mappings().all()
+
+    # 測站資訊取每站第一筆（同一 IOP 同一站的設備與位置相同）
+    sites: dict[str, LCSSite] = {}
+    for r in sample_rows:
+        sites.setdefault(r["site"], LCSSite(
+            site=r["site"],
+            device_id=r["device_id"],
+            latitude=float(r["latitude"]) if r["latitude"] is not None else None,
+            longitude=float(r["longitude"]) if r["longitude"] is not None else None,
+        ))
+    if not sample_rows or not var_ids:
+        return LCSTable(iop_id=iop_id, variables=var_list, sites=list(sites.values()), rows=[])
+
+    data_result = await db.execute(
+        text(
+            "SELECT sample_id, variables_id, value, flag FROM iop_lcs_data "
+            "WHERE sample_id IN :sids AND variables_id IN :vids"
+        ).bindparams(bindparam("sids", expanding=True), bindparam("vids", expanding=True)),
+        {"sids": [r["sample_id"] for r in sample_rows], "vids": var_ids},
+    )
+    values: dict[int, dict[str, object]] = defaultdict(dict)
+    for r in data_result.mappings().all():
+        values[r["sample_id"]][str(r["variables_id"])] = (
+            float(r["value"]) if r["value"] is not None else r["flag"]
+        )
+
+    rows = [
+        LCSRow(site=r["site"], obs_time=r["sample_time"],
+               values={str(v): values.get(r["sample_id"], {}).get(str(v)) for v in var_ids})
+        for r in sample_rows
+    ]
+    return LCSTable(iop_id=iop_id, variables=var_list, sites=list(sites.values()), rows=rows)
+
+
+@router.get("/lcs/variables", response_model=list[IOPVariable])
+async def list_lcs_variables(db: AsyncSession = Depends(get_db)):
+    """微型感測器量測項目，依原始檔欄位順序。"""
+    return await _load_variables(db, None, "iop_lcs_variables")
+
+
+@router.get("/{iop_id}/lcs", response_model=LCSTable)
+async def get_lcs(
+    iop_id: str,
+    site: Optional[str] = Query(None, description="測站，如 Guanyin、Xinwu、NCU，不填為全部"),
+    variables: Optional[str] = Query(None, description="variables_id，逗號分隔，不填為全部"),
+    db: AsyncSession = Depends(get_db),
+):
+    """微型感測器資料表：一站 × 一小時一列，values 以 variables_id 為 key；QC 剔除為 'QC'，缺值為 null。"""
+    return await _load_lcs_table(db, iop_id, site, variables)
+
+
+@router.get("/{iop_id}/lcs.csv")
+async def download_lcs_csv(
+    iop_id: str,
+    site: Optional[str] = Query(None),
+    variables: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """下載 CSV（UTF-8 含 BOM，Excel 可直接開啟）。"""
+    table = await _load_lcs_table(db, iop_id, site, variables)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["IOP", "測站", "時間（台灣時間，該小時開始）"]
+                    + [f"{v.variables_name} ({v.unit})" for v in table.variables])
+    for r in table.rows:
+        writer.writerow(
+            [table.iop_id, r.site, r.obs_time]
+            + ["" if r.values[str(v.variables_id)] is None else r.values[str(v.variables_id)]
+               for v in table.variables]
+        )
+
+    filename = f"LCS_{iop_id}_{site or 'all'}.csv"
+    return Response(
+        content="\ufeff" + buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
 
 
 # ─── 空間推估圖 ──────────────────────────────────────────────────────────────

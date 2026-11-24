@@ -13,6 +13,7 @@ class IOPSummary(BaseModel):
     trigger_samples: int   # VOCs 觸發採樣罐數
     uav_samples: int       # 無人機 VOCs 採樣罐數
     aerosol_samples: int   # 氣膠化學濾紙數
+    lcs_sites: int = 0     # 微型感測器測站數
 
 
 class IOPVariable(BaseModel):
@@ -54,3 +55,25 @@ class AerosolTable(BaseModel):
     iop_id: str
     variables: list[IOPVariable]
     samples: list[AerosolSample]
+
+
+class LCSSite(BaseModel):
+    site: str
+    device_id: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
+
+
+class LCSRow(BaseModel):
+    site: str
+    obs_time: str                # 'YYYY-MM-DD HH:MM'，台灣時間，代表該小時的開始
+    # key = variables_id（字串）；value = 數值、'QC'（QC 剔除），或缺值時為 None
+    values: dict[str, Union[float, str, None]]
+
+
+class LCSTable(BaseModel):
+    iop_id: str
+    variables: list[IOPVariable]
+    sites: list[LCSSite]
+    rows: list[LCSRow]
+
