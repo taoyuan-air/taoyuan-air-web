@@ -73,6 +73,8 @@ data/raw/
 │   │   ├── AersolChemistry_PM2p5FilterSample_Guanyin_2026IOP1_TYDEPproject.xlsx
 │   │   ├── AersolChemistry_PM2p5FilterSample_NCU_2026IOP1_TYDEPproject.xlsx
 │   │   └── AersolChemistry_PM2p5FilterSample_Xinwu_2026IOP1_TYDEPproject.xlsx
+│   ├── Hg/                # 大氣汞採樣（GEM/GOM/PBM，一天一筆；IOP1 Guanyin/Xinwu/Zhongli、IOP2 Dayuan/Guanyin/Zhongli）
+│   │   └── Hg_Sampler_{測站}_2026IOP{1,2}_TYDEPproject.xlsx（6 個）
 │   ├── LCS/               # 微型感測器逐時資料（IOP1 Guanyin/NCU/Xinwu、IOP2 Dayuan/Guanyin/NCU；# 開頭為檔頭）
 │   │   └── LCS_AeroboxGas_L2_{測站}_2026IOP{1,2}_TYDEPproject.txt（6 個）
 │   └── VOCs/              # VOCs 採罐樣品（觸發/無人機；Guanyin IOP1、Dayuan IOP2）
@@ -152,6 +154,7 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | IOP VOCs | `scripts/import_iop_vocs.py` | 讀 `raw/IOP/VOCs/*.xlsx`（觸發採樣、無人機採樣）；IOP 以檔名為準 |
 | IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 讀 `raw/IOP/Aerosol/*.xlsx`（PM2.5、PM1 濾紙）；IOP 以檔名為準 |
+| IOP 大氣汞 | `scripts/import_iop_hg.py` | 讀 `raw/IOP/Hg/Hg_Sampler_*.xlsx`；IOP 以檔名為準；實際採樣時間依程式內 `SCHEDULE_2026` 對應（IOP2 檔案的日期沿用 IOP1） |
 | IOP 微型感測器 | `scripts/import_iop_lcs.py` | 讀 `raw/IOP/LCS/LCS_*.txt`（逐時，8 項）；IOP 以檔頭／檔名為準；-999 缺值不匯入、-888 存成 QC |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |

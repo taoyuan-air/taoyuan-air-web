@@ -14,6 +14,7 @@ class IOPSummary(BaseModel):
     uav_samples: int       # 無人機 VOCs 採樣罐數
     aerosol_samples: int   # 氣膠化學濾紙數
     lcs_sites: int = 0     # 微型感測器測站數
+    hg_samples: int = 0    # 大氣汞採樣天數
 
 
 class IOPVariable(BaseModel):
@@ -77,3 +78,18 @@ class LCSTable(BaseModel):
     sites: list[LCSSite]
     rows: list[LCSRow]
 
+
+class HgSample(BaseModel):
+    sample_id: int
+    site: str
+    sample_date: str             # 'YYYY-MM-DD'
+    start_time: Optional[str]    # 'YYYY-MM-DD HH:MM'，台灣時間
+    end_time: Optional[str]
+    # key = variables_id（字串）；value = 濃度、'NA'/'ND'/'NQ'/'N/A' 標記，或沒有資料時為 None
+    values: dict[str, Union[float, str, None]]
+
+
+class HgTable(BaseModel):
+    iop_id: str
+    variables: list[IOPVariable]
+    samples: list[HgSample]

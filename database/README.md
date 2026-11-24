@@ -20,6 +20,7 @@
 | `iop_schema.sql` | IOP 密集觀測 | IOP 清單與 VOCs 採樣（觸發採樣、無人機採樣） |
 | `iop_aerosol_schema.sql` | IOP 密集觀測 | 氣膠化學濾紙採樣（PM2.5、PM1） |
 | `iop_lcs_schema.sql` | IOP 密集觀測 | 微型感測器（LCS）逐時資料（一站每小時一筆樣本；PM2.5、O3、NO2、CO、TVOC、T、RH、P） |
+| `iop_hg_schema.sql` | IOP 密集觀測 | 大氣汞採樣（GEM、GOM、PBM，一天一筆） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
@@ -275,6 +276,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aod
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_schema.sql           # ← 必須先於其他 iop_*
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_aerosol_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_lcs_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_hg_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
@@ -301,6 +303,9 @@ python scripts/import_iop_aerosol.py
 
 # IOP 微型感測器（需先放好 data/raw/IOP/LCS/LCS_*.txt）
 python scripts/import_iop_lcs.py
+
+# IOP 大氣汞（需先放好 data/raw/IOP/Hg/Hg_Sampler_*.xlsx；2026 採樣時間寫在程式的 SCHEDULE_2026）
+python scripts/import_iop_hg.py
 
 # CWA
 python scripts/import_cwa_stations.py
