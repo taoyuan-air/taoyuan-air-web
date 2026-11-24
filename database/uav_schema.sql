@@ -5,7 +5,9 @@
 -- 機型: V6-850（aircraft）；儀器: Aeromount V4（新版檔名寫作 AMV4）
 -- 資料範圍: 2026-03-30，共 6 次飛行任務
 -- 量測參數: 23 個主要欄位（高度 2 種、氣象 11 種、氣膠 3 種、氣體 7 種）；CO2 為預留欄位
--- 資料流程: txt → 直接匯入 DB（scripts/import_uav.py，新版 L2 gas＋met 與舊版 L3 皆支援）
+-- 資料流程: txt → 直接匯入 DB（scripts/import_uav.py，支援 UAS L2（2026/11 起）、UAV L2 gas＋met、舊版 L3）
+-- 2026-11: UAS 檔名改為 UAS_{儀器}_L2_{gas|o3}_...；O3 由 POM-1782 臭氧儀提供，與 Aeromount-M4 合併為同一趟飛行
+--          -999（缺值）、-888（QC 剔除）不存數值，data_quality 標為 missing / rejected
 -- 注意: agl 欄位作為 agl_m 層鍵，不另存為參數資料
 
 -- 0. 啟用必要擴充功能
@@ -27,6 +29,7 @@ CREATE TABLE IF NOT EXISTS uav_flights (
     longitude         DECIMAL(11, 8) DEFAULT 121.1288,
     altitude_m        DECIMAL(7, 1)  DEFAULT 17.0,      -- 測站海拔高度（公尺）
     max_agl_m         DECIMAL(7, 1),                    -- 該次飛行最大離地高度（公尺）
+    source_format     VARCHAR(10),                      -- 匯入來源格式 old / new / uas（較舊格式不覆蓋較新格式）
     created_at        TIMESTAMP     DEFAULT NOW(),
     updated_at        TIMESTAMP     DEFAULT NOW()
 );
@@ -41,7 +44,8 @@ ALTER TABLE IF EXISTS uav_flights
     ADD COLUMN IF NOT EXISTS takeoff_time TIMESTAMP,
     ADD COLUMN IF NOT EXISTS data_release_date DATE,
     ADD COLUMN IF NOT EXISTS instrument VARCHAR(50),
-    ADD COLUMN IF NOT EXISTS max_agl_m DECIMAL(7, 1);
+    ADD COLUMN IF NOT EXISTS max_agl_m DECIMAL(7, 1),
+    ADD COLUMN IF NOT EXISTS source_format VARCHAR(10);
 
 ALTER TABLE IF EXISTS uav_flights
     ALTER COLUMN flight_direction SET DEFAULT 'ascending',
@@ -124,7 +128,7 @@ CREATE TABLE IF NOT EXISTS uav_data (
     parameter_id VARCHAR(20)   NOT NULL,
     raw_value    VARCHAR(30),                     -- 原始字串值
     value        NUMERIC(12, 4),                  -- 量測數值（NaN → NULL）
-    data_quality VARCHAR(10)   DEFAULT 'good',    -- 'good' 或 'invalid'
+    data_quality VARCHAR(10)   DEFAULT 'good',    -- good / invalid(NaN) / missing(-999) / rejected(-888)
     created_at   TIMESTAMP     DEFAULT NOW(),
     PRIMARY KEY (id, flight_id),
     FOREIGN KEY (flight_id)    REFERENCES uav_flights(flight_id),
@@ -213,7 +217,7 @@ BEGIN
         f.flight_id,
         COUNT(d.flight_id)                                         AS total_records,
         COUNT(CASE WHEN d.data_quality = 'good'    THEN 1 END)    AS valid_records,
-        COUNT(CASE WHEN d.data_quality = 'invalid' THEN 1 END)    AS invalid_records,
+        COUNT(CASE WHEN d.data_quality <> 'good'   THEN 1 END)    AS invalid_records,
         ROUND(
             CASE
                 WHEN COUNT(d.flight_id) = 0 THEN 0

@@ -62,6 +62,7 @@ data/raw/
 ├── uav/                   # 無人機垂直剖面 txt（舊版 L3；新版 L2 直接從 SFTP 讀）
 │                          # 舊版檔名：UAV_V1_L3_{gas|met}_YYYYMMDD_HHMM_Aeromount(V4)_Guanyin.txt
 │                          # 新版檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
+│                          # UAS 檔名（2026/11 起，IOP 資料）：UAS_{Aeromount-M4|POM-1782}_L2_{gas|o3}_YYYYMMDD_HHMM_Guanyin_V1.txt
 │
 ├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
 │                          # 舊版檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
@@ -141,6 +142,26 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 - 檔頭 key 首字大寫（`Max_agl: 300 m`、`Elevation: 17 m`），程式不分大小寫並去除單位
 - 舊檔名（Google 雲端，L3 單檔）：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt`；同一趟若新舊並存，只採用新格式
 
+### UAS（2026/11 起）
+```
+UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt   # 氣象、PM、氣體（O3 為 NaN）
+UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt        # POM 臭氧儀，只有 O3
+ │    │           │   │    │        │     │      └─ 反演版本
+ │    │           │   │    │        │     └─ 測站
+ │    │           │   │    │        └─ 起飛時間（HHMM）
+ │    │           │   │    └─ 觀測日期（YYYYMMDD）
+ │    │           │   └─ 量測主要參數：gas / o3
+ │    │           └─ 資料級別 L2
+ │    └─ 儀器（Aeromount-M4、POM-1782）
+ └─ 無人機系統
+```
+- 目前資料：2026IOP1 觀音 3/30 共 6 趟（POM-1782）、2026IOP2 大園 8/21 共 6 趟（POM-1720）；放在 SFTP `uploads/TYDEP/2026IOP1/UAS/`、`uploads/TYDEP/2026IOP2/UAS/`
+- 同一趟飛行的兩個儀器檔合併為同一個 `flight_id`（`YYYYMMDD_HHMM`）；O3 以 POM 為準
+- `PM2p5` 欄位對應 `PM2.5`；`Max agl: 300 m` 讀為最大離地高度
+- 分隔線後的「單位行」與「欄名行」順序不固定（IOP1 單位在上、IOP2 欄名在上），程式以開頭為 `agl` 的那行當欄名
+- `-999`（Missing_value）、`-888`（QC_rejected）、`NaN` 不存數值，`data_quality` 分別標 `missing`、`rejected`、`invalid`，剖面圖不會畫出
+- 格式優先順序 UAS > UAV_L2 > 舊版；資料庫已是 UAS 的飛行，每小時排程掃到舊格式檔會略過（要強制覆蓋用 `--force`）
+
 ## 匯入腳本對照
 
 | 資料源 | 腳本 | 備註 |
@@ -149,7 +170,7 @@ UAV_L2_met_20260330_1647_AMV4_Guanyin_V1.txt
 | CWA | `scripts/import_cwa_stations.py` | 月更新：`update_cwa_monthly.py` |
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
 | TYDEP 即時 | `scripts/update_tydep_realtime.py` | 讀 `raw/tydep-stations/realtime/*.csv`，`source=realtime`，不覆蓋 history |
-| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV/Guanyin`（遞迴） |
+| UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV/Guanyin`（遞迴）；IOP 的 UAS 檔：`--raw-dir /data/sftp_root/uploads/TYDEP/2026IOP1/UAS`；`--dry-run` 只解析 |
 | WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | IOP VOCs | `scripts/import_iop_vocs.py` | 讀 `raw/IOP/VOCs/*.xlsx`（觸發採樣、無人機採樣）；IOP 以檔名為準 |
