@@ -19,6 +19,8 @@
 | `aod_schema.sql` | AOD 衛星氣膠 | MAIAC MCD19A2 每日 AOD 與 PM2.5 補值模型特徵（0.01° 網格） |
 | `iop_schema.sql` | IOP 密集觀測 | IOP 清單與 VOCs 採樣（觸發採樣、無人機採樣） |
 | `iop_aerosol_schema.sql` | IOP 密集觀測 | 氣膠化學濾紙採樣（PM2.5、PM1） |
+| `iop_lcs_schema.sql` | IOP 密集觀測 | 微型感測器（LCS）逐時資料（一站每小時一筆樣本；PM2.5、O3、NO2、CO、TVOC、T、RH、P） |
+| `iop_hg_schema.sql` | IOP 密集觀測 | 大氣汞採樣（GEM、GOM、PBM，一天一筆） |
 | `naqo_schema.sql` | NAQO 中大空品站 | 中大空品站小時資料本地 cache / history |
 | `auth_schema.sql` | 登入系統 | 使用者資料表 |
 
@@ -29,7 +31,7 @@
 | 資料源 | 檔名範例 | 說明 |
 | --- | --- | --- |
 | WindLidar | 新（SFTP）：`DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt`；舊：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_級別_參數_日期_序號_站點_反演版本 |
-| UAV | 新（SFTP）：`UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt`＋`UAV_L2_met_…`；舊：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_級別_參數_日期_時間_儀器版本_站點_反演版本 |
+| UAV | UAS（IOP，2026/11 起）：`UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt`＋`UAS_POM-1782_L2_o3_…`；新（SFTP）：`UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt`＋`UAV_L2_met_…`；舊：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_級別_參數_日期_時間_儀器版本_站點_反演版本 |
 
 ## 查詢範例
 
@@ -271,8 +273,10 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/exa
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/uav_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/wind_lidar_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aod_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_schema.sql           # ← 必須先於其他 iop_*
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_aerosol_schema.sql
-docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_lcs_schema.sql
+docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/iop_hg_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/naqo_schema.sql
 docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/auth_schema.sql
 ```
@@ -296,6 +300,12 @@ python scripts/import_iop_vocs.py
 
 # IOP 氣膠化學（需先放好 data/raw/IOP/Aerosol/*.xlsx）
 python scripts/import_iop_aerosol.py
+
+# IOP 微型感測器（需先放好 data/raw/IOP/LCS/LCS_*.txt）
+python scripts/import_iop_lcs.py
+
+# IOP 大氣汞（需先放好 data/raw/IOP/Hg/Hg_Sampler_*.xlsx；2026 採樣時間寫在程式的 SCHEDULE_2026）
+python scripts/import_iop_hg.py
 
 # CWA
 python scripts/import_cwa_stations.py

@@ -28,6 +28,8 @@ const C = {
 
 type ActiveView = 'uav' | 'wind-lidar' | 'iop';
 
+const UAV_SITE_ZH: Record<string, string> = { Guanyin: '觀音', Dayuan: '大園' };
+
 /* ──────────────────────────────────────────────────────────── */
 /*  View Switcher Tab Bar                                        */
 /* ──────────────────────────────────────────────────────────── */
@@ -270,8 +272,9 @@ export default function EventsPage() {
 
   // ── 根據 activeView 決定頁面標題（只用於 uav / wind-lidar）─────────────
   const pageTitle  = activeView === 'uav' ? 'UAV 垂直剖面分析' : '風光達剖面時序分析';
+  const uavSite = selectedFlight?.site_name ?? 'Guanyin';
   const pageSubtitle = activeView === 'uav'
-    ? '無人機大氣量測 · Guanyin(觀音)站'
+    ? `無人機大氣量測 · ${uavSite}${UAV_SITE_ZH[uavSite] ? `(${UAV_SITE_ZH[uavSite]})` : ''}站`
     : '風光達觀測 · L02240328_Guanyin(觀音) 測站';
   const pageIcon = activeView === 'uav'
     ? <Plane size={20} color={C.rose} strokeWidth={2} />

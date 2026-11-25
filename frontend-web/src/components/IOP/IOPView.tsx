@@ -9,12 +9,14 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map } from 'lucide-react';
+import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map, Radio, Droplets } from 'lucide-react';
 import { fetchIOPs, type IOPSummary } from '@/lib/iopApi';
 import { fetchStations, type StationInfo } from '@/lib/windLidarApi';
 import IOPWindLidar from './IOPWindLidar';
 import IOPVocsTable from './IOPVocsTable';
 import IOPAerosolTable from './IOPAerosolTable';
+import IOPLcsTable from './IOPLcsTable';
+import IOPHgTable from './IOPHgTable';
 import IOPSpatialPM25 from './IOPSpatialPM25';
 
 const C = {
@@ -51,7 +53,7 @@ function calcWindDays(dates: string[], iopStart: string, iopEnd: string): number
   return dates.filter((d) => d >= iopStart && d <= iopEnd).length;
 }
 
-type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol';
+type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol' | 'lcs' | 'hg';
 
 // ── IOP 選擇卡片（橫向） ─────────────────────────────────────────────────────
 function IOPCard({
@@ -66,6 +68,8 @@ function IOPCard({
   const [hovered, setHovered] = useState(false);
   const hasVocsData = iop.trigger_samples > 0 || iop.uav_samples > 0;
   const hasAerosolData = iop.aerosol_samples > 0;
+  const lcsSites = iop.lcs_sites ?? 0;
+  const hgSamples = iop.hg_samples ?? 0;
   const officialDays = calcDays(iop.start_date, iop.end_date);
   const startZH = formatDateZH(iop.start_date);
   const endZH   = formatDateZH(iop.end_date);
@@ -192,12 +196,26 @@ function IOPCard({
             value={iop.aerosol_samples > 0 ? `${iop.aerosol_samples} 筆` : '—'}
             hovered={hovered}
           />
+          {/* 微型感測器 */}
+          <StatCell
+            icon={<Radio size={13} strokeWidth={2} color={C.rose} />}
+            label="微型感測器"
+            value={lcsSites > 0 ? `${lcsSites} 站` : '—'}
+            hovered={hovered}
+          />
+          {/* 大氣汞 */}
+          <StatCell
+            icon={<Droplets size={13} strokeWidth={2} color={C.rose} />}
+            label="大氣汞"
+            value={hgSamples > 0 ? `${hgSamples} 筆` : '—'}
+            hovered={hovered}
+          />
         </div>
 
         <style>{`
           .iop-stat-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
           }
           @media (max-width: 600px) {
@@ -210,7 +228,7 @@ function IOPCard({
 
         {/* 第四行：資料狀態標語 + 箭頭 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          {!hasVocsData && !hasAerosolData && (
+          {!hasVocsData && !hasAerosolData && lcsSites === 0 && hgSamples === 0 && (
             <span
               style={{
                 padding: '4px 11px', borderRadius: 999,
@@ -306,6 +324,8 @@ function IOPSubTabBar({
     { id: 'wind-lidar',   label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
     { id: 'vocs',         label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
     { id: 'aerosol',      label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
+    { id: 'lcs',          label: '微型感測器',          icon: <Radio size={14} strokeWidth={2} /> },
+    { id: 'hg',           label: '大氣汞',              icon: <Droplets size={14} strokeWidth={2} /> },
   ];
 
   return (
@@ -317,6 +337,8 @@ function IOPSubTabBar({
         border: `1px solid ${C.roseBorder}`,
         boxShadow: C.glassShadow,
         width: 'fit-content',
+        maxWidth: '100%',
+        overflowX: 'auto',
       }}
     >
       {tabs.map((tab) => {
@@ -326,7 +348,7 @@ function IOPSubTabBar({
             key={tab.id}
             onClick={() => onChange(tab.id)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 7,
+              display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0, whiteSpace: 'nowrap',
               padding: '7px 18px', borderRadius: 999, border: 'none',
               cursor: 'pointer', fontSize: 12,
               fontWeight: isActive ? 800 : 600,
@@ -583,6 +605,20 @@ export default function IOPView() {
           )}
           {subTab === 'aerosol' && (
             <IOPAerosolTable
+              iopId={selectedIop.iop_id}
+              iopStart={selectedIop.start_date}
+              iopEnd={selectedIop.end_date}
+            />
+          )}
+          {subTab === 'lcs' && (
+            <IOPLcsTable
+              iopId={selectedIop.iop_id}
+              iopStart={selectedIop.start_date}
+              iopEnd={selectedIop.end_date}
+            />
+          )}
+          {subTab === 'hg' && (
+            <IOPHgTable
               iopId={selectedIop.iop_id}
               iopStart={selectedIop.start_date}
               iopEnd={selectedIop.end_date}
