@@ -230,8 +230,15 @@ export default function IOPHgTable({ iopId }: Props) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {allSites.length > 1 && (
-            <>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, marginRight: 10 }}>測站</span>
+            <div
+              style={{
+                display: 'flex', gap: 6, padding: '5px',
+                background: 'rgba(255,255,255,0.70)',
+                borderRadius: 999,
+                border: `1px solid ${C.roseBorder}`,
+                boxShadow: C.glassShadow,
+              }}
+            >
               {(['all', ...allSites]).map((s) => {
                 const isActive = siteFilter === s;
                 return (
@@ -239,21 +246,20 @@ export default function IOPHgTable({ iopId }: Props) {
                     key={s}
                     onClick={() => setSiteFilter(s)}
                     style={{
-                      padding: '5px 12px', borderRadius: 999,
-                      border: `1px solid ${isActive ? C.rose : 'rgba(72,149,236,0.20)'}`,
-                      background: isActive ? C.roseAlpha : 'transparent',
-                      color: isActive ? C.rose : C.muted,
-                      fontSize: 11, fontWeight: isActive ? 700 : 500,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'all 0.12s',
+                      padding: '7px 18px', borderRadius: 999, border: 'none',
+                      cursor: 'pointer', fontSize: 12, fontWeight: isActive ? 800 : 600,
+                      color: isActive ? '#fff' : C.muted,
+                      background: isActive ? C.rose : 'transparent',
+                      boxShadow: isActive ? '0 2px 10px rgba(72,149,236,0.30)' : 'none',
+                      transition: 'all 0.15s', fontFamily: 'inherit',
                     }}
                     aria-pressed={isActive}
                   >
-                    {s === 'all' ? '全部' : s}
+                    {s === 'all' ? '全部測站' : s}
                   </button>
                 );
               })}
-            </>
+            </div>
           )}
         </div>
 

@@ -216,10 +216,6 @@ export default function IOPAerosolTable({ iopId }: Props) {
         if (cancelled || !mountedRef.current) return;
         setVariables(data.variables);
         setSamples(data.samples);
-        // 只在「全部站」時更新測站清單，避免篩選後清單縮減
-        if (siteFilter === 'all') {
-          setAllSites(Array.from(new Set(data.samples.map((s) => s.site))).sort());
-        }
         // 首次載入時預設全選所有欄位（氣膠成分數量少，不需要預設篩選）
         setShownIds((prev) => {
           if (prev.size === 0) {
@@ -238,6 +234,18 @@ export default function IOPAerosolTable({ iopId }: Props) {
 
     return () => { cancelled = true; };
   }, [iopId, pmFilter, siteFilter]);
+
+  // 獨立取全部測站清單（不受 pmFilter / siteFilter 影響，換 iopId 才重跑）
+  useEffect(() => {
+    let cancelled = false;
+    fetchAerosol(iopId)
+      .then((data) => {
+        if (cancelled || !mountedRef.current) return;
+        setAllSites(Array.from(new Set(data.samples.map((s) => s.site))).sort());
+      })
+      .catch(() => { /* 取不到就維持空陣列，不影響主資料顯示 */ });
+    return () => { cancelled = true; };
+  }, [iopId]);
 
   const shownVars = variables.filter((v) => shownIds.has(v.variables_id));
 
@@ -270,17 +278,46 @@ export default function IOPAerosolTable({ iopId }: Props) {
       {/* ── 篩選列 ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
 
-        {/* 左側：粒徑篩選 */}
+        {/* 左側：地點篩選（白底藍色膠囊）+ 粒徑篩選（框線樣式） */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              display: 'flex', gap: 6, padding: '5px',
-              background: 'rgba(255,255,255,0.70)',
-              borderRadius: 999,
-              border: `1px solid ${C.roseBorder}`,
-              boxShadow: C.glassShadow,
-            }}
-          >
+
+          {/* 測站篩選（動態，有多站時才顯示）— 白底藍色選擇樣式 */}
+          {allSites.length > 1 && (
+            <div
+              style={{
+                display: 'flex', gap: 6, padding: '5px',
+                background: 'rgba(255,255,255,0.70)',
+                borderRadius: 999,
+                border: `1px solid ${C.roseBorder}`,
+                boxShadow: C.glassShadow,
+              }}
+            >
+              {(['all', ...allSites]).map((s) => {
+                const isActive = siteFilter === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSiteFilter(s)}
+                    style={{
+                      padding: '7px 18px', borderRadius: 999, border: 'none',
+                      cursor: 'pointer', fontSize: 12, fontWeight: isActive ? 800 : 600,
+                      color: isActive ? '#fff' : C.muted,
+                      background: isActive ? C.rose : 'transparent',
+                      boxShadow: isActive ? '0 2px 10px rgba(72,149,236,0.30)' : 'none',
+                      transition: 'all 0.15s', fontFamily: 'inherit',
+                    }}
+                    aria-pressed={isActive}
+                  >
+                    {s === 'all' ? '全部測站' : s}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 粒徑篩選 — 框線樣式 */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, marginRight: 8, marginLeft: 18 }}>粒徑</span>
             {(['all', 'PM2.5', 'PM1'] as PmFilter[]).map((pm) => {
               const isActive = pm === pmFilter;
               return (
@@ -288,12 +325,13 @@ export default function IOPAerosolTable({ iopId }: Props) {
                   key={pm}
                   onClick={() => { setPmFilter(pm); setSiteFilter('all'); }}
                   style={{
-                    padding: '7px 18px', borderRadius: 999, border: 'none',
-                    cursor: 'pointer', fontSize: 12, fontWeight: isActive ? 800 : 600,
-                    color: isActive ? '#fff' : C.muted,
-                    background: isActive ? C.rose : 'transparent',
-                    boxShadow: isActive ? '0 2px 10px rgba(72,149,236,0.30)' : 'none',
-                    transition: 'all 0.15s', fontFamily: 'inherit',
+                    padding: '5px 12px', borderRadius: 999,
+                    border: `1px solid ${isActive ? C.rose : 'rgba(72,149,236,0.20)'}`,
+                    background: isActive ? C.roseAlpha : 'transparent',
+                    color: isActive ? C.rose : C.muted,
+                    fontSize: 11, fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'all 0.12s',
                   }}
                   aria-pressed={isActive}
                 >
@@ -302,34 +340,6 @@ export default function IOPAerosolTable({ iopId }: Props) {
               );
             })}
           </div>
-
-          {/* 測站篩選（動態，有多站時才顯示） */}
-          {allSites.length > 1 && (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.hint, marginLeft: 15, marginRight: 10 }}>測站</span>
-              {(['all', ...allSites]).map((s) => {
-                const isActive = siteFilter === s;
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setSiteFilter(s)}
-                    style={{
-                      padding: '5px 12px', borderRadius: 999,
-                      border: `1px solid ${isActive ? C.rose : 'rgba(72,149,236,0.20)'}`,
-                      background: isActive ? C.roseAlpha : 'transparent',
-                      color: isActive ? C.rose : C.muted,
-                      fontSize: 11, fontWeight: isActive ? 700 : 500,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'all 0.12s',
-                    }}
-                    aria-pressed={isActive}
-                  >
-                    {s === 'all' ? '全部' : s}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* 右側：欄位選擇 + 下載 */}
