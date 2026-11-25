@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map, Radio, Droplets } from 'lucide-react';
+import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map, Radio, Droplets, Plane } from 'lucide-react';
 import { fetchIOPs, type IOPSummary } from '@/lib/iopApi';
 import { fetchStations, type StationInfo } from '@/lib/windLidarApi';
 import IOPWindLidar from './IOPWindLidar';
@@ -18,6 +18,7 @@ import IOPAerosolTable from './IOPAerosolTable';
 import IOPLcsTable from './IOPLcsTable';
 import IOPHgTable from './IOPHgTable';
 import IOPSpatialPM25 from './IOPSpatialPM25';
+import IOPUASView from './IOPUASView';
 
 const C = {
   rose:        '#4895EC',
@@ -53,7 +54,7 @@ function calcWindDays(dates: string[], iopStart: string, iopEnd: string): number
   return dates.filter((d) => d >= iopStart && d <= iopEnd).length;
 }
 
-type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol' | 'lcs' | 'hg';
+type IOPSubTab = 'spatial-pm25' | 'wind-lidar' | 'vocs' | 'aerosol' | 'lcs' | 'hg' | 'uas';
 
 // ── IOP 選擇卡片（橫向） ─────────────────────────────────────────────────────
 function IOPCard({
@@ -326,6 +327,7 @@ function IOPSubTabBar({
     { id: 'aerosol',      label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
     { id: 'lcs',          label: '微型感測器',          icon: <Radio size={14} strokeWidth={2} /> },
     { id: 'hg',           label: '大氣汞',              icon: <Droplets size={14} strokeWidth={2} /> },
+    { id: 'uas',          label: 'UAS 垂直剖面',        icon: <Plane size={14} strokeWidth={2} /> },
   ];
 
   return (
@@ -619,6 +621,13 @@ export default function IOPView() {
           )}
           {subTab === 'hg' && (
             <IOPHgTable
+              iopId={selectedIop.iop_id}
+              iopStart={selectedIop.start_date}
+              iopEnd={selectedIop.end_date}
+            />
+          )}
+          {subTab === 'uas' && (
+            <IOPUASView
               iopId={selectedIop.iop_id}
               iopStart={selectedIop.start_date}
               iopEnd={selectedIop.end_date}

@@ -50,11 +50,6 @@ export interface UAVProfileChartProps {
 
 /* ─── Helpers ────────────────────────────────────────────────────────── */
 
-function parseFlightId(flightId: string): string {
-  const [datePart, timePart] = flightId.split('_');
-  if (!datePart || !timePart) return flightId;
-  return `${datePart.slice(0, 4)}/${datePart.slice(4, 6)}/${datePart.slice(6, 8)} ${timePart.slice(0, 2)}:${timePart.slice(2, 4)}`;
-}
 
 /**
  * Compute per-parameter stats (min/max/hasData) without normalising.
@@ -136,9 +131,6 @@ export function UAVProfileChart({
   // Note: onStatsReady intentionally omitted — callers should wrap with useCallback.
 
   const { status, data: filtered, stats, error } = state;
-  const readableTime = parseFlightId(flightId);
-  const siteName = filtered[0]?.site_name ?? '';
-
   /* ── Loading / idle ── */
   if (status === 'loading' || status === 'idle') {
     return (
@@ -178,20 +170,6 @@ export function UAVProfileChart({
   /* ── Grid of small charts ── */
   return (
     <div>
-      {/* Flight info header — shown once above the grid */}
-      <div className="uav-flight-title">
-        <div className="uav-flight-title-inner">
-          <span className="uav-flight-id">✈ 飛行任務：{flightId}</span>
-          <span className="uav-flight-meta">
-            {readableTime}
-            <span className="uav-flight-meta-sep">·</span>
-            {siteName}
-            <span className="uav-flight-meta-sep">·</span>
-            {flightDirection}
-          </span>
-        </div>
-      </div>
-
       <div className="uav-chart-grid">
         {parameters
           .filter((paramId) => {
