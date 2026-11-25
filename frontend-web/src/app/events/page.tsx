@@ -104,9 +104,9 @@ function ViewSwitcher({
 }
 
 /* ──────────────────────────────────────────────────────────── */
-/*  Flight selector dropdown                                     */
+/*  Flight selector: site tabs + mission dropdown               */
 /* ──────────────────────────────────────────────────────────── */
-function FlightDropdown({
+function FlightSelector({
   flights,
   selected,
   onSelect,
@@ -115,77 +115,148 @@ function FlightDropdown({
   selected: string;
   onSelect: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const current = flights.find((f) => f.flight_id === selected);
+  // Derive unique sites in the order they first appear
+  const sites = Array.from(
+    flights.reduce<Map<string, string>>((m, f) => {
+      const key = f.site_name ?? 'Unknown';
+      if (!m.has(key)) m.set(key, key);
+      return m;
+    }, new Map()).keys()
+  );
+
+  // Determine which site the currently selected flight belongs to
+  const currentFlight = flights.find((f) => f.flight_id === selected);
+  const currentSite   = currentFlight?.site_name ?? sites[0] ?? '';
+
+  const [activeSite, setActiveSite] = useState<string>(currentSite);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Keep activeSite in sync when the parent changes the selected flight externally
+  useEffect(() => {
+    if (currentFlight?.site_name) setActiveSite(currentFlight.site_name);
+  }, [currentFlight?.site_name]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function handle(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [dropdownOpen]);
+
+  const siteMissions = flights.filter((f) => f.site_name === activeSite);
+  const selectedMission = flights.find((f) => f.flight_id === selected && f.site_name === activeSite);
 
   return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px', borderRadius: 999, cursor: 'pointer',
-          background: C.glass,
-          border: `1px solid ${C.roseBorder}`,
-          boxShadow: C.glassShadow,
-          fontSize: 14, fontWeight: 700, color: C.rose,
-          transition: 'all 0.15s',
-        }}
-      >
-        <Plane size={16} strokeWidth={2} />
-        {current
-          ? `${current.flight_id} — ${current.site_name ?? ''}`
-          : '選擇飛行任務'}
-        <ChevronDown
-          size={15}
-          strokeWidth={2.5}
-          style={{ transition: 'transform 0.15s', transform: open ? 'rotate(180deg)' : 'none' }}
-        />
-      </button>
-
-      {open && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 300,
-            background: '#fff',
-            border: `1px solid ${C.roseBorder}`,
-            borderRadius: 14, boxShadow: '0 8px 32px rgba(30,58,95,0.18)',
-            minWidth: 280, overflow: 'hidden',
-          }}
-        >
-          {flights.map((f, i) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      {/* ── Site tabs ── */}
+      <div style={{
+        display: 'flex', gap: 4, padding: 4,
+        background: 'rgba(72,149,236,0.07)',
+        border: `1px solid ${C.roseBorder}`,
+        borderRadius: 999,
+      }}>
+        {sites.map((site) => {
+          const isActive = site === activeSite;
+          return (
             <button
-              key={f.flight_id}
-              onClick={() => { onSelect(f.flight_id); setOpen(false); }}
+              key={site}
+              onClick={() => {
+                setActiveSite(site);
+                setDropdownOpen(false);
+                // Auto-select first mission of the new site
+                const first = flights.find((f) => f.site_name === site);
+                if (first) onSelect(first.flight_id);
+              }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', textAlign: 'left',
-                padding: '12px 18px',
-                border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: selected === f.flight_id ? 700 : 500,
-                color: selected === f.flight_id ? C.rose : C.text,
-                background: selected === f.flight_id ? C.roseAlpha : 'transparent',
-                borderBottom: i < flights.length - 1 ? '1px solid rgba(30,58,95,0.08)' : 'none',
-                transition: 'background-color 0.12s',
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: isActive ? 800 : 600,
+                color: isActive ? '#fff' : C.muted,
+                background: isActive ? C.rose : 'transparent',
+                boxShadow: isActive ? `0 2px 8px ${C.rose}44` : 'none',
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
               }}
             >
-              <div
-                style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: selected === f.flight_id ? C.rose : 'rgba(30,58,95,0.4)',
-                }}
-              />
-              <span style={{ flex: 1 }}>
-                {f.flight_id}
-                <span style={{ marginLeft: 8, fontSize: 12, color: C.hint, fontWeight: 500 }}>
-                  {f.site_name} · {f.flight_direction}
-                </span>
-              </span>
+              <Plane size={13} strokeWidth={2} />
+              {site}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
+
+      {/* ── Mission dropdown ── */}
+      <div ref={dropdownRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setDropdownOpen((o) => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
+            background: C.glass,
+            border: `1px solid ${C.roseBorder}`,
+            boxShadow: C.glassShadow,
+            fontSize: 13, fontWeight: 700, color: C.rose,
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {selectedMission
+            ? selectedMission.flight_id
+            : '選擇任務'}
+          <ChevronDown
+            size={14}
+            strokeWidth={2.5}
+            style={{ transition: 'transform 0.15s', transform: dropdownOpen ? 'rotate(180deg)' : 'none' }}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <div
+            style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 300,
+              background: '#fff',
+              border: `1px solid ${C.roseBorder}`,
+              borderRadius: 14, boxShadow: '0 8px 32px rgba(30,58,95,0.18)',
+              minWidth: 260, maxHeight: 320, overflowY: 'auto',
+            }}
+          >
+            {siteMissions.map((f, i) => (
+              <button
+                key={f.flight_id}
+                onClick={() => { onSelect(f.flight_id); setDropdownOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', textAlign: 'left',
+                  padding: '10px 16px',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: selected === f.flight_id ? 700 : 500,
+                  color: selected === f.flight_id ? C.rose : C.text,
+                  background: selected === f.flight_id ? C.roseAlpha : 'transparent',
+                  borderBottom: i < siteMissions.length - 1 ? '1px solid rgba(30,58,95,0.06)' : 'none',
+                  transition: 'background-color 0.12s',
+                }}
+              >
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: selected === f.flight_id ? C.rose : 'rgba(30,58,95,0.35)',
+                }} />
+                <span style={{ flex: 1 }}>
+                  {f.flight_id}
+                  <span style={{ marginLeft: 8, fontSize: 11, color: C.hint, fontWeight: 500 }}>
+                    · {f.flight_direction}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -359,7 +430,7 @@ export default function EventsPage() {
             ) : flights.length === 0 ? (
               <span style={{ fontSize: 13, color: C.hint }}>載入中…</span>
             ) : (
-              <FlightDropdown
+              <FlightSelector
                 flights={flights}
                 selected={selectedId ?? ''}
                 onSelect={(id) => {
@@ -440,16 +511,21 @@ export default function EventsPage() {
         .uav-flight-title { margin-bottom: 16px; }
 
         .uav-flight-title-inner {
-          display: flex; flex-direction: column; gap: 6px;
+          display: flex; flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap;
           background: ${C.glass};
           border: 1px solid rgba(72,149,236,0.14);
           border-radius: 12px;
           box-shadow: 0 2px 12px rgba(72,149,236,0.10), ${C.glassShadow};
-          padding: 14px 20px;
+          padding: 10px 20px;
         }
 
         .uav-flight-id {
           font-size: 15px; font-weight: 800; color: ${C.rose}; letter-spacing: 0.3px;
+          white-space: nowrap;
+        }
+
+        .uav-flight-meta-sep--title {
+          color: ${C.hint}; font-size: 12px; opacity: 0.6;
         }
 
         .uav-flight-meta {
