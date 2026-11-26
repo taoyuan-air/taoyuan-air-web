@@ -10,6 +10,8 @@
 
 import dynamic from 'next/dynamic';
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { BookOpen, Wind } from 'lucide-react';
 import IOPDateSlider from './IOPDateSlider';
 import { fetchPlotData, type PanelKey, type PlotData, type StationInfo } from '@/lib/windLidarApi';
 
@@ -76,6 +78,7 @@ interface IOPWindLidarProps {
 }
 
 export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindLidarProps) {
+  const router = useRouter();
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -143,9 +146,20 @@ export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindL
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 測站標籤 */}
-      <div style={{ fontSize: 12, color: C.hint, fontWeight: 600 }}>
-        測站：{stationInfo.station}　IOP 期間共 {filteredDates.length} 天有資料
+      {/* 標題列：測站資訊 + 儀器介紹按鈕 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: C.hint, fontWeight: 600 }}>
+          測站：{stationInfo.station}　IOP 期間共 {filteredDates.length} 天有資料
+        </div>
+        <button
+          className="iop-instrument-info-btn"
+          onClick={() => router.push('/instruments?tab=wind-lidar')}
+          title="前往風光達儀器介紹"
+        >
+          <Wind size={13} strokeWidth={2.2} />
+          <span className="iop-instrument-info-btn-label">風光達是什麼？</span>
+          <span className="iop-instrument-info-btn-hover-text">移動到儀器介紹 →</span>
+        </button>
       </div>
 
       {/* 日期滑桿 */}
@@ -219,6 +233,61 @@ export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindL
           )}
         </>
       )}
+
+      <style>{`
+        .iop-instrument-info-btn {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1.5px solid ${C.roseBorder};
+          background: rgba(255,255,255,0.80);
+          color: ${C.muted};
+          font-size: 12px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          overflow: hidden;
+          transition: color 0.22s, border-color 0.22s, background 0.22s, box-shadow 0.22s;
+          box-shadow: 0 1px 6px rgba(72,149,236,0.10);
+          flex-shrink: 0;
+        }
+        .iop-instrument-info-btn-label {
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .iop-instrument-info-btn-hover-text {
+          position: absolute;
+          left: 50%; top: 50%;
+          transform: translate(-50%, -50%) translateY(6px);
+          opacity: 0;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          pointer-events: none;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .iop-instrument-info-btn:hover {
+          background: ${C.rose};
+          border-color: ${C.rose};
+          color: #fff;
+          box-shadow: 0 3px 14px rgba(72,149,236,0.35);
+        }
+        .iop-instrument-info-btn:hover .iop-instrument-info-btn-label {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        .iop-instrument-info-btn:hover .iop-instrument-info-btn-hover-text {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0);
+        }
+        .iop-instrument-info-btn:active {
+          transform: scale(0.96);
+        }
+      `}</style>
     </div>
   );
 }
