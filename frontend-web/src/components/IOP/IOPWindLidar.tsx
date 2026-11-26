@@ -146,37 +146,53 @@ export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindL
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* 標題列：測站資訊 + 儀器介紹按鈕 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 12, color: C.hint, fontWeight: 600 }}>
-          測站：{stationInfo.station}　IOP 期間共 {filteredDates.length} 天有資料
+      {/* ── 控制列白框：測站資訊 + 儀器介紹按鈕 + 日期滑桿 ── */}
+      <div
+        style={{
+          background: C.glass,
+          border: '1px solid rgba(72,149,236,0.08)',
+          borderRadius: 16,
+          boxShadow: C.glassShadow,
+          padding: '18px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        {/* 第一行：測站資訊 + 儀器介紹按鈕 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 14, color: C.rose, fontWeight: 800 }}>
+            測站：{stationInfo.station}
+          </div>
+          <button
+            className="iop-instrument-info-btn"
+            onClick={() => router.push('/instruments?tab=wind-lidar')}
+            title="前往風光達儀器介紹"
+          >
+            <Wind size={13} strokeWidth={2.2} />
+            <span className="iop-instrument-info-btn-label">風光達是什麼？</span>
+            <span className="iop-instrument-info-btn-hover-text">移動到儀器介紹 →</span>
+          </button>
         </div>
-        <button
-          className="iop-instrument-info-btn"
-          onClick={() => router.push('/instruments?tab=wind-lidar')}
-          title="前往風光達儀器介紹"
-        >
-          <Wind size={13} strokeWidth={2.2} />
-          <span className="iop-instrument-info-btn-label">風光達是什麼？</span>
-          <span className="iop-instrument-info-btn-hover-text">移動到儀器介紹 →</span>
-        </button>
-      </div>
 
-      {/* 日期滑桿 */}
-      {filteredDates.length > 0 ? (
-        <IOPDateSlider
-          dates={filteredDates}
-          selected={selectedDate}
-          onChange={(d) => setSelectedDate(d)}
-          iopStart={iopStart}
-          iopEnd={iopEnd}
-        />
-      ) : (
-        <div style={{ padding: '24px', textAlign: 'center', color: C.hint,
-          background: C.glass, borderRadius: 14, fontSize: 13, fontWeight: 600 }}>
-          此 IOP 期間無風光達資料
-        </div>
-      )}
+        {/* 灰色分隔線 */}
+        <div style={{ height: 1, background: 'rgba(30,58,95,0.10)' }} />
+
+        {/* 第二行：日期滑桿 */}
+        {filteredDates.length > 0 ? (
+          <IOPDateSlider
+            dates={filteredDates}
+            selected={selectedDate}
+            onChange={(d) => setSelectedDate(d)}
+            iopStart={iopStart}
+            iopEnd={iopEnd}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', color: C.hint, fontSize: 13, fontWeight: 600 }}>
+            此 IOP 期間無風光達資料
+          </div>
+        )}
+      </div>
 
       {/* 圖表區：五個面板縱向排列 */}
       {filteredDates.length > 0 && (

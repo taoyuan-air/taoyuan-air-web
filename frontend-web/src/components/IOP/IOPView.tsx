@@ -323,11 +323,11 @@ function IOPSubTabBar({
   const tabs: { id: IOPSubTab; label: React.ReactNode; icon: React.ReactNode }[] = [
     { id: 'spatial-pm25', label: <>PM<sub style={{ fontSize: '0.72em' }}>2.5</sub> 空間推估</>, icon: <Map size={14} strokeWidth={2} /> },
     { id: 'wind-lidar',   label: 'Wind Lidar 風光達', icon: <Wind size={14} strokeWidth={2} /> },
+    { id: 'uas',          label: 'UAS 垂直剖面',        icon: <Plane size={14} strokeWidth={2} /> },
     { id: 'vocs',         label: 'VOCs 採樣',          icon: <FlaskConical size={14} strokeWidth={2} /> },
     { id: 'aerosol',      label: '氣膠化學',            icon: <Atom size={14} strokeWidth={2} /> },
     { id: 'lcs',          label: '微型感測器',          icon: <Radio size={14} strokeWidth={2} /> },
     { id: 'hg',           label: '大氣汞',              icon: <Droplets size={14} strokeWidth={2} /> },
-    { id: 'uas',          label: 'UAS 垂直剖面',        icon: <Plane size={14} strokeWidth={2} /> },
   ];
 
   return (
