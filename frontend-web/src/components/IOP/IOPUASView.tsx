@@ -13,7 +13,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Plane } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, Plane, BookOpen } from 'lucide-react';
 import {
   fetchFlights,
   fetchProfile,
@@ -137,6 +138,7 @@ function MissionDropdown({
 
 /* ── 主元件 ── */
 export default function IOPUASView({ iopId, iopStart, iopEnd }: Props) {
+  const router = useRouter();
   const [allFlights, setAllFlights]       = useState<FlightSummary[]>([]);
   const [loadError, setLoadError]         = useState<string | null>(null);
   const [flightsLoading, setFlightsLoading] = useState(true);
@@ -327,12 +329,11 @@ export default function IOPUASView({ iopId, iopStart, iopEnd }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* 任務選擇列 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, fontWeight: 800, color: C.muted, whiteSpace: 'nowrap' }}>
             飛行任務
           </span>
-
-          {/* 測站 tabs（僅有多個測站時才顯示）*/}
           {sites.length > 1 && (
             <div style={{
               display: 'flex', gap: 4, padding: 4,
@@ -375,6 +376,18 @@ export default function IOPUASView({ iopId, iopStart, iopEnd }: Props) {
           ) : (
             <span style={{ fontSize: 13, color: C.hint }}>此測站無飛行資料</span>
           )}
+          </div>
+
+          {/* 儀器介紹按鈕 */}
+          <button
+            className="iop-instrument-info-btn"
+            onClick={() => router.push('/instruments?tab=uav')}
+            title="前往 UAV 無人機儀器介紹"
+          >
+            <Plane size={13} strokeWidth={2.2} />
+            <span className="iop-instrument-info-btn-label">UAV 是什麼？</span>
+            <span className="iop-instrument-info-btn-hover-text">移動到儀器介紹 →</span>
+          </button>
         </div>
 
         {/* 分隔線 */}
@@ -426,6 +439,60 @@ export default function IOPUASView({ iopId, iopStart, iopEnd }: Props) {
           border-radius: 16px;
           color: ${C.hint};
           font-size: 14px; font-weight: 600;
+        }
+
+        /* ── 儀器介紹按鈕 ── */
+        .iop-instrument-info-btn {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1.5px solid ${C.roseBorder};
+          background: rgba(255,255,255,0.80);
+          color: ${C.muted};
+          font-size: 12px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          overflow: hidden;
+          transition: color 0.22s, border-color 0.22s, background 0.22s, box-shadow 0.22s;
+          box-shadow: 0 1px 6px rgba(72,149,236,0.10);
+          flex-shrink: 0;
+        }
+        .iop-instrument-info-btn-label {
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .iop-instrument-info-btn-hover-text {
+          position: absolute;
+          left: 50%; top: 50%;
+          transform: translate(-50%, -50%) translateY(6px);
+          opacity: 0;
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          pointer-events: none;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .iop-instrument-info-btn:hover {
+          background: ${C.rose};
+          border-color: ${C.rose};
+          color: #fff;
+          box-shadow: 0 3px 14px rgba(72,149,236,0.35);
+        }
+        .iop-instrument-info-btn:hover .iop-instrument-info-btn-label {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        .iop-instrument-info-btn:hover .iop-instrument-info-btn-hover-text {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0);
+        }
+        .iop-instrument-info-btn:active {
+          transform: scale(0.96);
         }
 
         /* 繼承 events/page.tsx 裡的 uav-* class，確保圖卡樣式一致 */
