@@ -177,6 +177,7 @@ UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt        # POM 臭氧儀，只有 
 | IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 讀 `raw/IOP/Aerosol/*.xlsx`（PM2.5、PM1 濾紙）；IOP 以檔名為準 |
 | IOP 大氣汞 | `scripts/import_iop_hg.py` | 讀 `raw/IOP/Hg/Hg_Sampler_*.xlsx`；IOP 以檔名為準；實際採樣時間依程式內 `SCHEDULE_2026` 對應（IOP2 檔案的日期沿用 IOP1） |
 | IOP 微型感測器 | `scripts/import_iop_lcs.py` | 讀 `raw/IOP/LCS/LCS_*.txt`（逐時，8 項）；IOP 以檔頭／檔名為準；-999 缺值不匯入、-888 存成 QC |
+| IOP WindLidar | `scripts/import_iop_wind_lidar.py` | 讀取sftp上傳資料夾內之IOP資料夾；匯入現有 `wind_lidar_data`；`--iop IOP1\|IOP2` 只匯一期；`--skip-existing` 跳過已匯日期 |
 | TEDS 點源 | `scripts/import_teds_point.py` | `--csv data/raw/teds-point/TEDS12_POINT_WGS84.csv` |
 | TEDS 網格 | `scripts/import_teds_grid.py` | `--csv data/raw/teds-grid/TEDS12.0_total_emission_WGS84.csv` |
 | Exam Point | `scripts/import_exam_point.py` | `raw/exam-point/`（固定源排放檢測） |
