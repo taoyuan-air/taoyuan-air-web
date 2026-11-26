@@ -9,28 +9,12 @@ import { C } from './tokens';
  * variant=short:頁首一行精簡版;variant=full:頁尾完整版 + 官方出處列表。
  */
 const DISCLAIMER_TEXT =
-  '本頁資訊轉載自環境部、衛生福利部國民健康署等官方公開資料，不構成醫療建議。如有健康疑慮請洽醫療專業人員。';
+  '本頁資訊轉載自環境部官方公開資料，不構成醫療建議。如有健康疑慮請洽醫療專業人員。';
 
 const SOURCES = [
   {
     name: '環境部空氣品質監測網-空氣品質指標',
     url: 'https://airtw.moenv.gov.tw/CHT/Information/Standard/AirQualityIndicatorNew.aspx',
-  },
-  {
-    name: '環境部-污染物特性',
-    url: 'https://airtw.moenv.gov.tw/CHT/Encyclopedia/pedia03/pedia3.aspx',
-  },
-  {
-    name: '環境部-空氣品質標準法規',
-    url: 'https://airtw.moenv.gov.tw/CHT/Information/Standard/Rules.aspx',
-  },
-  {
-    name: '環境部空氣品質防護資訊',
-    url: 'https://airtw.moenv.gov.tw/CHT/airprotect.aspx',
-  },
-  {
-    name: '衛生福利部國民健康署-空污自我保護',
-    url: 'https://mohw.gov.tw/cp-2704-82237-1.html',
   },
 ];
 

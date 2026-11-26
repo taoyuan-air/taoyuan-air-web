@@ -31,7 +31,7 @@ export const AQI_LEVELS: AqiLevel[] = [
   { id: 3, min: 101, max: 150, label: '對敏感族群不健康', en: 'Unhealthy for Sensitive Groups', colorName: '橘', hex: '#ff9800', darkText: true },
   { id: 4, min: 151, max: 200, label: '對所有族群不健康', en: 'Unhealthy', colorName: '紅', hex: '#f44336', darkText: false },
   { id: 5, min: 201, max: 300, label: '非常不健康', en: 'Very Unhealthy', colorName: '紫', hex: '#9c27b0', darkText: false },
-  { id: 6, min: 301, max: 500, label: '危害', en: 'Hazardous', colorName: '褐紅', hex: '#1a0028', darkText: false },
+  { id: 6, min: 301, max: 500, label: '危害', en: 'Hazardous', colorName: '褐紅', hex: '#7E0023', darkText: false },
 ];
 
 export type Pollutant = 'PM2.5' | 'PM10' | 'O3_8h' | 'O3_1h' | 'CO_8h' | 'SO2_1h' | 'NO2_1h';
