@@ -2,18 +2,13 @@
 """
 IOP WindLidar 匯入：讀取 SFTP 上傳的 txt 檔，匯入現有的 wind_lidar_data 資料表。
 
-資料來源路徑：
-  data/sftp_root_uploads/TYDEP/2026IOP1/WindLidar
-  data/sftp_root_uploads/TYDEP/2026IOP2/WindLidar
+資料來源路徑（VM 上的 SFTP 上傳資料夾，可用環境變數 SFTP_UPLOADS_DIR 覆寫 /data/sftp_root/uploads）：
+  /data/sftp_root/uploads/TYDEP/2026IOP1/WindLidar
+  /data/sftp_root/uploads/TYDEP/2026IOP2/WindLidar
 
-檔名格式（同既有 import_wind_lidar.py）：
-  新（2026/08 起）：DWL_L1_UVW_20260817_L02240328_Guanyin_V1.txt
-  舊（2026/03–04）：DWL_V1_L1_UVW_20260327_L02240328_Guanyin.txt
-
-與 import_wind_lidar.py 的差異：
-  - 預設資料夾從 data/raw/WindLidar 改為上述兩個 IOP 路徑
-  - 新增 --iop 選項，可只匯入指定 IOP（IOP1 或 IOP2）
-  - 其餘邏輯（解析檔名、建立分區、匯入）完全相同
+檔名格式（2026/11 助理重新命名，儀器序號在最前面）：
+  DWL_L02240328_L1_UVW_20260327_Guanyin_V1.txt
+  儀器_儀器序號_資料級別_量測主要參數_觀測年月日(UTC)_測站_反演版本
 
 用法（專案根目錄）：
   python scripts/import_iop_wind_lidar.py
@@ -47,11 +42,11 @@ except ImportError:
     pass
 
 # ── 路徑設定 ──────────────────────────────────────────────────────────────────
-ROOT_DIR = Path(__file__).resolve().parent.parent
+SFTP_UPLOADS_DIR = Path(os.getenv('SFTP_UPLOADS_DIR', '/data/sftp_root/uploads'))
 
 IOP_DIRS = {
-    'IOP1': ROOT_DIR / 'data' / 'sftp_root' / 'uploads' / 'TYDEP' / '2026IOP1' / 'WindLidar',
-    'IOP2': ROOT_DIR / 'data' / 'sftp_root' / 'uploads' / 'TYDEP' / '2026IOP2' / 'WindLidar',
+    'IOP1': SFTP_UPLOADS_DIR / 'TYDEP' / '2026IOP1' / 'WindLidar',
+    'IOP2': SFTP_UPLOADS_DIR / 'TYDEP' / '2026IOP2' / 'WindLidar',
 }
 
 # ── 資料庫連線設定 ─────────────────────────────────────────────────────────────
@@ -63,13 +58,11 @@ DB_CONFIG = {
     'password': os.getenv('POSTGRES_PASSWORD'),
 }
 
-# ── 檔名解析（同 import_wind_lidar.py）────────────────────────────────────────
-# 新：DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
-# 舊：DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt
+# ── 檔名解析 ──────────────────────────────────────────────────────────────────
+# DWL_L02240328_L1_UVW_20260327_Guanyin_V1.txt（儀器序號在最前面）
 FILENAME_PATTERN = re.compile(
-    r'^DWL_(?:V(?P<old_version>\d+)_)?L(?P<level>\d+)_(?P<params>[A-Za-z]+)_'
-    r'(?P<date>\d{8})_(?P<serial>[A-Za-z0-9]+)_(?P<site>[A-Za-z]+)'
-    r'(?:_V(?P<new_version>\d+))?\.txt$',
+    r'^DWL_(?P<serial>[A-Za-z]\d+)_L(?P<level>\d+)_(?P<params>[A-Za-z]+)_'
+    r'(?P<date>\d{8})_(?P<site>[A-Za-z]+)_V(?P<version>\d+)\.txt$',
     re.IGNORECASE,
 )
 
@@ -115,11 +108,8 @@ def parse_filename(filename: str) -> Optional[dict]:
     m = FILENAME_PATTERN.match(filename)
     if not m:
         return None
-    version = m.group('new_version') or m.group('old_version')
-    if not version:
-        return None
     return {
-        'version':    version,
+        'version':    m.group('version'),
         'level':      m.group('level'),
         'params':     m.group('params'),
         'date':       m.group('date'),
@@ -223,16 +213,32 @@ def parse_txt_file(filepath: Path, station_id: str):
             yield (station_id, measure_time, height_m, *values)
 
 
-def import_txt_file(conn, filepath: Path) -> tuple[int, int, int]:
-    """匯入單一 txt 檔，回傳 (total, valid, invalid)。"""
+def delete_days(cur, station_id: str, measure_times: list[datetime]) -> int:
+    """刪掉同測站、資料涵蓋的每一天（UTC）的舊資料，回傳刪除筆數。"""
+    deleted = 0
+    for start, end in sorted({day_bounds(dt) for dt in measure_times}):
+        cur.execute(
+            """
+            DELETE FROM wind_lidar_data
+            WHERE station_id = %s AND measure_time >= %s AND measure_time < %s
+            """,
+            (station_id, start, end),
+        )
+        deleted += cur.rowcount
+    return deleted
+
+
+def import_txt_file(conn, filepath: Path) -> Optional[tuple[int, int, int, int]]:
+    """匯入單一 txt 檔，回傳 (total, valid, invalid, deleted)；失敗回傳 None。"""
     meta = parse_filename(filepath.name)
     if not meta:
-        print(f'\n    [WARN] 檔名格式不符，跳過：{filepath.name}')
-        return 0, 0, 0
+        print('檔名格式不符，跳過')
+        return None
 
     rows = list(parse_txt_file(filepath, meta['station_id']))
     if not rows:
-        return 0, 0, 0
+        print('沒有可匯入的資料列（檔案內容格式可能不同）')
+        return None
 
     valid   = sum(1 for r in rows if r[3] is not None)   # hsp 有值
     invalid = len(rows) - valid
@@ -240,14 +246,15 @@ def import_txt_file(conn, filepath: Path) -> tuple[int, int, int]:
     try:
         ensure_partitions(conn, [r[1] for r in rows])
         with conn.cursor() as cur:
+            deleted = delete_days(cur, meta['station_id'], [r[1] for r in rows])
             execute_batch(cur, INSERT_SQL, rows, page_size=5000)
         conn.commit()
     except Exception as e:
         conn.rollback()
-        print(f'\n    [ERROR] 匯入失敗：{e}')
-        return 0, 0, 0
+        print(f'[ERROR] 匯入失敗：{e}')
+        return None
 
-    return len(rows), valid, invalid
+    return len(rows), valid, invalid, deleted
 
 
 # ── 主程式 ────────────────────────────────────────────────────────────────────
@@ -325,19 +332,22 @@ def main():
         ]
         print(f'[INFO] 已匯入過 {before - len(txt_files)} 個檔案，略過')
 
-    grand_total = grand_valid = grand_invalid = 0
+    grand_total = grand_valid = grand_invalid = grand_deleted = 0
     failed = 0
 
     for idx, path in enumerate(txt_files, 1):
         print(f'  [{idx:2d}/{len(txt_files)}] {path.name} ...', end=' ', flush=True)
-        total, valid, invalid = import_txt_file(conn, path)
-        if total == 0 and not parse_filename(path.name):
+        result = import_txt_file(conn, path)
+        if result is None:
             failed += 1
-        else:
-            grand_total   += total
-            grand_valid   += valid
-            grand_invalid += invalid
-            print(f'解析 {total:,} 列  (有效:{valid:,} 無效:{invalid:,})')
+            continue
+        total, valid, invalid, deleted = result
+        grand_total   += total
+        grand_valid   += valid
+        grand_invalid += invalid
+        grand_deleted += deleted
+        note = f'，取代舊資料 {deleted:,} 列' if deleted else ''
+        print(f'解析 {total:,} 列  (有效:{valid:,} 無效:{invalid:,}){note}')
 
     conn.close()
 
@@ -348,6 +358,7 @@ def main():
     if grand_total:
         print(f'有效      ：{grand_valid:,}  ({grand_valid / grand_total * 100:.1f}%)')
     print(f'無效      ：{grand_invalid:,}')
+    print(f'取代舊資料：{grand_deleted:,}')
     print('=' * 60)
     if failed:
         sys.exit(1)
