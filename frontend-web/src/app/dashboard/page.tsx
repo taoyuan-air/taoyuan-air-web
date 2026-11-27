@@ -153,8 +153,8 @@ function SecLabel({ title, sub }: { title: React.ReactNode; sub?: string }) {
   );
 }
 
-const GAUGE_SIZE = 158;
-const STROKE_W = 9;
+const GAUGE_SIZE = 210;
+const STROKE_W = 12;
 const GAUGE_R = (GAUGE_SIZE - STROKE_W) / 2;
 const GAUGE_CIRC = 2 * Math.PI * GAUGE_R;
 
@@ -216,65 +216,34 @@ function AQIGauge({ aqi, animationKey }: { aqi: number; animationKey: string }) 
   );
 }
 
-const ARC_R = 45;
-const ARC_CX = 55;
-const ARC_CY = 58;
-const ARC_LEN = Math.PI * ARC_R;
-
-function polarToXY(angleDeg: number) {
-  const rad = (Math.PI * (180 - angleDeg)) / 180;
-  return { x: ARC_CX + ARC_R * Math.cos(rad), y: ARC_CY - ARC_R * Math.sin(rad) };
-}
-
-function GaugeArc({
+function HBar({
   value,
   max,
   markerVal,
   color,
-  unit,
   animationKey,
 }: {
   value: number;
   max: number;
   markerVal: number;
   color: string;
-  unit: string;
   animationKey: string;
 }) {
-  const dashOffset = ARC_LEN * (1 - Math.min(value / max, 1));
-  const markerAngle = Math.min(markerVal / max, 1) * 180;
-  const mp = polarToXY(markerAngle);
-  const rad = (Math.PI * (180 - markerAngle)) / 180;
-  const lx = ARC_CX + (ARC_R + 14) * Math.cos(rad);
-  const ly = ARC_CY - (ARC_R + 14) * Math.sin(rad);
-
+  const pct = Math.min(value / max, 1) * 100;
+  const markerPct = Math.min(markerVal / max, 1) * 100;
   return (
-    <svg width={190} height={90} viewBox="-10 0 120 68" className="mini-arc" aria-hidden="true">
-      <path d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={7} strokeLinecap="round" />
-      <path
-        key={`mini-arc-${animationKey}-${value}-${unit}`}
-        d={`M 10 58 A ${ARC_R} ${ARC_R} 0 0 1 100 58`}
-        fill="none"
-        stroke={color}
-        strokeWidth={7}
-        strokeLinecap="round"
-        strokeDasharray={ARC_LEN}
-        strokeDashoffset={ARC_LEN}
-      >
-        <animate
-          attributeName="stroke-dashoffset"
-          from={ARC_LEN}
-          to={dashOffset}
-          dur="0.8s"
-          fill="freeze"
-          calcMode="linear"
+    <div className="hbar-wrap" key={animationKey}>
+      <div className="hbar-track">
+        <div
+          className="hbar-fill"
+          style={{ width: `${pct}%`, backgroundColor: color }}
         />
-      </path>
-      <line x1={mp.x} y1={mp.y} x2={lx} y2={ly} stroke="rgba(0,0,0,0.28)" strokeWidth={1.5} strokeLinecap="round" />
-      <text x={lx} y={ly - 3} fontSize={9} fill="#aaa" textAnchor="middle">{markerVal}</text>
-      <text x={ARC_CX} y={52} fontSize={20} fontWeight={700} fill={color} textAnchor="middle">{value}</text>
-      <text x={ARC_CX} y={63} fontSize={9} fill="#aaa" textAnchor="middle">{unit}</text>
-    </svg>
+        <div
+          className="hbar-marker"
+          style={{ left: `${markerPct}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -540,7 +509,7 @@ function DashboardStyles() {
         max-width: 100%;
         overflow: hidden;
         align-self: start;    
-        margin-top: 28px;
+        margin-top: 14px;
         background: rgba(255, 255, 255, 0.97);
         border: 1px solid rgba(72, 149, 236, 0.08);
         border-radius: 20px;
@@ -555,7 +524,7 @@ function DashboardStyles() {
         align-items: center;
         gap: 10px;
         color: #4895EC;
-        font-size: 22px;
+        font-size: 26px;
         font-weight: 900;
         letter-spacing: 0;
         flex: 0 0 auto;
@@ -701,11 +670,41 @@ function DashboardStyles() {
       }
 
       .dashboard-first-row {
-        grid-template-columns: minmax(190px, 0.78fr) minmax(430px, 1.9fr);
-        align-items: start;
-        gap: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
         min-height: 0;
         flex: 0 0 auto;
+      }
+
+      /* 桌面：兩欄並排 */
+      .first-row-scroll {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(430px, 2.2fr);
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      .first-row-section {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .first-row-section > .dash-section-label {
+        margin-bottom: 10px;
+      }
+
+      .first-row-label-right {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .first-row-label-right .dash-section-label {
+        margin-bottom: 0;
       }
 
       .dashboard-second-row {
@@ -718,7 +717,7 @@ function DashboardStyles() {
 
       .dashboard-lower-row {
         grid-template-columns: minmax(220px, 2fr) minmax(360px, 3fr);
-        align-items: stretch;
+        align-items: start;
         gap: 40px;
         margin-top: 35px;
         min-height: 0;
@@ -746,7 +745,7 @@ function DashboardStyles() {
         min-height: 16px;
         margin-bottom: 16px;
         color: ${C.text};
-        font-size: 12px;
+        font-size: 16px;
         font-weight: 800;
       }
 
@@ -765,11 +764,18 @@ function DashboardStyles() {
         font-weight: 600;
       }
 
+      .aqi-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+      }
       .aqi-block {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 6px;
+        padding-top: 0;
       }
 
       .aqi-gauge {
@@ -792,8 +798,8 @@ function DashboardStyles() {
       .aqi-gauge-inner {
         position: relative;
         z-index: 1;
-        width: ${GAUGE_SIZE - 46}px;
-        height: ${GAUGE_SIZE - 46}px;
+        width: ${GAUGE_SIZE - 60}px;
+        height: ${GAUGE_SIZE - 60}px;
         border-radius: 50%;
         background: ${C.glass};
         border: 1px solid ${C.glassInner};
@@ -807,151 +813,135 @@ function DashboardStyles() {
       .aqi-label {
         color: ${C.hint};
         font-family: monospace;
-        font-size: 8px;
+        font-size: 10px;
         letter-spacing: 1.5px;
       }
 
       .aqi-gauge-inner strong {
-        font-size: 32px;
-        line-height: 34px;
-        font-weight: 900;
+        font-size: 40px;
+        line-height: 48px;
+        font-weight: 800;
       }
 
       .aqi-pill {
-        margin-top: 4px;
+        margin-top: 6px;
         padding: 2px 8px;
         border: 1.2px solid;
         border-radius: 999px;
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 800;
       }
 
       .aqi-hint {
-        margin-top: 12px;
+        margin-top: 10px;
         color: ${C.hint};
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
-      }
-
-      .pollutant-title-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .mini-gauge-row,
-      .mini-pollut-strip {
-        display: grid;
-      }
-
-      .mini-gauge-row {
-        grid-template-columns: 1fr 1px 1fr;
-        gap: 0 18px;
-        margin-bottom: 18px;
-      }
-
-      .mini-gauge-card {
-        min-width: 0;
-        padding: 6px 4px 2px;
         text-align: center;
       }
 
-      .mini-gauge-card h3 {
-        margin: 0;
-        color: #444;
-        font-size: 17px;
-        line-height: 1;
+      .pollut-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        min-width: 0;
+      }
+
+
+      .pollut-cell {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(72, 149, 236, 0.12);
+        border-radius: 14px;
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .pollut-cell-header {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pollut-cell-name {
+        font-size: 20px;
         font-weight: 800;
+        color: ${C.text};
+        line-height: 1;
       }
 
-      .mini-gauge-card p {
-        margin: 6px 0 4px;
-        color: ${C.muted};
-        font-size: 9px;
+      .pollut-cell-name sub {
+        font-size: 13px;
+      }
+
+      .pollut-cell-sub {
+        font-size: 13px;
         font-weight: 600;
+        color: ${C.muted};
       }
 
-      .mini-gauge-card small {
-        display: block;
-        margin-bottom: 4px;
+      .pollut-cell-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-top: -4px;
+      }
+
+      .pollut-cell-value span {
+        font-size: 32px;
+        font-weight: 400;
+        line-height: 1;
+      }
+
+      .pollut-cell-value small {
+        font-size: 14px;
+        font-weight: 500;
+        color: ${C.hint};
+      }
+
+      .pollut-cell-ref {
+        font-size: 11px;
+        font-weight: 600;
         color: #aaa;
-        font-size: 8px;
+        margin-top: -4px;
       }
 
-      .mini-divider,
+      .hbar-wrap {
+        width: 100%;
+      }
+
+      .hbar-track {
+        position: relative;
+        width: 100%;
+        height: 6px;
+        background: rgba(0, 0, 0, 0.08);
+        border-radius: 999px;
+        overflow: visible;
+      }
+
+      .hbar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.8s ease;
+      }
+
+      .hbar-marker {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 2px;
+        height: 14px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 1px;
+      }
+
       .metric-divider,
       .row-divider {
         background: rgba(0, 0, 0, 0.08);
       }
-
-      .mini-divider {
-        margin: 8px 0;
-      }
-
-      .mini-arc {
-        display: block;
-        margin: 0 auto;
-        overflow: visible;
-        width: 152px;
-        height: 72px;
-      }
-
-      .mini-arc path,
-      .mini-arc text {
-        transition: fill 0.18s ease;
-      }
-
-      .mini-pollut-strip {
-        grid-template-columns: repeat(7, auto);
-        gap: 0 10px;
-      }
-
-      .mini-pollut-card {
-        min-width: 0;
-        padding: 10px 12px;
-        text-align: center;
-      }
-
-      .metric-divider {
-        width: 1px;
-        margin: 8px 0;
-      }
-
-      .mini-pollut-card h4 {
-        margin: 0;
-        color: #555;
-        font-size: 15px;
-        line-height: 1.1;
-        font-weight: 800;
-      }
-
-      .mini-pollut-card p {
-        margin: 6px 0 9px;
-        color: ${C.muted};
-        font-size: 9px;
-        font-weight: 600;
-      }
-
-      .mini-pollut-value {
-        display: inline-flex;
-        align-items: baseline;
-        justify-content: center;
-        gap: 7px;
-      }
-
-      .mini-pollut-value strong {
-        color: #4895EC;
-        font-size: 16px;
-        line-height: 1;
-        font-weight: 800;
-      }
-
-      .mini-pollut-value small {
-        color: #aaa;
-        font-size: 9px;
-        font-weight: 700;
-      }
-
       .advice-card,
       .insight-card {
         display: flex;
@@ -983,7 +973,7 @@ function DashboardStyles() {
 
       .advice-card p {
         color: ${C.muted};
-        font-size: 13px;
+        font-size: 14px;
         line-height: 1.5;
         font-weight: 700;
         min-width: 0;
@@ -1013,7 +1003,7 @@ function DashboardStyles() {
       .insight-copy strong {
         display: block;
         color: ${C.rose};
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
         overflow-wrap: anywhere;
       }
@@ -1022,7 +1012,7 @@ function DashboardStyles() {
         display: block;
         margin-top: 6px;
         color: ${C.muted};
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
         overflow-wrap: anywhere;
       }
@@ -1053,7 +1043,7 @@ function DashboardStyles() {
         align-items: center;
         justify-content: space-between;
         gap: 14px;
-        height: 22px;
+        min-height: 22px;
       }
 
       .scroll-hint {
@@ -1257,10 +1247,34 @@ function DashboardStyles() {
           max-height: min(48svh, 420px);
         }
 
+        /* 820px 以下：AQI 和污染物分兩行堆疊 */
         .dashboard-first-row {
-          grid-template-columns: 1fr;
-          gap: 16px;
+          gap: 20px;
         }
+
+
+        /* 820px 以下：AQI 和污染物分兩行堆疊 */
+        .first-row-scroll {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .first-row-section {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .aqi-card {
+          width: 100%;
+          align-items: center;
+        }
+
+        .pollut-grid {
+          width: 100%;
+        }
+
+
 
         .dashboard-second-row,
         .dashboard-lower-row {
@@ -1278,6 +1292,7 @@ function DashboardStyles() {
 
         .trend-scroll {
           flex: 0 0 auto;
+          width: 100%;
           height: 196px;
           align-items: flex-start;
           padding: 4px 0 12px;
@@ -1289,15 +1304,6 @@ function DashboardStyles() {
 
         .row-divider {
           display: none;
-        }
-
-        .mini-gauge-row {
-          grid-template-columns: 1fr 1px 1fr;
-        }
-
-        .mini-pollut-strip {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px 12px;
         }
 
         .metric-divider {
@@ -1341,10 +1347,6 @@ function DashboardStyles() {
           gap: 12px;
         }
 
-        .mini-gauge-row {
-          grid-template-columns: 1fr 1px 1fr;
-          gap: 0 8px;
-        }
 
         .mini-arc {
           width: 120px;
@@ -1435,14 +1437,7 @@ function DashboardStyles() {
           margin-bottom: 8px;
         }
 
-        .mini-gauge-row {
-          margin-bottom: 8px;
-        }
 
-        .mini-pollut-card {
-          padding-top: 6px;
-          padding-bottom: 6px;
-        }
 
         .advice-card,
         .insight-card {
@@ -1577,65 +1572,101 @@ export default function DashboardPage() {
           <div className="dash-divider" />
 
           <div className="dashboard-first-row">
-            <div>
-              <SecLabel title="AQI 空氣品質指標" />
-              <div className="aqi-block">
-                <AQIGauge key={`aqi-${district}-${aqi}`} aqi={aqi} animationKey={`${district}-${aqi}`} />
-                <span className="aqi-hint">數值範圍 0-200，越低越好</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="pollutant-title-row">
-                <SecLabel title="污染物詳情" sub="（每小時）" />
-              </div>
-
-              <div className="mini-gauge-row">
-                <div className="mini-gauge-card">
-                  <h3>PM<sub className="text-xs">2.5</sub></h3>
-                  <p>細懸浮微粒</p>
-                  <small>標準日均值為 15.4 μg/m³</small>
-                  <GaugeArc
-                    key={`pm25-${district}-${pm25}`}
-                    value={pm25}
-                    max={150}
-                    markerVal={15.4}
-                    color={getPM25Color(pm25)}
-                    unit="μg/m³"
-                    animationKey={`${district}-pm25-${pm25}`}
-                  />
-                </div>
-                <div className="mini-divider" />
-                <div className="mini-gauge-card">
-                  <h3>O<sub className="text-xs">3</sub></h3>
-                  <p>臭氧</p>
-                  <small>標準8小時均值為 54 ppb</small>
-                  <GaugeArc
-                    key={`o3-${district}-${o3}`}
-                    value={o3}
-                    max={200}
-                    markerVal={54}
-                    color={getO3Color(o3)}
-                    unit="ppb"
-                    animationKey={`${district}-o3-${o3}`}
-                  />
+            {/* scroll wrapper — desktop: transparent, mobile: horizontal scroll */}
+            {/* scroll wrapper */}
+            <div className="first-row-scroll">
+              {/* AQI section */}
+              <div className="first-row-section">
+                <SecLabel title="AQI 空氣品質指標" />
+                <div className="aqi-card">
+                  <div className="aqi-block">
+                    <AQIGauge key={`aqi-${district}-${aqi}`} aqi={aqi} animationKey={`${district}-${aqi}`} />
+                  </div>
+                  <span className="aqi-hint">數值越低，空氣品質越好</span>
                 </div>
               </div>
 
-              <div className="mini-pollut-strip">
-                {pollutants.map((item, index) => (
-                  <React.Fragment key={index}>
-                    {index > 0 && <div className="metric-divider" />}
-                    <div className="mini-pollut-card">
-                      <h4>{item.name}</h4>
-                      <p>{item.sub}</p>
-                      <span className="mini-pollut-value">
-                        <strong>{item.value}</strong>
-                        <small>{item.unit}</small>
-                      </span>
+              {/* 污染物 section */}
+              <div className="first-row-section">
+                <div className="first-row-label-right">
+                  <SecLabel title="污染物詳情" sub="（每小時）" />
+                </div>
+                <div className="pollut-grid">
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">PM<sub>2.5</sub></span>
+                      <span className="pollut-cell-sub">細懸浮微粒</span>
                     </div>
-                  </React.Fragment>
-                ))}
+                    <div className="pollut-cell-value">
+                      <span style={{ color: getPM25Color(pm25) }}>{pm25}</span>
+                      <small>μg/m³</small>
+                    </div>
+                    <HBar
+                      key={`pm25-${district}-${pm25}`}
+                      value={pm25} max={150} markerVal={15.4}
+                      color={getPM25Color(pm25)}
+                      animationKey={`${district}-pm25-${pm25}`}
+                    />
+                    <span className="pollut-cell-ref">參考值 15.4 μg/m³</span>
+                  </div>
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">O<sub>3</sub></span>
+                      <span className="pollut-cell-sub">臭氧</span>
+                    </div>
+                    <div className="pollut-cell-value">
+                      <span style={{ color: getO3Color(o3) }}>{o3}</span>
+                      <small>ppb</small>
+                    </div>
+                    <HBar
+                      key={`o3-${district}-${o3}`}
+                      value={o3} max={200} markerVal={54}
+                      color={getO3Color(o3)}
+                      animationKey={`${district}-o3-${o3}`}
+                    />
+                    <span className="pollut-cell-ref">參考值 54 ppb</span>
+                  </div>
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">NO<sub>2</sub></span>
+                      <span className="pollut-cell-sub">二氧化氮</span>
+                    </div>
+                    <div className="pollut-cell-value">
+                      <span style={{ color: C.rose }}>{no2}</span>
+                      <small>ppb</small>
+                    </div>
+                  </div>
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">SO<sub>2</sub></span>
+                      <span className="pollut-cell-sub">二氧化硫</span>
+                    </div>
+                    <div className="pollut-cell-value">
+                      <span style={{ color: C.rose }}>{so2}</span>
+                      <small>ppb</small>
+                    </div>
+                  </div>
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">CO</span>
+                      <span className="pollut-cell-sub">一氧化碳</span>
+                    </div>
+                    <div className="pollut-cell-value">
+                      <span style={{ color: C.rose }}>{co.toFixed(2)}</span>
+                      <small>ppm</small>
+                    </div>
+                  </div>
+                  <div className="pollut-cell">
+                    <div className="pollut-cell-header">
+                      <span className="pollut-cell-name">PM<sub>10</sub></span>
+                      <span className="pollut-cell-sub">懸浮微粒</span>
+                    </div>
+                    <div className="pollut-cell-value">
+                      <span style={{ color: C.rose }}>{pm10}</span>
+                      <small>μg/m³</small>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

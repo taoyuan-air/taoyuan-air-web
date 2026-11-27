@@ -214,18 +214,20 @@ def parse_txt_file(filepath: Path, station_id: str):
 
 
 def delete_days(cur, station_id: str, measure_times: list[datetime]) -> int:
-    """刪掉同測站、資料涵蓋的每一天（UTC）的舊資料，回傳刪除筆數。"""
-    deleted = 0
-    for start, end in sorted({day_bounds(dt) for dt in measure_times}):
-        cur.execute(
-            """
-            DELETE FROM wind_lidar_data
-            WHERE station_id = %s AND measure_time >= %s AND measure_time < %s
-            """,
-            (station_id, start, end),
-        )
-        deleted += cur.rowcount
-    return deleted
+    """刪掉同測站、落在本檔時間範圍內（首筆～末筆）的舊資料，回傳刪除筆數。
+
+    不能整天刪：IOP1 的檔案最後一筆是隔天 00:00，若整天刪，
+    下一個檔匯入時會把前一個檔留下的 00:00 刪掉，而下一個檔本身從 00:10 開始，
+    00:00 那筆就永遠不見了。
+    """
+    cur.execute(
+        """
+        DELETE FROM wind_lidar_data
+        WHERE station_id = %s AND measure_time BETWEEN %s AND %s
+        """,
+        (station_id, min(measure_times), max(measure_times)),
+    )
+    return cur.rowcount
 
 
 def import_txt_file(conn, filepath: Path) -> Optional[tuple[int, int, int, int]]:
