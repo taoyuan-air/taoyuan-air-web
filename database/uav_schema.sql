@@ -5,7 +5,7 @@
 -- 機型: V6-850（aircraft）；儀器: Aeromount V4（新版檔名寫作 AMV4）
 -- 資料範圍: 2026-03-30，共 6 次飛行任務
 -- 量測參數: 23 個主要欄位（高度 2 種、氣象 11 種、氣膠 3 種、氣體 7 種）；CO2 為預留欄位
--- 資料流程: txt → 直接匯入 DB（scripts/import_uav.py，支援 UAS L2（2026/11 起）、UAV L2 gas＋met、舊版 L3）
+-- 資料流程: txt → 直接匯入 DB（scripts/import_iop_uas.py，支援 UAS L2（2026/11 起）、UAV L2 gas＋met、舊版 L3）
 -- 2026-11: UAS 檔名改為 UAS_{儀器}_L2_{gas|o3}_...；O3 由 POM-1782 臭氧儀提供，與 Aeromount-M4 合併為同一趟飛行
 --          -999（缺值）、-888（QC 剔除）不存數值，data_quality 標為 missing / rejected
 -- 注意: agl 欄位作為 agl_m 層鍵，不另存為參數資料
@@ -55,7 +55,7 @@ ALTER TABLE IF EXISTS uav_flights
     ALTER COLUMN longitude SET DEFAULT 121.1288,
     ALTER COLUMN altitude_m SET DEFAULT 17.0;
 
--- 插入 6 次飛行任務（僅作初始值；實際內容以 import_uav.py 讀取檔頭為準，
+-- 插入 6 次飛行任務（僅作初始值；實際內容以 import_iop_uas.py 讀取檔頭為準，
 -- 因此使用 DO NOTHING，重跑本檔不會覆蓋已匯入的 data_level、instrument、max_agl_m）
 INSERT INTO uav_flights
     (flight_id, takeoff_time, flight_direction, data_level, data_release_date,

@@ -77,7 +77,7 @@ ON CONFLICT (parameter_id) DO UPDATE SET
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. 量測資料表（寬表，按天分區）
 --    一列 = 一個測站 × 一個時間 × 一個高度，7 個參數各一欄
---    舊版（一個參數一列）請先執行 wind_lidar_migrate_wide.sql 轉換
+--    （2026/11 起只保留 IOP 期間，舊版一個參數一列的格式已不再支援）
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 BEGIN
@@ -85,7 +85,7 @@ BEGIN
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'wind_lidar_data' AND column_name = 'parameter_id'
     ) THEN
-        RAISE EXCEPTION 'wind_lidar_data 還是舊版格式，請先執行 database/wind_lidar_migrate_wide.sql';
+        RAISE EXCEPTION 'wind_lidar_data 還是舊版格式，請先 DROP TABLE wind_lidar_data CASCADE 後重新執行本檔，再用 import_iop_wind_lidar.py 重匯';
     END IF;
 END
 $$;

@@ -37,7 +37,7 @@ echo       Schema 建立完成
 
 REM 4. 匯入資料
 echo [4/4] 匯入 UAV 飛行資料...
-python scripts\import_uav.py
+python scripts\import_iop_uas.py
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] 資料匯入失敗
     pause
