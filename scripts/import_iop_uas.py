@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-UAV 資料匯入腳本：讀取無人機垂直剖面 txt，匯入 PostgreSQL 的 uav_data
+IOP UAS（無人機）匯入腳本：讀取 IOP 期間的無人機垂直剖面 txt，匯入 PostgreSQL 的 uav_flights / uav_data
 
-支援檔名（格式說明見 data/DATA_GUIDE.md）：
-  UAS（2026/11 起）：UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt
-                     UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt
-                     （同一趟飛行的各儀器檔合併；O3 以 POM 臭氧儀為準）
-  新：UAV_L2_{gas|met}_20260330_1647_AMV4_Guanyin_V1.txt（gas、met 合併為同一趟飛行）
-  舊：UAV_V1_L3_gas_20260330_1647_Aeromount(V4)_Guanyin.txt
-同一趟飛行多種格式並存時只用最新格式（UAS > UAV_L2 > 舊版）；重匯時整趟飛行重寫。
-資料庫裡已是較新格式的飛行，不會被較舊格式蓋掉（每小時排程只掃舊資料夾時也安全）。
+檔名（格式說明見 data/DATA_GUIDE.md）：
+  UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt   氣象、PM、氣體
+  UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt        POM 臭氧儀（IOP2 為 POM-1720）
+  同一趟飛行（YYYYMMDD_HHMM）的各儀器檔合併為一筆 flight_id；O3 以 POM 臭氧儀為準。
+  重匯時整趟飛行重寫。
+
+資料來源（VM 的 SFTP 上傳資料夾，只保留 IOP 期間）：
+  /data/sftp_root/uploads/TYDEP/2026IOP{1,2}/UAS/
+  可用環境變數 SFTP_UPLOADS_DIR 覆寫 /data/sftp_root/uploads
+
 -999（Missing_value）、-888（QC_rejected）與 NaN 一律不當成數值。
 
 用法：
-  python scripts/import_uav.py                                      # 讀 data/raw/UAV
-  python scripts/import_uav.py --raw-dir /data/sftp_root/uploads/UAV
-  python scripts/import_uav.py --raw-dir /data/sftp_root/uploads/TYDEP/2026IOP1/UAS
-  python scripts/import_uav.py --dry-run --raw-dir ...                # 只解析不寫入
+  python scripts/import_iop_uas.py                          # 讀 /data/sftp_root/uploads/TYDEP（IOP1、IOP2）
+  python scripts/import_iop_uas.py --dry-run                # 只解析不寫入
+  python scripts/import_iop_uas.py --raw-dir data/raw/UAS   # 本機測試
 """
 
 import argparse
@@ -56,25 +57,12 @@ if not DB_CONFIG['password']:
     sys.exit(1)
 
 # ── 路徑設定 ──────────────────────────────────────────────────────────────────
-ROOT_DIR = Path(__file__).parent.parent
-RAW_DIR  = ROOT_DIR / 'data' / 'raw' / 'UAV'
+RAW_DIR = Path(os.getenv('SFTP_UPLOADS_DIR', '/data/sftp_root/uploads')) / 'TYDEP'
 
-# UAS：UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt
-UAS_FILENAME_PATTERN = re.compile(
+# UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt
+FILENAME_PATTERN = re.compile(
     r'^UAS_(?P<instrument>.+?)_L(?P<level>\d+)_(?P<meas_type>[A-Za-z0-9]+)_(?P<date>\d{8})_'
     r'(?P<time>\d{4})_(?P<site>[A-Za-z]+)_V(?P<version>\d+)\.txt$',
-    re.IGNORECASE,
-)
-# 新：UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt
-NEW_FILENAME_PATTERN = re.compile(
-    r'^UAV_L(?P<level>\d+)_(?P<meas_type>[A-Za-z]+)_(?P<date>\d{8})_(?P<time>\d{4})_'
-    r'(?P<instrument>.+?)_(?P<site>[A-Za-z]+)_V(?P<version>\d+)\.txt$',
-    re.IGNORECASE,
-)
-# 舊：UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt
-OLD_FILENAME_PATTERN = re.compile(
-    r'^UAV_V(?P<version>\d+)_L(?P<level>\d+)_(?P<meas_type>[A-Za-z]+)_(?P<date>\d{8})_'
-    r'(?P<time>\d{4})_(?P<instrument>.+)_(?P<site>[A-Za-z]+)\.txt$',
     re.IGNORECASE,
 )
 
@@ -91,9 +79,6 @@ HEADER_ALIASES = {
     'PM25': 'PM2.5',
     'PM2p5': 'PM2.5',
 }
-
-# 格式優先順序（數字大者優先）
-FORMAT_RANK = {'old': 1, 'new': 2, 'uas': 3}
 
 # 儀器檔的「主要量測」：同一高度兩個檔都有有效值時，以專用儀器為準
 MEAS_TYPE_PARAM = {'o3': 'O3'}
@@ -122,38 +107,32 @@ INSERT_SQL = """
 # ── 檔名 ──────────────────────────────────────────────────────────────────────
 def parse_filename(filename: str) -> Optional[dict]:
     """
-    解析 UAV 檔名，回傳 metadata dict 或 None。
+    解析 UAS 檔名，回傳 metadata dict 或 None。
 
-    範例：UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt
-    → {'format': 'new', 'level': 'L2', 'level_num': 2, 'meas_type': 'gas',
-       'date': '20260330', 'time': '1647', 'instrument': 'AMV4',
+    範例：UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt
+    → {'level': 'L2', 'level_num': 2, 'meas_type': 'o3',
+       'date': '20260330', 'time': '1647', 'instrument': 'POM-1782',
        'site': 'Guanyin', 'version': '1', 'flight_id': '20260330_1647'}
     """
-    for fmt, pattern in (('uas', UAS_FILENAME_PATTERN),
-                         ('new', NEW_FILENAME_PATTERN),
-                         ('old', OLD_FILENAME_PATTERN)):
-        m = pattern.match(filename)
-        if m:
-            return {
-                'format':     fmt,
-                'level':      f"L{m.group('level')}",
-                'level_num':  int(m.group('level')),
-                'meas_type':  m.group('meas_type').lower(),
-                'date':       m.group('date'),
-                'time':       m.group('time'),
-                'instrument': m.group('instrument'),
-                'site':       m.group('site'),
-                'version':    m.group('version'),
-                'flight_id':  f"{m.group('date')}_{m.group('time')}",
-            }
-    return None
+    m = FILENAME_PATTERN.match(filename)
+    if not m:
+        return None
+    return {
+        'level':      f"L{m.group('level')}",
+        'level_num':  int(m.group('level')),
+        'meas_type':  m.group('meas_type').lower(),
+        'date':       m.group('date'),
+        'time':       m.group('time'),
+        'instrument': m.group('instrument'),
+        'site':       m.group('site'),
+        'version':    m.group('version'),
+        'flight_id':  f"{m.group('date')}_{m.group('time')}",
+    }
 
 
 def find_flight_files(raw_dir: Path) -> dict:
     """
-    遞迴搜尋 raw_dir，依 flight_id 分組，並挑出每趟飛行要使用的檔案：
-      1. 只用最新格式（UAS > UAV_L2 > 舊版）
-      2. 同格式取最高資料級別
+    遞迴搜尋 raw_dir，依 flight_id 分組；同一趟飛行取最高資料級別的檔案。
     回傳 {flight_id: [(path, fname_meta), ...]}
     """
     groups = defaultdict(list)
@@ -166,8 +145,6 @@ def find_flight_files(raw_dir: Path) -> dict:
 
     selected = {}
     for flight_id, items in sorted(groups.items()):
-        fmt = max((m['format'] for _, m in items), key=FORMAT_RANK.get)
-        items = [(p, m) for p, m in items if m['format'] == fmt]
         top_level = max(m['level_num'] for _, m in items)
         selected[flight_id] = sorted(
             [(p, m) for p, m in items if m['level_num'] == top_level],
@@ -181,8 +158,7 @@ def parse_file_metadata(lines: list[str]) -> tuple[dict, int]:
     """
     解析檔案開頭的 metadata header（key: value 格式），
     回傳 (metadata_dict, data_start_index)。key 一律轉小寫。
-    data_start_index 指向分隔線 '==' 之後的下一行（即單位行）；
-    若沒有分隔線（最早期格式），回傳 0。
+    data_start_index 指向分隔線 '==' 之後的下一行；沒有分隔線時回傳 0。
     """
     metadata = {}
 
@@ -198,7 +174,7 @@ def parse_file_metadata(lines: list[str]) -> tuple[dict, int]:
 
 
 def meta_get(meta: dict, *keys: str) -> Optional[str]:
-    """依序嘗試多個 key（新舊檔頭命名不同），回傳第一個有值的。"""
+    """依序嘗試多個 key，回傳第一個有值的。"""
     for key in keys:
         value = meta.get(key.lower())
         if value not in (None, ''):
@@ -338,7 +314,7 @@ def parse_txt_file(filepath: Path) -> tuple[dict, dict]:
 
 def merge_flight(files: list) -> tuple[dict, dict]:
     """
-    合併同一趟飛行的多個檔案（新版 gas＋met）。
+    合併同一趟飛行的多個檔案（Aeromount gas ＋ POM o3）。
     檔頭以第一個檔為主、後面的補空缺；量測值重複（如兩檔都有 asl）時保留有效值。
     專用儀器檔（如 POM 臭氧 o3）的主要量測，有效時一律覆蓋其他檔的同欄位。
     """
@@ -371,13 +347,6 @@ def flight_instruments(files: list) -> str:
         if m['instrument'] not in names:
             names.append(m['instrument'])
     return '+'.join(names)[:50]
-
-
-def existing_format(conn, flight_id: str) -> Optional[str]:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT source_format FROM uav_flights WHERE flight_id = %s", (flight_id,))
-        row = cursor.fetchone()
-    return row[0] if row else None
 
 
 def upsert_flight(conn, flight_id: str, fname_meta: dict, file_meta: dict,
@@ -424,7 +393,7 @@ def upsert_flight(conn, flight_id: str, fname_meta: dict, file_meta: dict,
                 meta_number(file_meta, 'elevation', 'altitude_m') or DEFAULT_ALTITUDE,
                 instrument,
                 meta_number(file_meta, 'max_agl', 'max agl', 'max_agl_m'),
-                fname_meta['format'],
+                'uas',
             ),
         )
         cursor.execute(
@@ -439,16 +408,9 @@ def upsert_flight(conn, flight_id: str, fname_meta: dict, file_meta: dict,
         )
 
 
-def import_flight(conn, flight_id: str, files: list, dry_run: bool = False,
-                  force: bool = False) -> Optional[tuple]:
-    """匯入一趟飛行（可能由多個檔案組成），回傳 (total, valid, invalid)；略過時回傳 None。"""
+def import_flight(conn, flight_id: str, files: list, dry_run: bool = False) -> tuple:
+    """匯入一趟飛行（Aeromount ＋ POM 兩個檔），回傳 (total, valid, invalid)。"""
     fname_meta = files[0][1]
-
-    if conn is not None and not force:
-        current = existing_format(conn, flight_id)
-        if current and FORMAT_RANK.get(current, 0) > FORMAT_RANK[fname_meta['format']]:
-            print(f'略過（資料庫已是較新的 {current} 格式）')
-            return None
 
     file_meta, values = merge_flight(files)
 
@@ -475,7 +437,7 @@ def import_flight(conn, flight_id: str, files: list, dry_run: bool = False,
     try:
         upsert_flight(conn, flight_id, fname_meta, file_meta, flight_instruments(files))
         with conn.cursor() as cursor:
-            # 先清掉該飛行舊資料（例如舊版 L3），避免殘留舊高度層或舊值
+            # 先清掉該飛行舊資料，避免殘留舊高度層或舊值
             cursor.execute("DELETE FROM uav_data WHERE flight_id = %s", (flight_id,))
             execute_batch(cursor, INSERT_SQL, rows, page_size=2000)
         conn.commit()
@@ -488,17 +450,14 @@ def import_flight(conn, flight_id: str, files: list, dry_run: bool = False,
 
 
 def main():
-    parser = argparse.ArgumentParser(description='UAV txt → PostgreSQL')
-    parser.add_argument('--raw-dir', type=Path,
-                        default=Path(os.getenv('UAV_RAW_DIR', str(RAW_DIR))),
-                        help='資料夾（預設 data/raw/UAV，可設環境變數 UAV_RAW_DIR；會遞迴搜尋）')
+    parser = argparse.ArgumentParser(description='IOP UAS txt → PostgreSQL')
+    parser.add_argument('--raw-dir', type=Path, default=RAW_DIR,
+                        help='資料夾（預設 /data/sftp_root/uploads/TYDEP，會遞迴讀 IOP1、IOP2 的 UAS）')
     parser.add_argument('--dry-run', action='store_true', help='只解析、不寫入資料庫')
-    parser.add_argument('--force', action='store_true',
-                        help='即使資料庫已是較新格式也覆蓋（通常不需要）')
     args = parser.parse_args()
 
     print('=' * 60)
-    print('UAV 資料匯入工具')
+    print('IOP UAS 資料匯入工具')
     print('=' * 60)
 
     flights = find_flight_files(args.raw_dir)
@@ -523,10 +482,7 @@ def main():
         level = files[0][1]['level']
         print(f'  [{idx}/{len(flights)}] {flight_id} ({level} {kinds}) ...', end=' ', flush=True)
 
-        result = import_flight(conn, flight_id, files, args.dry_run, args.force)
-        if result is None:
-            continue
-        total, valid, invalid = result
+        total, valid, invalid = import_flight(conn, flight_id, files, args.dry_run)
         grand_total   += total
         grand_valid   += valid
         grand_invalid += invalid
