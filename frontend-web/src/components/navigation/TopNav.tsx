@@ -8,9 +8,9 @@ import { Menu, X, Bell, Settings, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 const navItems = [
-  { href: '/dashboard',   label: '空氣總覽' },
-  { href: '/map',         label: '監測地圖' },
-  { href: '/explorer',    label: '數據檢索' },
+  { href: '/dashboard',   label: '即時空品' },
+  { href: '/map',         label: '互動地圖' },
+  { href: '/explorer',    label: '測站列表' },
   { href: '/events',      label: '事件記錄' },
   { href: '/instruments', label: '儀器介紹' },
   { href: '/alerts',      label: '警報通知' },
@@ -56,8 +56,8 @@ export function TopNav() {
               <Image
                 src="https://res.cloudinary.com/da3bvump4/image/upload/v1777184942/logo-air_mb0ktq.webp"
                 alt="Taoyuan Air Logo"
-                width={34}
-                height={34}
+                width={42}
+                height={42}
                 style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                 unoptimized
               />
