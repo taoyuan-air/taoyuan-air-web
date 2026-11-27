@@ -1,9 +1,9 @@
 """
 Wind Lidar FastAPI 路由器
-直接查詢資料庫 wind_lidar_data（已由 import_wind_lidar.py 匯入）
+直接查詢資料庫 wind_lidar_data（已由 import_iop_wind_lidar.py 匯入）
 
 時間說明：
-  import_wind_lidar.py 將 TXT 的 'Date/time' 欄位以 strptime 直接解析
+  import_iop_wind_lidar.py 將 TXT 的 'Date/time' 欄位以 strptime 直接解析
   後存入 DB，沒有做 UTC+8 轉換，因此 measure_time 實際上就是台灣本地時間。
   API 回應中直接格式化為 'YYYY-MM-DD HH:MM' 字串輸出即可。
 """

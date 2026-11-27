@@ -37,7 +37,7 @@ echo       Schema 建立完成
 
 REM 4. 匯入資料
 echo [4/4] 匯入 WindLidar 歷史資料（直接 txt -> DB）...
-python scripts\import_wind_lidar.py
+python scripts\import_iop_wind_lidar.py --raw-dir data\raw\WindLidar
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] 資料匯入失敗
     pause

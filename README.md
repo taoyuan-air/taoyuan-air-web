@@ -245,10 +245,10 @@ python scripts\update_cwa_monthly.py
 python scripts\import_tydep_stations.py
 
 # 匯入 UAV 無人機剖面
-python scripts\import_uav.py
+python scripts\import_iop_uas.py
 
 # 匯入 WindLidar 風光達
-python scripts\import_wind_lidar.py
+python scripts\import_iop_wind_lidar.py
 
 # 匯入 TEDS 點源資料
 python scripts\import_teds_point.py
