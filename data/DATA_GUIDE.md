@@ -64,9 +64,8 @@ data/raw/
 │                          # 新版檔名：UAV_L2_{gas|met}_YYYYMMDD_HHMM_AMV4_Guanyin_V1.txt
 │                          # UAS 檔名（2026/11 起，IOP 資料）：UAS_{Aeromount-M4|POM-1782}_L2_{gas|o3}_YYYYMMDD_HHMM_Guanyin_V1.txt
 │
-├── WindLidar/             # 都卜勒風光達日檔（新版直接從 SFTP 讀）
-│                          # 舊版檔名：DWL_V1_L1_UVW_YYYYMMDD_L02240328_Guanyin.txt
-│                          # 新版檔名：DWL_L1_UVW_YYYYMMDD_L02240328_Guanyin_V1.txt
+├── WindLidar/             # 本機測試用；VM 直接讀 SFTP uploads/TYDEP/2026IOP{1,2}/WindLidar/
+│                          # 檔名：DWL_L02240328_L1_UVW_YYYYMMDD_Guanyin_V1.txt
 │
 ├── IOP/                   # 外場觀測強化期（IOP1 觀音/IOP2 大園）
 │   ├── Aerosol/           # 氣膠化學濾紙（PM1/PM2.5；Guanyin/NCU/Xinwu）
@@ -114,16 +113,17 @@ data/processed/
 
 ### WindLidar
 ```
-DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt
- │   │  │      │        │        │     └─ 反演版本
- │   │  │      │        │        └─ 測站
- │   │  │      │        └─ 儀器序號
- │   │  │      └─ 觀測日期（YYYYMMDD，UTC）
- │   │  └─ 量測參數（水平垂直風）
- │   └─ 資料級別 L1
+DWL_L02240328_L1_UVW_20260327_Guanyin_V1.txt
+ │      │      │  │      │        │     └─ 反演版本
+ │      │      │  │      │        └─ 測站
+ │      │      │  │      └─ 觀測日期（YYYYMMDD，UTC）
+ │      │      │  └─ 量測參數（水平垂直風）
+ │      │      └─ 資料級別 L1
+ │      └─ 儀器序號
  └─ 都卜勒風光達
 ```
-舊檔名（Google 雲端，2026-04）：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt`。檔案內容格式相同（tab 分隔）。
+- 只保留 IOP 期間（IOP1 3/27–4/03、IOP2 8/17–8/24），放在 SFTP `uploads/TYDEP/2026IOP{1,2}/WindLidar/`，`station_id` 為 `L02240328_Guanyin`
+- 2026/11 依老師指示清除舊資料；舊檔名（`DWL_L1_UVW_…`、`DWL_V1_L1_UVW_…`）與舊匯入程式 `import_wind_lidar.py` 已移除
 
 ### UAV
 ```
@@ -171,7 +171,6 @@ UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt        # POM 臭氧儀，只有 
 | TYDEP | `scripts/convert_tydep_xlsx.py` → `scripts/import_tydep_stations.py` | 需先轉檔，產出至 `processed/tydep-stations/json/` |
 | TYDEP 即時 | `scripts/update_tydep_realtime.py` | 讀 `raw/tydep-stations/realtime/*.csv`，`source=realtime`，不覆蓋 history |
 | UAV | `scripts/import_uav.py` | 自動解析檔頭；`--raw-dir /data/sftp_root/uploads/UAV/Guanyin`（遞迴）；IOP 的 UAS 檔：`--raw-dir /data/sftp_root/uploads/TYDEP/2026IOP1/UAS`；`--dry-run` 只解析 |
-| WindLidar | `scripts/import_wind_lidar.py` | 自動從檔名解析 station_id；`--raw-dir /data/sftp_root/uploads/WindLidar --skip-existing` |
 | AOD | `scripts/download_maiac.py` → `scripts/import_maiac_aod.py` | 下載需 `EARTHDATA_TOKEN`；已有 npz 可直接匯入 |
 | IOP VOCs | `scripts/import_iop_vocs.py` | 讀 `raw/IOP/VOCs/*.xlsx`（觸發採樣、無人機採樣）；IOP 以檔名為準 |
 | IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 讀 `raw/IOP/Aerosol/*.xlsx`（PM2.5、PM1 濾紙）；IOP 以檔名為準 |
