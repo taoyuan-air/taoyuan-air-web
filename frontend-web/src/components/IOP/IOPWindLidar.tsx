@@ -73,11 +73,12 @@ class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 // ── 主元件 ───────────────────────────────────────────────────────────────────
 interface IOPWindLidarProps {
   stationInfo: StationInfo;
+  iopId: string;
   iopStart: string;
   iopEnd: string;
 }
 
-export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindLidarProps) {
+export default function IOPWindLidar({ stationInfo, iopId, iopStart, iopEnd }: IOPWindLidarProps) {
   const router = useRouter();
   const mountedRef = useRef(true);
 
@@ -166,7 +167,7 @@ export default function IOPWindLidar({ stationInfo, iopStart, iopEnd }: IOPWindL
           </div>
           <button
             className="iop-instrument-info-btn"
-            onClick={() => router.push('/instruments?tab=wind-lidar')}
+            onClick={() => router.push(`/instruments?tab=wind-lidar&from_iop=${iopId}&from_subtab=wind-lidar`)}
             title="前往風光達儀器介紹"
           >
             <Wind size={13} strokeWidth={2.2} />

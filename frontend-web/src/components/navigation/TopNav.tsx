@@ -12,8 +12,7 @@ const navItems = [
   { href: '/map',         label: '互動地圖' },
   { href: '/explorer',    label: '測站列表' },
   { href: '/events',      label: '事件記錄' },
-  { href: '/instruments', label: '儀器介紹' },
-  { href: '/health',      label: '健康與防護' },
+  { href: '/health',      label: '健康防護' },
 ];
 
 export function TopNav() {

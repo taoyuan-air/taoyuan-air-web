@@ -381,7 +381,7 @@ export default function IOPUASView({ iopId, iopStart, iopEnd }: Props) {
           {/* 儀器介紹按鈕 */}
           <button
             className="iop-instrument-info-btn"
-            onClick={() => router.push('/instruments?tab=uav')}
+            onClick={() => router.push(`/instruments?tab=uav&from_iop=${iopId}&from_subtab=uas`)}
             title="前往 UAV 無人機儀器介紹"
           >
             <Plane size={13} strokeWidth={2.2} />

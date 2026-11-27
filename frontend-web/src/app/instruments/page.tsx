@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plane, Wind, ChevronDown, ChevronUp,
   MapPin, Hash, Layers, Activity, Cpu, Ruler, Zap, Info,
   Radio, Gauge, Thermometer, Droplets, ArrowUpDown,
-  FlaskConical, Cloud, Atom, X,
+  FlaskConical, Cloud, Atom, X, ChevronLeft,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
@@ -514,7 +514,10 @@ export default function InstrumentsPage() {
 
 function InstrumentsPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTab = (searchParams.get('tab') === 'wind-lidar' ? 'wind-lidar' : 'uav') as 'uav' | 'wind-lidar';
+  const fromIop    = searchParams.get('from_iop');
+  const fromSubtab = searchParams.get('from_subtab');
   const [tab, setTab]         = useState<'uav' | 'wind-lidar'>(initialTab);
   // openId  = 實際顯示中的節點（面板可見）
   // visId   = 右側面板渲染的節點（切換時短暫保留舊內容）
@@ -580,7 +583,30 @@ function InstrumentsPageInner() {
     <div style={{ minHeight:'100vh', background:'var(--app-bg-gradient)', paddingBottom:80 }}>
 
       {/* Tab */}
-      <div style={{ padding:'40px 0 8px 36px' }}>
+      <div style={{ padding:'40px 0 8px 36px', display:'flex', alignItems:'center', gap:16 }}>
+        <button
+          onClick={() => {
+            if (fromIop && fromSubtab) {
+              router.push(`/events?iop=${fromIop}&subtab=${fromSubtab}`);
+            } else {
+              router.back();
+            }
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 16px', borderRadius: 999,
+            border: `1px solid ${C.roseBorder}`,
+            background: '#fff',
+            color: C.muted, fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: C.glassShadow, transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+          aria-label="回到上一頁"
+        >
+          <ChevronLeft size={14} strokeWidth={2.5} />
+          返回
+        </button>
         <TabBar active={tab} onChange={handleTabChange}/>
       </div>
 

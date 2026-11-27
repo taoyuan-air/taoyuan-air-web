@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import IOPView from '@/components/IOP/IOPView';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
@@ -8,7 +9,9 @@ export default function EventsPage() {
     <AuthGuard>
       <div style={{ minHeight: '100vh', background: 'var(--app-bg-gradient)', paddingBottom: 80 }}>
         <div style={{ padding: '40px 40px 0' }}>
-          <IOPView />
+          <Suspense fallback={null}>
+            <IOPView />
+          </Suspense>
         </div>
 
         <style>{`

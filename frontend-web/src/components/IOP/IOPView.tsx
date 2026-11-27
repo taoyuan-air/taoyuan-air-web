@@ -8,7 +8,8 @@
  * 2. 點選卡片 → expand 動畫展開詳細內容（wind-lidar / vocs sub-tab）
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Wind, FlaskConical, Microscope, Calendar, MapPin, BarChart3, Atom, Map, Radio, Droplets, Plane } from 'lucide-react';
 import { fetchIOPs, type IOPSummary } from '@/lib/iopApi';
 import { fetchStations, type StationInfo } from '@/lib/windLidarApi';
@@ -398,6 +399,15 @@ function ExpandPanel({ children }: { children: React.ReactNode }) {
 
 // ── 主元件 ────────────────────────────────────────────────────────────────────
 export default function IOPView() {
+  return (
+    <Suspense fallback={null}>
+      <IOPViewInner />
+    </Suspense>
+  );
+}
+
+function IOPViewInner() {
+  const searchParams = useSearchParams();
   const [iops, setIops]               = useState<IOPSummary[]>([]);
   const [stations, setStations]       = useState<StationInfo[]>([]);
   const [selectedIop, setSelectedIop] = useState<IOPSummary | null>(null);
@@ -405,6 +415,7 @@ export default function IOPView() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -418,6 +429,20 @@ export default function IOPView() {
         if (!mountedRef.current) return;
         setIops(iopData);
         setStations(stationData);
+
+        // 從 URL query 恢復 state（由 instruments 頁面返回時帶入）
+        if (!restoredRef.current) {
+          restoredRef.current = true;
+          const fromIop    = searchParams.get('iop');
+          const fromSubtab = searchParams.get('subtab') as IOPSubTab | null;
+          if (fromIop) {
+            const match = iopData.find((i) => i.iop_id === fromIop);
+            if (match) {
+              setSelectedIop(match);
+              setSubTab(fromSubtab ?? 'wind-lidar');
+            }
+          }
+        }
       })
       .catch((err: Error) => {
         if (!mountedRef.current) return;
@@ -426,7 +451,7 @@ export default function IOPView() {
       .finally(() => {
         if (mountedRef.current) setLoading(false);
       });
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectIop = (iop: IOPSummary) => {
     setSelectedIop(iop);
@@ -587,6 +612,7 @@ export default function IOPView() {
             stationInfo ? (
               <IOPWindLidar
                 stationInfo={stationInfo}
+                iopId={selectedIop.iop_id}
                 iopStart={selectedIop.start_date}
                 iopEnd={selectedIop.end_date}
               />
