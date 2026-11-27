@@ -22,6 +22,7 @@
 | `iop_hg_schema.sql` | 6. IOP | 大氣汞（GEM、GOM、PBM） |
 | `uav_schema.sql` | 6. IOP | UAS 無人機垂直剖面（表名沿用 `uav_*`） |
 | `wind_lidar_schema.sql` | 6. IOP | 風光達垂直風場（寬表：一個時間 × 高度一列） |
+| `iop_mpl_schema.sql` | 6. IOP | miniMPL 微脈衝光達（一個時間一列，1000 層 NRB 存成陣列） |
 | `aod_schema.sql` | 待老師確認是否保留 | MAIAC 衛星 AOD 與 PM2.5 補值模型特徵 |
 | `auth_schema.sql` | 網站 | 登入帳號 |
 
@@ -49,6 +50,7 @@ $DB < database/iop_lcs_schema.sql
 $DB < database/iop_hg_schema.sql
 $DB < database/uav_schema.sql
 $DB < database/wind_lidar_schema.sql
+$DB < database/iop_mpl_schema.sql
 $DB < database/aod_schema.sql
 $DB < database/auth_schema.sql
 ```
@@ -80,6 +82,7 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air -v ON_ERROR_ST
 | 特殊排放點源 | 不分區 | `import_exam_point.py` | 以 `(source_id, item_id, exam_date)` UPSERT |
 | IOP UAS | `flight_id` LIST 分區 | `import_iop_uas.py` | IOP 新檔上傳後手動匯入；整趟飛行重寫 |
 | IOP WindLidar | `measure_time` 日分區 | `import_iop_wind_lidar.py` | IOP 新檔上傳後手動匯入；同一天先刪後寫 |
+| IOP miniMPL | 不分區（16 天約 2 萬列、約 430 MB） | `import_iop_mpl.py` | IOP 新檔上傳後手動匯入；本檔時間範圍先刪後寫 |
 | IOP LCS、Hg、VOCs、氣膠 | 不分區 | `import_iop_*.py` | IOP 新檔上傳後手動匯入 |
 | AOD | `obs_date` 月分區 | `import_maiac_aod.py` | 以日為單位整天替換 |
 

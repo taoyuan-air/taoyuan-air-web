@@ -165,7 +165,7 @@ UAS_POM-1782_L2_o3_20260330_1647_Guanyin_V1.txt        # POM 臭氧儀，只有 
 | IOP 大氣汞 | `scripts/import_iop_hg.py` | `--raw-dir /data/sftp_root/uploads/TYDEP`；採樣時間依程式內 `SCHEDULE_2026` 對應（IOP2 檔案的日期沿用 IOP1） |
 | IOP VOCs | `scripts/import_iop_vocs.py` | 每期分開指定：`--raw-dir /data/sftp_root/uploads/TYDEP/2026IOP1/VOCs`（IOP2 同理）；指定整個 `TYDEP` 會讀到其他儀器的 xlsx 而報錯；IOP 以檔名為準 |
 | IOP 氣膠化學 | `scripts/import_iop_aerosol.py` | 每期分開指定：`--raw-dir "/data/sftp_root/uploads/TYDEP/2026IOP1/Aerosol Chemistry"`（IOP2 同理，路徑有空格要加引號）；指定整個 `TYDEP` 會讀到其他儀器的 xlsx 而報錯 |
-| IOP miniMPL | （建置中） | |
+| IOP miniMPL | `scripts/import_iop_mpl.py` | 預設讀 `/data/sftp_root/uploads/TYDEP/2026IOP{1,2}/miniMPL/`；需先安裝 `netCDF4`；時間用檔內 `Time`（UTC）；整列 NaN 的時間不存；`--iop IOP1\|IOP2`、`--dry-run` |
  
 每小時排程：`scripts/run_data_imports.sh`（`deploy/systemd/taoyuan-air-data-import.{service,timer}`）只匯入 TYDEP 即時資料。IOP 資料改為上傳後手動執行上表的 IOP 腳本。
  
