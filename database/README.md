@@ -30,7 +30,7 @@
 
 | 資料源 | 檔名範例 | 說明 |
 | --- | --- | --- |
-| WindLidar | 新（SFTP）：`DWL_L1_UVW_20260811_L02240328_Guanyin_V1.txt`；舊：`DWL_V1_L1_UVW_20260330_L02240328_Guanyin.txt` | 都卜勒風光達_級別_參數_日期_序號_站點_反演版本 |
+| WindLidar | `DWL_L02240328_L1_UVW_20260327_Guanyin_V1.txt`（只保留 IOP 期間） | 都卜勒風光達_序號_級別_參數_日期_站點_反演版本 |
 | UAV | UAS（IOP，2026/11 起）：`UAS_Aeromount-M4_L2_gas_20260330_1647_Guanyin_V1.txt`＋`UAS_POM-1782_L2_o3_…`；新（SFTP）：`UAV_L2_gas_20260330_1647_AMV4_Guanyin_V1.txt`＋`UAV_L2_met_…`；舊：`UAV_V1_L3_gas_20260330_0025_Aeromount(V4)_Guanyin.txt` | 儀器_級別_參數_日期_時間_儀器版本_站點_反演版本 |
 
 ## 查詢範例
@@ -45,7 +45,7 @@
 | CWA | 依 `monitor_date` 月分區 | `scripts/import_cwa_stations.py` | `scripts/update_cwa_monthly.py` 以 history 覆蓋 realtime |
 | TYDEP | 依 `monitor_date` 月分區 | `scripts/import_tydep_stations.py` | 歷史資料批次匯入；即時：`update_tydep_realtime.py` 讀環保局 SFTP 的 CSV（`TYDEP_<代號>_<YYYYMMDDHH>.csv`），寫入 realtime，不覆蓋 history |
 | UAV | 依 `flight_id` LIST 分區 | `scripts/import_uav.py` | 每個飛行任務自動補一個分區；重匯時整趟飛行重寫 |
-| WindLidar | 依 `measure_time` 日分區 | `scripts/import_wind_lidar.py` | 每日資料匯入時自動補日分區 |
+| WindLidar | 依 `measure_time` 日分區 | `scripts/import_iop_wind_lidar.py` | 匯入時自動補日分區；同一天先刪舊資料再寫入 |
 | AOD | 依 `obs_date` 月分區 | `scripts/import_maiac_aod.py` | 以「日」為單位整天替換；`--force` 重做；只存通過 QA 的格點 |
 | TEDS 點源 | 不分區 | `scripts/import_teds_point.py` | 重複略過（ON CONFLICT DO NOTHING） |
 | TEDS 網格 | 不分區 | `scripts/import_teds_grid.py` | 重複略過（ON CONFLICT DO NOTHING） |
@@ -286,8 +286,8 @@ docker exec -i taoyuan-air-db psql -U taoyuan_user -d taoyuan_air < database/aut
 原始資料不納入 Git 版控。請自行將資料放入 `data/raw/<資料源>/` 後執行匯入腳本。
 
 ```bash
-# WindLidar
-python scripts/import_wind_lidar.py
+# WindLidar（IOP 檔，預設讀 /data/sftp_root/uploads/TYDEP/2026IOP{1,2}/WindLidar/）
+python scripts/import_iop_wind_lidar.py
 
 # UAV
 python scripts/import_uav.py
