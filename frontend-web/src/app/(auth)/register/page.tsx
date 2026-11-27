@@ -33,7 +33,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     username: '', email: '', password: '', password_confirm: '',
     birth_date: '', gender: '', default_district: '',
-    sensitivity: '一般民眾', has_respiratory: false,
+    sensitivity: '一般民眾',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -193,28 +193,27 @@ export default function RegisterPage() {
               {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <p style={{ fontSize: 11, color: C.hint, marginTop: 4 }}>
-              此資料用於估算年暴露量等環境健康指標，請填寫您日常主要活動的行政區。
+              用於預設顯示您所在區域的空氣品質資訊，可隨時在設定中修改。
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>敏感度</label>
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.sensitivity} onChange={(e) => set('sensitivity', e.target.value)}>
-                <option value="一般民眾">一般民眾</option>
-                <option value="敏感族群">敏感族群</option>
-              </select>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 22 }}>
+          <div>
+            <label
+              htmlFor="sensitive"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+            >
               <input
-                type="checkbox" id="resp" checked={form.has_respiratory}
-                onChange={(e) => set('has_respiratory', e.target.checked)}
+                type="checkbox" id="sensitive"
+                checked={form.sensitivity === '敏感族群'}
+                onChange={(e) => set('sensitivity', e.target.checked ? '敏感族群' : '一般民眾')}
                 style={{ width: 18, height: 18, cursor: 'pointer', accentColor: C.primary }}
               />
-              <label htmlFor="resp" style={{ fontSize: 13, fontWeight: 600, color: C.muted, cursor: 'pointer' }}>
-                有氣喘 / 呼吸道疾病
-              </label>
-            </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>我屬於敏感族群</span>
+            </label>
+            <p style={{ fontSize: 11, color: C.hint, marginTop: 6, marginLeft: 28, lineHeight: 1.6 }}>
+              官方定義：有心臟、呼吸道及心血管疾病患者、孩童及老年人。
+              <span style={{ color: C.hint }}>（資料來源：環境部空氣品質指標）</span>
+            </p>
           </div>
 
           <button
