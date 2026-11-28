@@ -221,7 +221,7 @@ function Tooltip({ children, borderColor }: { children: React.ReactNode; borderC
   );
 }
 
-/* ── 污染物卡片（含 hover tooltip + 狀態標籤） ────────── */
+/* ── 污染物卡片（含 hover tooltip + 狀態標籤 + AQI 展開表） */
 function PollutantCard({ meta, value, district }: {
   meta: typeof POLLUTANT_META[number];
   value: number;
@@ -229,6 +229,7 @@ function PollutantCard({ meta, value, district }: {
 }) {
   const { status, color, levelIdx } = getPollutantStatus(meta.key, value);
   const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const levels = getPollutantLevels(meta.key);
   const lv = levels[levelIdx];
 
@@ -287,6 +288,95 @@ function PollutantCard({ meta, value, district }: {
       <span style={{ fontSize: 9, color: C.hint, lineHeight: 1.5, marginTop: 4 }}>
         {meta.desc}
       </span>
+
+      {/* AQI 濃度對照區塊 */}
+      <div style={{
+        marginTop: 8,
+        borderTop: `1px solid ${C.glassBorder}`,
+        paddingTop: 8,
+      }}>
+        {/* 標題列 + 展開按鈕 */}
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', background: 'none',
+            border: 'none', padding: 0, cursor: 'pointer', marginBottom: 4,
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>AQI 濃度對照</span>
+          <span style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '3px 8px', borderRadius: 8,
+            background: expanded ? C.primaryAlpha : 'rgba(72,149,236,0.06)',
+            border: `1px solid ${expanded ? C.primaryBorder : 'rgba(72,149,236,0.15)'}`,
+            transition: 'background 0.2s ease, border-color 0.2s ease',
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, lineHeight: 1 }}>
+              {expanded ? '收合' : '展開'}
+            </span>
+            {/* 固定寬高 + transformOrigin center 確保軸心在三角形正中 */}
+            <span style={{
+              width: 14, height: 14,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, color: C.primary, fontWeight: 700, lineHeight: 1,
+              transition: 'transform 0.25s ease',
+              transformOrigin: 'center center',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}>
+              ▾
+            </span>
+          </span>
+        </button>
+
+        {/* 收合預覽列（永遠顯示，不參與動畫） */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '4px 7px', borderRadius: 7,
+          background: `${levels[levelIdx].color}18`,
+          border: `1px solid ${levels[levelIdx].color}55`,
+          marginBottom: expanded ? 2 : 0,
+        }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, flexShrink: 0, background: levels[levelIdx].color }} />
+          <span style={{ fontSize: 9.5, fontWeight: 800, color: levels[levelIdx].color, flex: 1, whiteSpace: 'nowrap' }}>
+            {levels[levelIdx].label}
+          </span>
+          <span style={{ fontSize: 9, color: levels[levelIdx].color, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {levels[levelIdx].min}–{levels[levelIdx].max} {meta.unit}
+          </span>
+        </div>
+
+        {/* 展開 / 收合動畫區（其餘等級，用 grid trick 做雙向動畫） */}
+        <div style={{
+          display: 'grid',
+          gridTemplateRows: expanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.28s cubic-bezier(0.4,0,0.2,1)',
+        }}>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 2 }}>
+              {levels.map((l, i) => {
+                if (i === levelIdx) return null; // 已在預覽列顯示
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '4px 7px', borderRadius: 7,
+                    background: 'transparent',
+                    border: '1px solid transparent',
+                  }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, flexShrink: 0, background: l.color }} />
+                    <span style={{ fontSize: 9.5, fontWeight: 600, color: C.muted, flex: 1, whiteSpace: 'nowrap' }}>
+                      {l.label}
+                    </span>
+                    <span style={{ fontSize: 9, color: C.hint, fontWeight: 400, whiteSpace: 'nowrap' }}>
+                      {l.min}–{l.max} {meta.unit}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
