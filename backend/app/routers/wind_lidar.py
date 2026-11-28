@@ -99,8 +99,14 @@ def _build_2d_grid(
 @router.get("/stations")
 async def list_stations(db: AsyncSession = Depends(get_db)):
     """
-    掃描 wind_lidar_data 資料表，回傳所有測站及其有資料的日期清單。
-    日期以降冪排序（最新在前）。
+    回傳所有測站及其有資料的日期清單。
+
+    流程：
+    1. 查 pg_class 取子分區名稱，解析出「可能有資料的日期」（比全表 GROUP BY 快）
+    2. 查 wind_lidar_stations 取所有測站
+    3. 對每個測站 × 每個日期做一次 primary key 點查（LIMIT 1），
+       確認該測站在該日期確實有資料，過濾掉空分區或測站未覆蓋的日期
+
     結果快取 10 分鐘（X-Cache: HIT/MISS）。
     """
     global _stations_cache
@@ -109,30 +115,54 @@ async def list_stations(db: AsyncSession = Depends(get_db)):
     if _stations_cache and now - _stations_cache[0] < _STATIONS_TTL:
         return JSONResponse(_stations_cache[1], headers={"X-Cache": "HIT"})
 
+    # 步驟 1：從 pg_class 取候選日期清單
     result = await db.execute(
         text("""
-            SELECT
-                station_id,
-                TO_CHAR(DATE(measure_time), 'YYYY-MM-DD') AS date_str
-            FROM wind_lidar_data
-            GROUP BY station_id, DATE(measure_time)
-            ORDER BY station_id ASC, DATE(measure_time) DESC
+            SELECT c.relname
+            FROM pg_class c
+            JOIN pg_inherits i ON i.inhrelid = c.oid
+            JOIN pg_class p    ON p.oid      = i.inhparent
+            WHERE p.relname = 'wind_lidar_data'
+              AND c.relkind = 'r'
+            ORDER BY c.relname
         """)
     )
-    rows = result.mappings().all()
+    partition_re = re.compile(r'^wind_lidar_data_(\d{4})_(\d{2})_(\d{2})$')
+    candidate_dates: list[str] = []
+    for (name,) in result.fetchall():
+        m = partition_re.match(name)
+        if m:
+            candidate_dates.append(f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+    candidate_dates.sort()  # 升冪，之後 reverse 給前端
 
-    # 聚合：station_id → [date_str, ...]
-    station_dates: dict[str, list[str]] = {}
-    for row in rows:
-        sid = row["station_id"]
-        if sid not in station_dates:
-            station_dates[sid] = []
-        station_dates[sid].append(row["date_str"])
+    # 步驟 2：取所有測站
+    station_result = await db.execute(
+        text("SELECT station_id FROM wind_lidar_stations ORDER BY station_id")
+    )
+    station_ids = [row[0] for row in station_result.fetchall()]
 
-    response_list = [
-        {"station": sid, "dates": dates}
-        for sid, dates in station_dates.items()
-    ]
+    # 步驟 3：每個測站 × 每個候選日期，用 primary key 點查確認有無資料
+    # 最多 ~10 站 × ~20 天 = 200 次，每次只走 primary key index，非常快
+    response_list = []
+    for sid in station_ids:
+        confirmed: list[str] = []
+        for date_str in candidate_dates:
+            day_start = datetime.strptime(date_str, "%Y-%m-%d")
+            day_end   = day_start + timedelta(days=1)
+            exists = await db.execute(
+                text("""
+                    SELECT 1 FROM wind_lidar_data
+                    WHERE station_id   = :sid
+                      AND measure_time >= :day_start
+                      AND measure_time <  :day_end
+                    LIMIT 1
+                """),
+                {"sid": sid, "day_start": day_start, "day_end": day_end},
+            )
+            if exists.scalar_one_or_none() is not None:
+                confirmed.append(date_str)
+        confirmed.sort(reverse=True)  # 最新在前
+        response_list.append({"station": sid, "dates": confirmed})
 
     _stations_cache = (now, response_list)
     return JSONResponse(response_list, headers={"X-Cache": "MISS"})
