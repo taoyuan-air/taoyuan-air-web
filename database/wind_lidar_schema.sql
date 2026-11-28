@@ -105,33 +105,9 @@ CREATE TABLE IF NOT EXISTS wind_lidar_data (
 ) PARTITION BY RANGE (measure_time);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. 分區表（按天；之後的日期由 import_wind_lidar.py 自動建立）
+-- 4. 分區表：由 import_iop_wind_lidar.py 的 ensure_partitions() 在匯入時自動建立
+--    不在此預建，避免產生空分區影響 /api/wind-lidar/stations 的日期清單
 -- ─────────────────────────────────────────────────────────────────────────────
-
--- 2026 年 3 月
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_27 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-27 00:00:00+00') TO ('2026-03-28 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_28 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-28 00:00:00+00') TO ('2026-03-29 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_29 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-29 00:00:00+00') TO ('2026-03-30 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_30 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-30 00:00:00+00') TO ('2026-03-31 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_03_31 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-03-31 00:00:00+00') TO ('2026-04-01 00:00:00+00');
-
--- 2026 年 4 月
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_01 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-01 00:00:00+00') TO ('2026-04-02 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_02 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-02 00:00:00+00') TO ('2026-04-03 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_03 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-03 00:00:00+00') TO ('2026-04-04 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_04 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-04 00:00:00+00') TO ('2026-04-05 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_05 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-05 00:00:00+00') TO ('2026-04-06 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_06 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-06 00:00:00+00') TO ('2026-04-07 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_07 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-07 00:00:00+00') TO ('2026-04-08 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_08 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-08 00:00:00+00') TO ('2026-04-09 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_09 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-09 00:00:00+00') TO ('2026-04-10 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_10 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-10 00:00:00+00') TO ('2026-04-11 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_11 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-11 00:00:00+00') TO ('2026-04-12 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_12 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-12 00:00:00+00') TO ('2026-04-13 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_13 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-13 00:00:00+00') TO ('2026-04-14 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_14 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-14 00:00:00+00') TO ('2026-04-15 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_15 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-15 00:00:00+00') TO ('2026-04-16 00:00:00+00');
-CREATE TABLE IF NOT EXISTS wind_lidar_data_2026_04_16 PARTITION OF wind_lidar_data FOR VALUES FROM ('2026-04-16 00:00:00+00') TO ('2026-04-17 00:00:00+00');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. 索引：主鍵 (station_id, measure_time, height_m) 已涵蓋常用查詢，不另建
