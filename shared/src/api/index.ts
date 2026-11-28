@@ -3,9 +3,30 @@ import {
   EventItem, Alert, Meta, HealthAdvisory, Pollutant,
   TargetType, Scenario, TEDSPoint, ExamPoint, HealthLevel
 } from '../types';
+import { AQI_LEVELS } from '../constants/airHealth';
+import { OFFICIAL_LEVEL_TEXT } from '../constants/officialText';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const ENABLE_PM25_DEMO_DATA = process.env.NEXT_PUBLIC_ENABLE_DEMO_DATA !== 'false';
+
+// PM2.5 → AQI 標準線性插值（環境部空氣品質指標官方公式）
+const PM25_BREAKPOINTS: Array<{ cLow: number; cHigh: number; aqiLow: number; aqiHigh: number }> = [
+  { cLow: 0,     cHigh: 12.4,  aqiLow: 0,   aqiHigh: 50  },
+  { cLow: 12.5,  cHigh: 30.4,  aqiLow: 51,  aqiHigh: 100 },
+  { cLow: 30.5,  cHigh: 50.4,  aqiLow: 101, aqiHigh: 150 },
+  { cLow: 50.5,  cHigh: 125.4, aqiLow: 151, aqiHigh: 200 },
+  { cLow: 125.5, cHigh: 225.4, aqiLow: 201, aqiHigh: 300 },
+  { cLow: 225.5, cHigh: 500.4, aqiLow: 301, aqiHigh: 500 },
+];
+
+const pm25ToAqi = (pm25: number): number => {
+  const c = Math.min(Math.max(pm25, 0), 500.4);
+  const bp = PM25_BREAKPOINTS.find((b) => c >= b.cLow && c <= b.cHigh)
+    ?? PM25_BREAKPOINTS[PM25_BREAKPOINTS.length - 1];
+  return Math.round(
+    ((bp.aqiHigh - bp.aqiLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.aqiLow,
+  );
+};
 
 const PM25_DEMO_BOUNDS = {
   north: 25.2,
@@ -13,6 +34,31 @@ const PM25_DEMO_BOUNDS = {
   east: 121.5,
   west: 121.0,
 };
+
+const buildHealthAdvisory = (aqi: number): HealthAdvisory => {
+  const levelIdx = AQI_LEVELS.findIndex((l) => aqi >= l.min && aqi <= l.max);
+  const level = AQI_LEVELS[levelIdx >= 0 ? levelIdx : AQI_LEVELS.length - 1];
+  const text  = OFFICIAL_LEVEL_TEXT[level.id - 1];
+
+  let outdoorActivity: HealthAdvisory['outdoorActivity'] = '建議';
+  if (level.id === 3) outdoorActivity = '謹慎';
+  if (level.id >= 4)  outdoorActivity = '避免';
+
+  const maskRequired = level.id >= 3;
+
+  const sensitiveGroups = level.id >= 3
+    ? ['兒童', '老人', '孕婦', '心肺疾病患者', '氣喘患者']
+    : level.id === 2 ? ['氣喘患者'] : [];
+
+  return {
+    aqi,
+    level: level.label as HealthAdvisory['level'],
+    outdoorActivity,
+    maskRequired,
+    sensitiveGroups,
+    summary: text.healthImpact,
+  };
+}; 
 
 const generateDemoGrid = (scenario: Scenario): GridCell[] => {
   const grids: GridCell[] = [];
@@ -32,10 +78,8 @@ const generateDemoGrid = (scenario: Scenario): GridCell[] => {
         pm25Value = 100 + Math.random() * 60;
       }
 
-      const aqi = Math.round(pm25Value * 2);
-      let healthLevel: HealthLevel = '良好';
-      if (aqi > 100) healthLevel = '對敏感族群不健康';
-      if (aqi > 150) healthLevel = '對所有族群不健康';
+      const pm25Rounded = Math.round(pm25Value);
+      const aqi = pm25ToAqi(pm25Rounded);
 
       grids.push({
         gridId: `G${gridId.toString().padStart(3, '0')}`,
@@ -46,7 +90,7 @@ const generateDemoGrid = (scenario: Scenario): GridCell[] => {
           { latitude, longitude: longitude + lngStep },
         ],
         centerLatLng: { latitude: centerLat, longitude: centerLng },
-        values: { pollutant: 'PM25', value: Math.round(pm25Value), unit: 'µg/m³' },
+        values: { pollutant: 'PM25', value: pm25Rounded, unit: 'µg/m³' },
         meteo: {
           temp: 22 + Math.random() * 8,
           humidity: 60 + Math.random() * 30,
@@ -54,14 +98,7 @@ const generateDemoGrid = (scenario: Scenario): GridCell[] => {
           windDir: Math.random() * 360,
         },
         updatedAt: new Date().toISOString(),
-        health: {
-          aqi,
-          level: healthLevel,
-          outdoorActivity: aqi > 100 ? '謹慎' : '建議',
-          maskRequired: aqi > 100,
-          sensitiveGroups: aqi > 100 ? ['兒童', '老人', '心肺疾病患者'] : [],
-          summary: aqi > 100 ? '空氣品質對敏感族群不健康' : '空氣品質良好',
-        },
+        health: buildHealthAdvisory(aqi),
       });
       gridId += 1;
     }
@@ -222,34 +259,10 @@ export const getAlerts = async (): Promise<Alert[]> => {
   return alerts;
 };
 
-export const getHealthAdvisory = async ({ pollutant, value, trend }: { pollutant: Pollutant; value: number; trend?: string }): Promise<HealthAdvisory> => {
+export const getHealthAdvisory = async ({ pollutant, value }: { pollutant: Pollutant; value: number; trend?: string }): Promise<HealthAdvisory> => {
   await delay(200);
-  const aqi = Math.round(value * 2);
-
-  let level: any = '良好';
-  let outdoorActivity: any = '建議';
-  let maskRequired = false;
-  let sensitiveGroups: string[] = [];
-  let summary = '空氣品質良好，適合戶外活動';
-
-  if (aqi > 50) {
-    level = '普通';
-    summary = '空氣品質普通';
-  }
-  if (aqi > 100) {
-    level = '對敏感族群不健康';
-    outdoorActivity = '謹慎';
-    maskRequired = true;
-    sensitiveGroups = ['兒童', '老人', '心肺疾病患者'];
-    summary = '敏感族群應減少戶外活動';
-  }
-  if (aqi > 150) {
-    level = '對所有族群不健康';
-    outdoorActivity = '避免';
-    summary = '所有人群應避免戶外活動';
-  }
-
-  return { aqi, level, outdoorActivity, maskRequired, sensitiveGroups, summary };
+  const aqi = pm25ToAqi(value);
+  return buildHealthAdvisory(aqi);
 };
 
 export const getExamPoints = async (baseUrl = '/api'): Promise<ExamPoint[]> => {

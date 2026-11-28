@@ -11,6 +11,7 @@ interface LeafletMapProps {
   mapMode: '2D' | 'Satellite';
   showAdministrativeBoundaries?: boolean;
   onGridPress?: (grid: GridCell) => void;
+  onGridHover?: (grid: GridCell | null) => void;
   focusGrid?: GridCell | null;
 }
 
@@ -47,7 +48,7 @@ interface LeafletGeoJsonLayer {
 }
 
 interface LeafletPolygon {
-  on: (event: 'click', handler: (event: LeafletClickEvent) => void) => void;
+  on: (event: 'click' | 'mouseover' | 'mouseout', handler: (event: LeafletClickEvent) => void) => void;
   addTo: (layerGroup: LeafletLayerGroup) => void;
 }
 
@@ -57,7 +58,10 @@ interface LeafletTileLayer {
 
 interface LeafletMarkerInstance {
   addTo: (map: LeafletMapInstance | LeafletLayerGroup) => LeafletMarkerInstance;
-  bindPopup?: (text: string) => LeafletMarkerInstance;
+  bindPopup?: (text: string, options?: Record<string, unknown>) => LeafletMarkerInstance;
+  openPopup?: () => LeafletMarkerInstance;
+  closePopup?: () => LeafletMarkerInstance;
+  on?: (event: string, handler: (e: LeafletClickEvent) => void) => LeafletMarkerInstance;
 }
 
 interface LeafletApi {
@@ -141,6 +145,17 @@ const ensureTEDSMarkerStyles = () => {
       color: #2d9a5e;
       background: #2d9a5e;
     }
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px !important;
+      box-shadow: 0 6px 24px rgba(58,30,45,0.18) !important;
+      padding: 0 !important;
+    }
+    .leaflet-popup-content {
+      margin: 10px 14px !important;
+    }
+    .leaflet-popup-tip-container {
+      margin-top: -1px;
+    }
   `;
   document.head.appendChild(style);
 };
@@ -166,6 +181,20 @@ const getRuntimeWindyInit = () => new Function('return window.windyInit')() as W
 
 const createScriptLoadError = (src: string) => new Error(`Failed to load map script: ${src}`);
 
+const latLngDistSq = (lat1: number, lng1: number, lat2: number, lng2: number) =>
+  (lat1 - lat2) ** 2 + (lng1 - lng2) ** 2;
+
+const findNearestGrid = (lat: number, lng: number, grids: GridCell[]): GridCell | null => {
+  if (grids.length === 0) return null;
+  let best = grids[0];
+  let bestDist = latLngDistSq(lat, lng, best.centerLatLng.latitude, best.centerLatLng.longitude);
+  for (let i = 1; i < grids.length; i++) {
+    const d = latLngDistSq(lat, lng, grids[i].centerLatLng.latitude, grids[i].centerLatLng.longitude);
+    if (d < bestDist) { bestDist = d; best = grids[i]; }
+  }
+  return best;
+};
+
 const getGridColor = (value: number) => {
   const stops = [[0,0,228,0],[50,255,255,0],[100,255,126,0],[150,255,0,0],[200,126,0,35]];
   const clamped = Math.max(0, Math.min(200, value));
@@ -180,7 +209,7 @@ const getGridColor = (value: number) => {
   return `rgba(${r},${g},${b},0.4)`;
 };
 
-export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdministrativeBoundaries = false, onGridPress, focusGrid }: LeafletMapProps) {
+export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdministrativeBoundaries = false, onGridPress, onGridHover, focusGrid }: LeafletMapProps) {
   const [isDetailMode, setIsDetailMode] = useState(false);
   const mapRef = useRef<LeafletMapInstance | null>(null);
   const windyLeafletRef = useRef<LeafletApi | null>(null);
@@ -197,6 +226,7 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
   const mapModeRef = useRef(mapMode);
   const gridCellsRef = useRef<GridCell[]>(gridCells);
   const onGridPressRef = useRef(onGridPress);
+  const onGridHoverRef = useRef(onGridHover);
   const tedsPointsRef = useRef<EmissionPoint[]>(tedsPoints || []);
   const showAdministrativeBoundariesRef = useRef(showAdministrativeBoundaries);
   const [zoomLevel, setZoomLevel] = useState(WINDY_DETAIL_ZOOM);
@@ -250,13 +280,28 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
         });
 
         const marker = L.marker(pos, {
-          title: point.name || point.id,
           ...(icon ? { icon } : {}),
         });
         if (marker) {
           marker.addTo(layerGroup);
           if (typeof marker.bindPopup === 'function') {
-            marker.bindPopup(`<strong>${point.name || point.id}</strong><br/>${popupDetails}`);
+            const popupHtml = `
+              <div style="font-family:sans-serif;min-width:160px;">
+                <div style="font-size:13px;font-weight:800;margin-bottom:4px;">${point.name || point.id}</div>
+                <div style="font-size:11px;color:#666;">${popupDetails}</div>
+              </div>`;
+            marker.bindPopup(popupHtml, { autoClose: false, closeOnClick: false });
+            if (typeof marker.on === 'function') {
+              marker.on('mouseover', () => {
+                marker.openPopup?.();
+                const nearest = findNearestGrid(point.latLng.latitude, point.latLng.longitude, gridCellsRef.current);
+                if (nearest) onGridHoverRef.current?.(nearest);
+              });
+              marker.on('mouseout', () => {
+                marker.closePopup?.();
+                onGridHoverRef.current?.(null);
+              });
+            }
           }
         }
       } catch (e) {
@@ -289,6 +334,10 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
   useEffect(() => {
     onGridPressRef.current = onGridPress;
   }, [onGridPress]);
+
+  useEffect(() => {
+    onGridHoverRef.current = onGridHover;
+  }, [onGridHover]);
 
   const syncDetailFromWindy = useCallback(() => {
     const windyMap = mapRef.current;
@@ -331,6 +380,8 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
       const positions = grid.polygonCoords.map((c) => [c.latitude, c.longitude] as LatLngTuple);
       const polygon = L.polygon(positions, { fillColor: getGridColor(grid.values.value), fillOpacity: 0.6, color: 'rgba(106,141,115,0.3)', weight: 1 });
       polygon.on('click', (e) => { e.originalEvent?.stopPropagation?.(); onGridPressRef.current?.(grid); });
+      polygon.on('mouseover', (e) => { e.originalEvent?.stopPropagation?.(); onGridHoverRef.current?.(grid); });
+      polygon.on('mouseout', (e) => { e.originalEvent?.stopPropagation?.(); onGridHoverRef.current?.(null); });
       polygon.addTo(layerGroup);
     });
   }, []);
@@ -626,69 +677,77 @@ export default function LeafletMap({ gridCells, tedsPoints, mapMode, showAdminis
         style={{
           position: 'absolute',
           right: 18,
-          bottom: 58,
+          bottom: 40,
           zIndex: 520,
-          width: 214,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 6,
           background: 'rgba(255,255,255,0.97)',
-          border: '1px solid rgba(72, 149, 236, 0.28)',
+          border: '1px solid rgba(72,149,236,0.22)',
           borderRadius: 14,
-          padding: '10px 12px',
-          boxShadow: '0 10px 24px rgba(15,29,58,0.2)',
+          boxShadow: '0 4px 16px rgba(15,29,58,0.14)',
           backdropFilter: 'blur(10px)',
+          padding: '10px 10px',
+          width: 44,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#6a5a66' }}>縮放尺</div>
-          <div style={{ fontSize: 11, color: '#8f7f8a', fontWeight: 700 }}>Zoom {zoomLevel}</div>
+        <button
+          onClick={() => handleZoomRequest(zoomLevel + 1)}
+          style={{
+            width: 28, height: 28, border: '1px solid rgba(72,149,236,0.22)',
+            borderRadius: 8,
+            background: 'transparent', cursor: 'pointer',
+            color: '#2d78b8', fontWeight: 700, fontSize: 20, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s', flexShrink: 0,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(72,149,236,0.10)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        >
+          +
+        </button>
+
+        <input
+          type="range"
+          min={DETAIL_MIN_ZOOM}
+          max={DETAIL_MAX_ZOOM}
+          step={1}
+          value={zoomLevel}
+          onChange={(e) => handleZoomRequest(Number(e.target.value))}
+          style={{
+            writingMode: 'vertical-lr' as React.CSSProperties['writingMode'],
+            direction: 'rtl' as React.CSSProperties['direction'],
+            height: 120,
+            width: 4,
+            accentColor: '#2d78b8',
+            cursor: 'pointer',
+            margin: '2px 0',
+          }}
+        />
+
+        <button
+          onClick={() => handleZoomRequest(zoomLevel - 1)}
+          style={{
+            width: 28, height: 28, border: '1px solid rgba(72,149,236,0.22)',
+            borderRadius: 8,
+            background: 'transparent', cursor: 'pointer',
+            color: '#2d78b8', fontWeight: 700, fontSize: 20, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s', flexShrink: 0,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(72,149,236,0.10)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        >
+          −
+        </button>
+
+        <div style={{
+          fontSize: 10, fontWeight: 800, color: '#5a7a9a',
+          letterSpacing: '0.3px', userSelect: 'none',
+        }}>
+          {zoomLevel}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => handleZoomRequest(zoomLevel - 1)}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              flexShrink: 0, 
-              border: '1px solid rgba(106,141,115,0.38)',
-              background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
-              cursor: 'pointer',
-              color: '#566',
-              fontWeight: 900,
-              fontSize: 18,
-              lineHeight: 1,
-            }}
-          >
-            -
-          </button>
-          <input
-            type="range"
-            min={DETAIL_MIN_ZOOM}
-            max={DETAIL_MAX_ZOOM}
-            step={1}
-            value={zoomLevel}
-            onChange={(e) => handleZoomRequest(Number(e.target.value))}
-            style={{ flex: 1, minWidth: 0, accentColor: '#2d78b8', height: 24 }}
-          />
-          <button
-            onClick={() => handleZoomRequest(zoomLevel + 1)}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              flexShrink: 0, 
-              border: '1px solid rgba(106,141,115,0.38)',
-              background: 'linear-gradient(180deg, #ffffff, #f5f5f5)',
-              cursor: 'pointer',
-              color: '#566',
-              fontWeight: 900,
-              fontSize: 18,
-              lineHeight: 1,
-            }}
-          >
-            +
-          </button>
-        </div>
-        <div style={{ marginTop: 6, fontSize: 10, color: '#4A6080' }}>拖曳中間滑桿或使用 +/- 調整比例</div>
       </div>
     </div>
   );
