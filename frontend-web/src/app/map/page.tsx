@@ -39,36 +39,23 @@ const pollutantMeta: Record<Pollutant, {
   },
 };
 
-// ── AQI color / status (standard scale) ─────────────────────────
-const getAQIColor = (aqi: number) => {
-  if (aqi <= 50)  return '#76c476';
-  if (aqi <= 100) return '#edbb05';
-  if (aqi <= 150) return '#ff9800';
-  if (aqi <= 200) return '#f44336';
-  return '#9c27b0';
-};
-const getAQIStatus = (aqi: number) => {
-  if (aqi <= 50)  return '良好';
-  if (aqi <= 100) return '普通';
-  if (aqi <= 150) return '敏感族群注意';
-  if (aqi <= 200) return '對所有人不健康';
-  return '非常不健康';
-};
+// ── AQI color / status — 統一使用 shared/constants/airHealth.ts ─
+import { AQI_LEVELS } from '@shared/constants/airHealth';
+
+const getAqiLevelEntry = (aqi: number) =>
+  AQI_LEVELS.find((l) => aqi >= l.min && aqi <= l.max) ?? AQI_LEVELS[AQI_LEVELS.length - 1];
+
+const getAQIColor = (aqi: number) => getAqiLevelEntry(aqi).hex;
+
 const getAQIBadgeBg = (aqi: number) => {
-  if (aqi <= 50)  return { bg: 'rgba(118,196,118,0.14)', color: '#2F6B3D' };
-  if (aqi <= 100) return { bg: 'rgba(237,187,5,0.14)',   color: '#7A5A00' };
-  if (aqi <= 150) return { bg: 'rgba(255,152,0,0.14)',   color: '#8B4E00' };
-  if (aqi <= 200) return { bg: 'rgba(244,67,54,0.12)',   color: '#9F1239' };
-  return              { bg: 'rgba(156,39,176,0.12)',   color: '#6B21A8' };
+  const entry = getAqiLevelEntry(aqi);
+  return {
+    bg: entry.hex,
+    color: '#ffffff',
+  };
 };
 
-const getPollutantColor = (value: number, standard: number) => {
-  const r = value / standard;
-  if (r <= 1)   return '#76c476';
-  if (r <= 2)   return '#edbb05';
-  if (r <= 3.5) return '#ff9800';
-  return '#f44336';
-};
+const getPollutantColor = (aqi: number) => getAqiLevelEntry(aqi).hex;
 
 // ── Circle AQI Gauge (adapted from Dashboard AQIGauge) ──────────
 const G = { SIZE: 118, STROKE: 8 } as const;
@@ -104,7 +91,7 @@ function CardAQIGauge({ aqi }: { aqi: number }) {
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', width: G.SIZE - 38, height: G.SIZE - 38, borderRadius: '50%', background: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(58,30,45,0.08)' }}>
         <span style={{ fontSize: 8, color: '#7A9AC0', letterSpacing: '1.5px', fontFamily: 'monospace' }}>AQI</span>
         <strong style={{ fontSize: 26, lineHeight: 1.1, fontWeight: 900, color }}>{aqi}</strong>
-        <span style={{ marginTop: 3, padding: '1px 6px', borderRadius: 999, background: `${color}22`, border: `1px solid ${color}44`, fontSize: 8, fontWeight: 800, color }}>{getAQIStatus(aqi)}</span>
+        <span style={{ marginTop: 3, padding: '1px 6px', borderRadius: 999, background: `${color}22`, border: `1px solid ${color}44`, fontSize: 8, fontWeight: 800, color }}>{getAqiLevelEntry(aqi).label}</span>
       </div>
     </div>
   );
@@ -519,7 +506,7 @@ export default function MapPage() {
   const aqi       = activeGrid?.health.aqi ?? 0;
   const aqiBadge  = getAQIBadgeBg(aqi);
   const pollValue = activeGrid ? Math.round(activeGrid.values.value) : 0;
-  const pollColor = activeGrid ? getPollutantColor(activeGrid.values.value, selectedMeta.arcStandard) : '#76c476';
+  const pollColor = activeGrid ? getPollutantColor(activeGrid.health.aqi) : '#4caf50';
 
   return (
     <AuthGuard>
@@ -752,7 +739,7 @@ export default function MapPage() {
             }}>
               <span style={{ fontSize: 42, fontWeight: 900, color: pollColor, lineHeight: 1 }}>{pollValue}</span>
               <span style={{ fontSize: 13, color: pollColor, fontWeight: 700 }}>{selectedMeta.unit}</span>
-              <span style={{ fontSize: 12, color: palette.textSecondary, marginLeft: 3 }}>PM2.5</span>
+              <span style={{ fontSize: 12, color: palette.textSecondary, marginLeft: 3 }}>{selectedMeta.short}</span>
             </div>
           </div>
 
@@ -762,23 +749,9 @@ export default function MapPage() {
           {/* 健康建議文字 */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: palette.textSecondary, marginBottom: 5 }}>健康建議</div>
-            <p style={{ margin: '0 0 8px', color: palette.textMain, fontSize: 12, lineHeight: 1.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ margin: 0, color: palette.textMain, fontSize: 12, lineHeight: 1.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {activeGrid?.health.summary ?? ''}
             </p>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'rgba(72,149,236,0.10)', fontSize: 11, color: palette.textMain, whiteSpace: 'nowrap' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={palette.primaryDeep} strokeWidth="2.5" strokeLinecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                戶外活動：{activeGrid?.health.outdoorActivity ?? ''}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, color: palette.textMain, whiteSpace: 'nowrap', background: activeGrid?.health.maskRequired ? 'rgba(244,67,54,0.08)' : 'rgba(118,196,118,0.12)' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={activeGrid?.health.maskRequired ? '#f44336' : '#2F6B3D'} strokeWidth="2.5" strokeLinecap="round">
-                  {activeGrid?.health.maskRequired
-                    ? <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    : <polyline points="20 6 9 17 4 12"/>}
-                </svg>
-                {activeGrid?.health.maskRequired ? '建議配戴口罩' : '無需口罩'}
-              </div>
-            </div>
           </div>
         </div>
       </div>
